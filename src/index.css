@@ -1,0 +1,117 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+:root {
+  --bg-primary: #060509;
+  --bg-surface: #0b0a10;
+  --bg-elevated: #111018;
+  --border-default: #1b1926;
+  --text-primary: #ffffff;
+  --text-secondary: #9f9bac;
+  --text-tertiary: #686477;
+  --text-muted: #494554;
+  --accent-primary: #ccff00;
+  --accent-hover: #ddff33;
+  --data-positive: #00f5a0;
+  --data-negative: #ff3366;
+  --warning: #f59e0b;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+  letter-spacing: -0.01em;
+}
+
+/* SafeHeaven Premium Glass Cards */
+.card {
+  background-color: rgba(11, 10, 16, 0.7);
+  border: 1px solid var(--border-default);
+  border-radius: 1rem;
+  backdrop-filter: blur(12px);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card:hover {
+  border-color: rgba(204, 255, 0, 0.25);
+  box-shadow: 0 10px 30px -15px rgba(204, 255, 0, 0.08);
+}
+
+.card-elevated {
+  background-color: rgba(17, 16, 24, 0.85);
+  border: 1px solid var(--border-default);
+  border-radius: 1.25rem;
+  backdrop-filter: blur(16px);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-elevated:hover {
+  border-color: rgba(204, 255, 0, 0.3);
+  box-shadow: 0 12px 35px -15px rgba(204, 255, 0, 0.12);
+}
+
+/* SafeHeaven Visual Glow Accessories */
+.glow-text-lime {
+  text-shadow: 0 0 12px rgba(204, 255, 0, 0.35);
+}
+
+.glow-border-lime:focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 15px rgba(204, 255, 0, 0.15);
+}
+
+.input-field {
+  background-color: rgba(11, 10, 16, 0.65);
+  border: 1px solid var(--border-default);
+  color: var(--text-primary);
+  padding: 0.65rem 0.95rem;
+  border-radius: 0.75rem;
+  font-family: var(--font-sans);
+  transition: all 0.2s ease;
+}
+
+.input-field:focus {
+  border-color: var(--accent-primary);
+  outline: none;
+  box-shadow: 0 0 12px rgba(204, 255, 0, 0.15);
+}
+
+/* Neon Glassmorphism badge */
+.badge-lime {
+  background-color: rgba(204, 255, 0, 0.1);
+  border: 1px solid rgba(204, 255, 0, 0.2);
+  color: var(--accent-primary);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-default);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-tertiary);
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
