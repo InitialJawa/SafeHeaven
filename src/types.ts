@@ -12,6 +12,11 @@ export interface TickerInfo {
   changePercent: number;
   score: number;
   signal: SignalType;
+  quality?: number;
+  growth?: number;
+  value?: number;
+  moment?: number;
+  dividen?: number;
 }
 
 export interface PortfolioConfig {
@@ -20,12 +25,16 @@ export interface PortfolioConfig {
   universe: string;
   topN: number;
   strategyTemplate: string;
+  strategyProfile?: 'auto' | 'aggressive_momentum' | 'defensive_value';
   allocationSaham: number;
   allocationEmas: number;
   allocationCash: number;
   allocationUSD: number;
   crashThreshold: number;
   stopLoss: number;
+  activeStressScenario?: string;
+  stressImpactPct?: number;
+  lastRebalancedAt?: string;
 }
 
 export interface StockPick {
@@ -65,6 +74,7 @@ export interface Strategy {
   weightValue: number;
   weightVolume: number;
   weightDividend: number;
+  weightGrowth: number;
   allocationSaham: number;
   allocationEmas: number;
   allocationCash: number;
@@ -101,6 +111,34 @@ export interface ApiKey {
   key: string;
   status: 'Active' | 'Revoked';
   lastUsed?: string;
+}
+
+export interface NotificationChannelConfig {
+  email: string;
+  emailEnabled: boolean;
+  whatsapp: string;
+  whatsappEnabled: boolean;
+  webhookUrl: string;
+  webhookEnabled: boolean;
+  telegramToken: string;
+  telegramChatId: string;
+  telegramEnabled: boolean;
+  discordWebhook: string;
+  discordEnabled: boolean;
+  rotationAlert: boolean;
+  signalAlert: boolean;
+  dailyReport: boolean;
+  crashAlert: boolean;
+}
+
+export interface GlobalSystemConfig {
+  currencyDisplay: 'IDR' | 'USD' | 'DUAL';
+  executionMode: 'Otomatis' | 'Semi-Auto' | 'Simulasi';
+  autoSyncInterval: '5s' | '15s' | '60s' | 'manual';
+  maxSingleStockAllocation: number;
+  autoStopLoss: number;
+  soundNotifications: boolean;
+  highContrastGlow: boolean;
 }
 
 export interface ChatMessage {

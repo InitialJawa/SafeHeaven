@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, ArrowLeftRight, Eye, EyeOff, Sparkles } from 'lucide-react';
+import { Plus, ArrowLeftRight, Eye, EyeOff } from 'lucide-react';
 import { useAppStore } from '../stores';
 import { toast } from 'sonner';
 

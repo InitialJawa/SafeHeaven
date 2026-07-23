@@ -115,3 +115,9 @@ body {
   }
 }
 
+/* Hide TradingView Logo in lightweight-charts */
+#tv-attr-logo,
+a[href^="https://www.tradingview.com/"] {
+  display: none !important;
+}
+

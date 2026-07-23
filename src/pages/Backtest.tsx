@@ -6,8 +6,8 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../stores';
 import { BacktestResult } from '../types';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Play, Download, Percent, ShieldCheck, Activity, BarChart2, Calendar } from 'lucide-react';
+import { BacktestEquityChart } from '../components/BacktestEquityChart';
 
 export const Backtest: React.FC = () => {
   const { strategies } = useAppStore();
@@ -33,6 +33,7 @@ export const Backtest: React.FC = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          template,
           capital,
           topN,
           rebalanceDays,
@@ -169,6 +170,12 @@ export const Backtest: React.FC = () => {
                 ))}
               </div>
             </div>
+            
+            {mode === 'Dynamic' && (
+              <div className="text-[10px] bg-[#ccff00]/10 text-[#ccff00] border border-[#ccff00]/20 p-3 rounded-xl mb-1">
+                <strong>Multi-Tier Rotation Aktif:</strong> Merotasi otomatis ke Saham, Emas, IDR/USD.
+              </div>
+            )}
 
             {/* Conditional Threshold % */}
             {(mode === 'Threshold' || mode === 'Dynamic') && (
@@ -275,60 +282,36 @@ export const Backtest: React.FC = () => {
                     </button>
                   </div>
 
-                  <div className="w-full h-64 font-mono text-[10px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={result.equityCurve}>
-                        <defs>
-                          <linearGradient id="colorStrategy" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#ccff00" stopOpacity={0.3}/>
-                            <stop offset="95%" stopColor="#ccff00" stopOpacity={0}/>
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1b1926" />
-                        <XAxis dataKey="date" stroke="#686477" />
-                        <YAxis 
-                          stroke="#686477" 
-                          tickFormatter={(v) => `Rp ${(v / 1000000).toFixed(0)}M`}
-                        />
-                        <Tooltip 
-                          contentStyle={{ backgroundColor: '#0c0b12', borderColor: '#1b1926', borderRadius: '12px' }}
-                          labelStyle={{ color: '#ffffff', fontWeight: 'bold' }}
-                          formatter={(value: any) => [formatIDR(value), '']}
-                        />
-                        <Legend wrapperStyle={{ fontSize: '11px', fontFamily: 'Plus Jakarta Sans', fontWeight: 'bold' }} />
-                        <Area type="monotone" dataKey="value" name="SafeHeaven Taktis" stroke="#ccff00" fill="url(#colorStrategy)" strokeWidth={2} />
-                        <Area type="monotone" dataKey="ihsg" name="IHSG" stroke="#00f0ff" fill="transparent" strokeWidth={2} />
-                        <Area type="monotone" dataKey="gold" name="Emas" stroke="#ffcc00" fill="transparent" strokeWidth={2} />
-                      </AreaChart>
-                    </ResponsiveContainer>
+                  <div className="w-full font-mono text-[10px]">
+                    <BacktestEquityChart data={result.equityCurve} height={256} />
                   </div>
                 </div>
 
                 {/* Metrics row */}
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
                   {/* Total Return */}
-                  <div className="card card-elevated p-4 text-center space-y-1 bg-[#0b0a10]/45">
-                    <span className="text-[10px] text-[#686477] font-bold uppercase tracking-wider font-sans">Total Return</span>
+                  <div className="card card-elevated p-4 flex flex-col items-center justify-center gap-1 bg-[#0b0a10]/45">
+                    <span className="text-[10px] text-[#686477] font-bold uppercase tracking-wider font-sans whitespace-nowrap">Total Return</span>
                     <h3 className="text-base font-extrabold font-mono text-[#00f5a0]">{result.metrics.totalReturn}%</h3>
                   </div>
                   {/* CAGR */}
-                  <div className="card card-elevated p-4 text-center space-y-1 bg-[#0b0a10]/45">
-                    <span className="text-[10px] text-[#686477] font-bold uppercase tracking-wider font-sans">CAGR</span>
+                  <div className="card card-elevated p-4 flex flex-col items-center justify-center gap-1 bg-[#0b0a10]/45">
+                    <span className="text-[10px] text-[#686477] font-bold uppercase tracking-wider font-sans whitespace-nowrap">CAGR</span>
                     <h3 className="text-base font-extrabold font-mono text-[#00f5a0]">{result.metrics.cagr}%</h3>
                   </div>
                   {/* Max Drawdown */}
-                  <div className="card card-elevated p-4 text-center space-y-1 bg-[#0b0a10]/45">
-                    <span className="text-[10px] text-[#686477] font-bold uppercase tracking-wider font-sans">Max Drawdown</span>
+                  <div className="card card-elevated p-4 flex flex-col items-center justify-center gap-1 bg-[#0b0a10]/45">
+                    <span className="text-[10px] text-[#686477] font-bold uppercase tracking-wider font-sans whitespace-nowrap">Max Drawdown</span>
                     <h3 className="text-base font-extrabold font-mono text-[#ff3366]">{result.metrics.maxDrawdown}%</h3>
                   </div>
                   {/* Sharpe */}
-                  <div className="card card-elevated p-4 text-center space-y-1 bg-[#0b0a10]/45">
-                    <span className="text-[10px] text-[#686477] font-bold uppercase tracking-wider font-sans">Sharpe Ratio</span>
+                  <div className="card card-elevated p-4 flex flex-col items-center justify-center gap-1 bg-[#0b0a10]/45">
+                    <span className="text-[10px] text-[#686477] font-bold uppercase tracking-wider font-sans whitespace-nowrap">Sharpe Ratio</span>
                     <h3 className="text-base font-extrabold font-mono text-[#00f0ff]">{result.metrics.sharpeRatio}</h3>
                   </div>
                   {/* Volatility */}
-                  <div className="card card-elevated p-4 text-center space-y-1 col-span-2 sm:col-span-1 bg-[#0b0a10]/45">
-                    <span className="text-[10px] text-[#686477] font-bold uppercase tracking-wider font-sans">Volatilitas</span>
+                  <div className="card card-elevated p-4 flex flex-col items-center justify-center gap-1 col-span-2 sm:col-span-1 bg-[#0b0a10]/45">
+                    <span className="text-[10px] text-[#686477] font-bold uppercase tracking-wider font-sans whitespace-nowrap">Volatilitas</span>
                     <h3 className="text-base font-extrabold font-mono text-white">{result.metrics.volatility}%</h3>
                   </div>
                 </div>

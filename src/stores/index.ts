@@ -17,13 +17,16 @@ import {
   ApiKey, 
   ChatMessage, 
   BacktestResult, 
-  OptimizerResult 
+  OptimizerResult,
+  NotificationChannelConfig,
+  GlobalSystemConfig
 } from '../types';
 
 interface AppState {
   // Auth State
   user: UserInfo | null;
   isAuthenticated: boolean;
+  isLoadingData: boolean;
   login: (email: string, name: string) => void;
   logout: () => void;
   register: (email: string, password: string, name: string) => Promise<void>;
@@ -35,6 +38,7 @@ interface AppState {
   
   // Portfolio
   portfolioConfig: PortfolioConfig | null;
+  marketRegime: string | null;
   tier: string; // "Perunggu" | "Perak" | "Emas" | "Platinum"
   tierProgress: { current: number; next: number; req: string };
   stockPicks: StockPick[];
@@ -69,13 +73,8 @@ interface AppState {
     time: string;
     type: 'full' | 'partial';
   };
-  notificationConfig: {
-    email: string;
-    rotationAlert: boolean;
-    signalAlert: boolean;
-    dailyReport: boolean;
-    crashAlert: boolean;
-  };
+  notificationConfig: NotificationChannelConfig;
+  globalConfig: GlobalSystemConfig;
 
   // API Call Helpers
   fetchInitialData: () => Promise<void>;
@@ -84,12 +83,16 @@ interface AppState {
   toggleAlertRule: (id: string) => Promise<void>;
   deleteAlertRule: (id: string) => Promise<void>;
   addStrategy: (strat: Omit<Strategy, 'id'>) => Promise<void>;
+  updateStrategy: (id: string, strat: Partial<Strategy>) => Promise<void>;
   deleteStrategy: (id: string) => Promise<void>;
   addUniverse: (uni: Omit<Universe, 'id'>) => Promise<void>;
+  updateUniverse: (id: string, uni: Partial<Universe>) => Promise<void>;
   deleteUniverse: (id: string) => Promise<void>;
+  syncUniverses: () => Promise<boolean>;
   triggerRebalance: () => Promise<void>;
   saveRebalanceConfig: (config: any) => Promise<void>;
-  saveNotificationConfig: (config: any) => Promise<void>;
+  saveNotificationConfig: (config: NotificationChannelConfig) => Promise<void>;
+  saveGlobalConfig: (config: GlobalSystemConfig) => Promise<void>;
   generateApiKey: (name: string) => Promise<void>;
   revokeApiKey: (id: string) => Promise<void>;
   sendChatMessage: (message: string) => Promise<void>;
@@ -113,11 +116,13 @@ export const useAppStore = create<AppState>((set, get) => ({
     registeredAt: '2026-01-01'
   },
   isAuthenticated: true,
+  isLoadingData: true,
 
   tickers: [],
+  marketRegime: 'neutral',
   portfolioConfig: {
     capital: 500000000, // Rp 500.000.000
-    strategyName: 'Defensive Value Strategy',
+    strategyName: 'Warren Buffett',
     universe: 'LQ45 Core Universe',
     topN: 10,
     strategyTemplate: 'strat-1',
@@ -125,7 +130,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     allocationEmas: 20,
     allocationCash: 10,
     allocationUSD: 10,
-    crashThreshold: 15,
+    crashThreshold: -12,
     stopLoss: 10,
   },
   tier: 'Platinum',
@@ -144,35 +149,105 @@ export const useAppStore = create<AppState>((set, get) => ({
   strategies: [
     {
       id: 'strat-1',
-      name: 'Defensive Value Strategy',
-      description: 'Menargetkan saham-saham blue-chip dengan dividend yield tinggi dan stabilitas momentum.',
-      weightQuality: 30,
-      weightMomentum: 20,
-      weightValue: 20,
-      weightVolume: 15,
-      weightDividend: 15,
+      name: 'Warren Buffett',
+      description: 'Quality + Value',
+      weightQuality: 40,
+      weightValue: 30,
+      weightMomentum: 15,
+      weightVolume: 0,
+      weightDividend: 0,
+      weightGrowth: 0,
       allocationSaham: 60,
       allocationEmas: 20,
       allocationCash: 10,
       allocationUSD: 10,
-      crashThreshold: 15,
+      crashThreshold: -12,
       stopLoss: 10
     },
     {
       id: 'strat-2',
-      name: 'Aggressive Quality Momentum',
-      description: 'Fokus pada saham dengan momentum pertumbuhan kuat dan skor kualitas fundamental superior.',
-      weightQuality: 40,
-      weightMomentum: 40,
-      weightValue: 10,
-      weightVolume: 10,
+      name: 'Peter Lynch',
+      description: 'GARP (Growth at Reasonable Price)',
+      weightQuality: 20,
+      weightValue: 25,
+      weightMomentum: 25,
+      weightVolume: 0,
+      weightDividend: 15,
+      weightGrowth: 15,
+      allocationSaham: 65,
+      allocationEmas: 15,
+      allocationCash: 10,
+      allocationUSD: 10,
+      crashThreshold: -10,
+      stopLoss: 10
+    },
+    {
+      id: 'strat-3',
+      name: 'Renaissance / AQR',
+      description: 'Multi-Factor Momentum',
+      weightMomentum: 35,
+      weightQuality: 25,
+      weightValue: 25,
+      weightVolume: 0,
       weightDividend: 0,
-      allocationSaham: 80,
+      weightGrowth: 15,
+      allocationSaham: 70,
       allocationEmas: 10,
-      allocationCash: 5,
-      allocationUSD: 5,
-      crashThreshold: 20,
-      stopLoss: 15
+      allocationCash: 10,
+      allocationUSD: 10,
+      crashThreshold: -8,
+      stopLoss: 8
+    },
+    {
+      id: 'strat-4',
+      name: 'Dividend Aristocrats',
+      description: 'Dividend Growth',
+      weightDividend: 35,
+      weightQuality: 30,
+      weightValue: 20,
+      weightMomentum: 0,
+      weightVolume: 0,
+      weightGrowth: 15,
+      allocationSaham: 50,
+      allocationEmas: 30,
+      allocationCash: 10,
+      allocationUSD: 10,
+      crashThreshold: -8,
+      stopLoss: 10
+    },
+    {
+      id: 'strat-5',
+      name: 'Bridgewater All Weather',
+      description: 'Risk Parity',
+      weightQuality: 35,
+      weightValue: 20,
+      weightDividend: 20,
+      weightMomentum: 10,
+      weightVolume: 0,
+      weightGrowth: 15,
+      allocationSaham: 35,
+      allocationEmas: 35,
+      allocationCash: 20,
+      allocationUSD: 10,
+      crashThreshold: -7,
+      stopLoss: 7
+    },
+    {
+      id: 'strat-6',
+      name: 'Resistance / Momentum Breakout',
+      description: 'Breakout',
+      weightMomentum: 40,
+      weightVolume: 30,
+      weightQuality: 15,
+      weightValue: 15,
+      weightDividend: 0,
+      weightGrowth: 0,
+      allocationSaham: 65,
+      allocationEmas: 15,
+      allocationCash: 10,
+      allocationUSD: 10,
+      crashThreshold: -8,
+      stopLoss: 8
     }
   ],
   universes: [
@@ -182,9 +257,9 @@ export const useAppStore = create<AppState>((set, get) => ({
     { id: 'uni-4', name: 'IDX80 Core Universe', description: 'Kumpulan 80 saham paling likuid di Bursa Efek Indonesia.', tickers: ['BBCA', 'BBRI', 'BMRI', 'BBNI', 'TLKM', 'ASII', 'GOTO', 'KLBF'] }
   ],
   alerts: [
-    { id: 'a-1', time: '2026-07-20T11:00:00Z', type: 'Score', message: 'Skor fundamental BBCA naik ke 88 (Beli)', status: 'unread' },
-    { id: 'a-2', time: '2026-07-20T09:30:00Z', type: 'Price', message: 'BBRI menembus batas support Rp 4.500', status: 'unread' },
-    { id: 'a-3', time: '2026-07-19T15:00:00Z', type: 'Momentum', message: 'Sinyal GOTO berubah menjadi Hindari (Score: 32)', status: 'read' },
+    { id: 'a-1', time: '2026-07-22T10:15:00Z', type: 'Rotation', message: 'Sistem memicu rotasi dari Saham ke Emas akibat penurunan momentum ekstrem', status: 'unread' },
+    { id: 'a-2', time: '2026-07-22T10:10:00Z', type: 'Stop Loss', message: 'Proteksi Stop-Loss (Crash Shield) aktif. Mengamankan 10% Cash.', status: 'unread' },
+    { id: 'a-3', time: '2026-07-21T09:00:00Z', type: 'Momentum', message: 'Momentum IHSG melemah, bersiap mode bertahan (Risk-Off)', status: 'read' },
   ],
   alertRules: [
     { id: 'ar-1', name: 'Batas Skor Tinggi BBCA', type: 'Score', condition: '>=', threshold: 85, ticker: 'BBCA', status: 'ON' },
@@ -218,10 +293,29 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   notificationConfig: {
     email: 'imamnasrulloh02@gmail.com',
+    emailEnabled: true,
+    whatsapp: '+6281234567890',
+    whatsappEnabled: true,
+    webhookUrl: 'https://api.my-custom-webhook.com/alerts',
+    webhookEnabled: false,
+    telegramToken: '7123456789:AAFxX_ExampleTelegramBotToken',
+    telegramChatId: '-100123456789',
+    telegramEnabled: true,
+    discordWebhook: 'https://discord.com/api/webhooks/123456789/ExampleDiscordWebhookKey',
+    discordEnabled: true,
     rotationAlert: true,
     signalAlert: true,
     dailyReport: false,
-    crashAlert: true
+    crashAlert: true,
+  },
+  globalConfig: {
+    currencyDisplay: 'IDR',
+    executionMode: 'Otomatis',
+    autoSyncInterval: '15s',
+    maxSingleStockAllocation: 15,
+    autoStopLoss: 10,
+    soundNotifications: true,
+    highContrastGlow: true,
   },
 
   // Auth Operations
@@ -263,6 +357,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   fetchInitialData: async () => {
+    set({ isLoadingData: true });
     try {
       const snapRes = await fetch(getApiUrl('/api/market/snapshot'));
       if (snapRes.ok) {
@@ -274,6 +369,12 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (portRes.ok) {
         const data = await portRes.json();
         set({ portfolioConfig: data });
+      }
+
+      const regimeRes = await fetch(getApiUrl('/api/market/regime'));
+      if (regimeRes.ok) {
+        const data = await regimeRes.json();
+        set({ marketRegime: data.regime });
       }
 
       const tierRes = await fetch(getApiUrl('/api/portfolio/tier'));
@@ -343,6 +444,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
     } catch (err) {
       console.warn('API sync failed, continuing with responsive in-memory state.', err);
+    } finally {
+      set({ isLoadingData: false });
     }
   },
 
@@ -356,6 +459,19 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (response.ok) {
         const data = await response.json();
         set({ portfolioConfig: data });
+        
+        // Re-fetch dependent data
+        const pickRes = await fetch(getApiUrl('/api/portfolio/stock-picks'));
+        if (pickRes.ok) {
+          const picksData = await pickRes.json();
+          set({ stockPicks: picksData });
+        }
+        
+        const tierRes = await fetch(getApiUrl('/api/portfolio/tier'));
+        if (tierRes.ok) {
+          const tierData = await tierRes.json();
+          set({ tier: tierData.tier, tierProgress: tierData.progress });
+        }
       } else {
         set((state) => ({
           portfolioConfig: state.portfolioConfig ? { ...state.portfolioConfig, ...config } as PortfolioConfig : null
@@ -430,6 +546,19 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
+  updateStrategy: async (id, strat) => {
+    set((state) => ({
+      strategies: state.strategies.map(s => s.id === id ? { ...s, ...strat } : s)
+    }));
+    try {
+      await fetch(getApiUrl(`/api/strategies/${id}`), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(strat)
+      });
+    } catch {}
+  },
+
   deleteStrategy: async (id) => {
     set((state) => ({ strategies: state.strategies.filter((s) => s.id !== id) }));
     try {
@@ -461,6 +590,35 @@ export const useAppStore = create<AppState>((set, get) => ({
     set((state) => ({ universes: state.universes.filter((u) => u.id !== id) }));
     try {
       await fetch(getApiUrl(`/api/universes/${id}`), { method: 'DELETE' });
+    } catch {}
+  },
+
+  syncUniverses: async () => {
+    try {
+      const response = await fetch(getApiUrl('/api/universes/sync'), { method: 'POST' });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.universes) {
+          set({ universes: data.universes });
+          return true;
+        }
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  },
+
+  updateUniverse: async (id, uni) => {
+    set((state) => ({
+      universes: state.universes.map((u) => u.id === id ? { ...u, ...uni } : u)
+    }));
+    try {
+      await fetch(getApiUrl(`/api/universes/${id}`), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(uni)
+      });
     } catch {}
   },
 
@@ -497,6 +655,21 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
     } catch {
       set({ notificationConfig: config });
+    }
+  },
+
+  saveGlobalConfig: async (config) => {
+    try {
+      const res = await fetch(getApiUrl('/api/global/config'), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(config)
+      });
+      if (res.ok) {
+        set({ globalConfig: config });
+      }
+    } catch {
+      set({ globalConfig: config });
     }
   },
 

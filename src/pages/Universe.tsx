@@ -7,12 +7,14 @@ import React, { useState } from 'react';
 import { useAppStore } from '../stores';
 import { Universe } from '../types';
 import { TickerLogo } from '../components/TickerLogo';
-import { Layers, Plus, Trash2, Search, Sliders, Check, FileText, X } from 'lucide-react';
+import { Layers, Plus, Trash2, Search, Sliders, Check, FileText, X, Pencil, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const UniversePage: React.FC = () => {
-  const { universes, addUniverse, deleteUniverse } = useAppStore();
+  const { universes, addUniverse, updateUniverse, deleteUniverse } = useAppStore();
   const [isOpen, setIsOpen] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Form states
   const [name, setName] = useState('');
@@ -81,16 +83,39 @@ export const UniversePage: React.FC = () => {
       return;
     }
 
-    const payload: Omit<Universe, 'id'> = {
-      name,
-      description,
-      tickers: selectedTickers
-    };
-
-    await addUniverse(payload);
-    toast.success(`Universe "${name}" berhasil disimpan!`);
+    if (editId) {
+      await updateUniverse(editId, {
+        name,
+        description,
+        tickers: selectedTickers
+      });
+      toast.success(`Universe "${name}" berhasil diperbarui!`);
+    } else {
+      const payload: Omit<Universe, 'id'> = {
+        name,
+        description,
+        tickers: selectedTickers
+      };
+      await addUniverse(payload);
+      toast.success(`Universe "${name}" berhasil disimpan!`);
+    }
     setIsOpen(false);
     resetForm();
+  };
+
+  const openCreateModal = () => {
+    resetForm();
+    setEditId(null);
+    setIsOpen(true);
+  };
+
+  const openEditModal = (uni: Universe) => {
+    setEditId(uni.id);
+    setName(uni.name);
+    setDescription(uni.description);
+    setSelectedTickers(uni.tickers);
+    setBulkText('');
+    setIsOpen(true);
   };
 
   const resetForm = () => {
@@ -121,13 +146,33 @@ export const UniversePage: React.FC = () => {
             <p className="text-xs text-[#9f9bac] font-sans mt-0.5">Pilah dan kelompokkan sekuritas pilihan untuk menjadi saringan basis rebalancing.</p>
           </div>
         </div>
-        <button
-          id="create-universe-btn"
-          onClick={() => setIsOpen(true)}
-          className="px-4.5 py-3 bg-[#ccff00] hover:bg-[#ddff33] text-black text-xs font-extrabold rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-[#ccff00]/10 hover:shadow-[#ccff00]/20 active:scale-95"
-        >
-          <Plus className="w-4 h-4 stroke-[2.5px]" /> Buat Universe Baru
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={async () => {
+              if (isSyncing) return;
+              setIsSyncing(true);
+              toast.info('Sinkronisasi data universe dari Bursa Efek Indonesia...', { duration: 5000 });
+              const success = await useAppStore.getState().syncUniverses();
+              if (success) {
+                toast.success('Universe berhasil diperbarui secara otomatis dari IDX!');
+              } else {
+                toast.error('Gagal sinkronisasi dengan server.');
+              }
+              setIsSyncing(false);
+            }}
+            disabled={isSyncing}
+            className={`px-4.5 py-3 bg-[#111018] hover:bg-[#1b1926] text-white text-xs font-extrabold rounded-xl flex items-center gap-1.5 transition-all border border-[#1b1926] ${isSyncing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+          >
+            <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} /> {isSyncing ? 'Menyinkronkan...' : 'Update Otomatis'}
+          </button>
+          <button
+            id="create-universe-btn"
+            onClick={openCreateModal}
+            className="px-4.5 py-3 bg-[#ccff00] hover:bg-[#ddff33] text-black text-xs font-extrabold rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-[#ccff00]/10 hover:shadow-[#ccff00]/20 active:scale-95"
+          >
+            <Plus className="w-4 h-4 stroke-[2.5px]" /> Buat Universe Baru
+          </button>
+        </div>
       </div>
 
       {/* Universes Grid */}
@@ -140,18 +185,28 @@ export const UniversePage: React.FC = () => {
                   <Layers className="w-4 h-4 text-[#ccff00]" />
                   <h3 className="text-sm font-bold text-white font-sans">{uni.name}</h3>
                 </div>
-                {universes.length > 1 && (
+                <div className="flex items-center gap-2">
                   <button
-                    id={`delete-uni-${uni.id}`}
-                    onClick={() => {
-                      deleteUniverse(uni.id);
-                      toast.info(`Universe dihapus.`);
-                    }}
-                    className="text-[#686477] hover:text-[#ff3366] p-1.5 hover:bg-[#ff3366]/5 rounded-lg transition-colors cursor-pointer border border-transparent hover:border-[#ff3366]/20"
+                    id={`edit-uni-${uni.id}`}
+                    onClick={() => openEditModal(uni)}
+                    className="text-[#9f9bac] hover:text-white p-1.5 hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
+                    title="Edit Universe"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Pencil className="w-4 h-4" />
                   </button>
-                )}
+                  {universes.length > 1 && (
+                    <button
+                      id={`delete-uni-${uni.id}`}
+                      onClick={() => {
+                        deleteUniverse(uni.id);
+                        toast.info(`Universe dihapus.`);
+                      }}
+                      className="text-[#686477] hover:text-[#ff3366] p-1.5 hover:bg-[#ff3366]/5 rounded-lg transition-colors cursor-pointer border border-transparent hover:border-[#ff3366]/20"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
               </div>
               <p className="text-xs text-[#9f9bac] leading-relaxed font-sans font-medium">{uni.description}</p>
             </div>
@@ -189,7 +244,9 @@ export const UniversePage: React.FC = () => {
               <div className="space-y-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Layers className="w-5 h-5 text-[#ccff00]" />
-                  <h3 className="text-sm font-bold text-white tracking-tight font-sans">Koleksi Baru</h3>
+                  <h3 className="text-sm font-bold text-white tracking-tight font-sans">
+                    {editId ? 'Edit Koleksi' : 'Koleksi Baru'}
+                  </h3>
                 </div>
 
                 <div className="space-y-2">
@@ -265,7 +322,7 @@ export const UniversePage: React.FC = () => {
                   type="submit"
                   className="flex-1 bg-[#ccff00] hover:bg-[#ddff33] text-black py-3 rounded-xl font-extrabold transition-all cursor-pointer text-center shadow-lg shadow-[#ccff00]/10 hover:shadow-[#ccff00]/20 active:scale-95"
                 >
-                  Simpan
+                  {editId ? 'Simpan Perubahan' : 'Simpan'}
                 </button>
               </div>
             </form>

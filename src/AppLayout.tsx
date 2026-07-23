@@ -8,6 +8,7 @@ import { useLocation, Link } from 'wouter';
 import { useAppStore } from './stores';
 import { NotificationCenter } from './components/NotificationCenter';
 import { ChatFAB } from './components/ChatFAB';
+import { JumpToTopFAB } from './components/JumpToTopFAB';
 import { AnimatedTierCard } from './components/AnimatedTierCard';
 import { GlobalSearch } from './components/GlobalSearch';
 import { 
@@ -30,7 +31,8 @@ import {
   User,
   ChevronLeft,
   ChevronRight,
-  Search
+  Search,
+  Activity
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -70,6 +72,7 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
       category: 'ANALYSIS',
       items: [
         { name: 'Market Analytics', path: '/analytics', icon: BarChart2 },
+        { name: 'Stock Analysis', path: '/stock-analysis', icon: Activity },
         { name: 'Universe Builder', path: '/universe', icon: Layers },
         { name: 'Strategy Builder', path: '/strategies', icon: Sliders },
       ]
@@ -294,18 +297,22 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
       </div>
 
       {/* 3. MOBILE RESPONSIVE SLIDEBAR DRAWER */}
-      {isMobileMenuOpen && (
-        <div id="mobile-sidebar-drawer" className="fixed inset-0 z-50 lg:hidden flex">
-          {/* Backdrop */}
-          <div 
-            onClick={() => setIsMobileMenuOpen(false)} 
-            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-          ></div>
+      <div 
+        id="mobile-sidebar-drawer" 
+        className={`fixed inset-0 z-50 lg:hidden flex transition-all duration-300 ${isMobileMenuOpen ? 'visible pointer-events-auto' : 'invisible pointer-events-none'}`}
+      >
+        {/* Backdrop */}
+        <div 
+          onClick={() => setIsMobileMenuOpen(false)} 
+          className={`absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity duration-300 ${isMobileMenuOpen ? 'opacity-100' : 'opacity-0'}`}
+        ></div>
 
-          {/* Drawer Body */}
-          <aside className="w-64 bg-[#0a090f] border-r border-[#1b1926] h-full flex flex-col relative z-10 animate-[slideRight_0.2s_ease-out]">
-            {/* Drawer Header */}
-            <div className="h-14 px-5 border-b border-[#1b1926] flex items-center justify-between">
+        {/* Drawer Body */}
+        <aside 
+          className={`w-64 bg-[#0a090f] border-r border-[#1b1926] h-full flex flex-col relative z-10 transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        >
+          {/* Drawer Header */}
+          <div className="h-14 px-5 border-b border-[#1b1926] flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 bg-[#ccff00]/10 border border-[#ccff00]/30 rounded-lg flex items-center justify-center text-[#ccff00]">
                   <ShieldCheck className="w-4.5 h-4.5" />
@@ -382,10 +389,10 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
             )}
           </aside>
         </div>
-      )}
 
       {/* 4. FLOATING CHATFAB FOR SERVER-SIDE GEMINI COMPANION ASSISTANT */}
       <ChatFAB />
+      <JumpToTopFAB />
       <GlobalSearch isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
 
     </div>

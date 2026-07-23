@@ -47,7 +47,7 @@ export const NotificationCenter: React.FC = () => {
       >
         <Bell className="w-5 h-5" />
         {count > 0 && (
-          <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-[#f23645] text-white text-[9px] font-bold rounded-full flex items-center justify-center border border-[#000]">
+          <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-[#ff3366] text-white text-[9px] font-bold rounded-full flex items-center justify-center border border-[#000]">
             {count}
           </span>
         )}
@@ -64,7 +64,7 @@ export const NotificationCenter: React.FC = () => {
               <button
                 id="mark-all-read-btn"
                 onClick={markAllAsRead}
-                className="text-[10px] text-[#00c9a5] hover:text-[#00a87e] flex items-center gap-1 font-medium cursor-pointer"
+                className="text-[10px] text-[#00f5a0] hover:text-[#00a87e] flex items-center gap-1 font-medium cursor-pointer"
               >
                 <Check className="w-3 h-3" /> Tandai semua dibaca
               </button>
@@ -82,7 +82,7 @@ export const NotificationCenter: React.FC = () => {
                   key={alert.id} 
                   className={`p-3.5 text-left transition-colors relative flex items-start gap-2.5 ${alert.status === 'unread' ? 'bg-[#111111]' : 'hover:bg-white/[0.02]'}`}
                 >
-                  <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${alert.status === 'unread' ? 'bg-[#00c9a5]' : 'bg-[#4b5563]'}`}></div>
+                  <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${alert.status === 'unread' ? 'bg-[#00f5a0]' : 'bg-[#4b5563]'}`}></div>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs text-white leading-normal pr-4">{alert.message}</p>
                     <span className="text-[9px] text-[#6b7280] font-mono mt-1 block">
@@ -94,7 +94,7 @@ export const NotificationCenter: React.FC = () => {
                       id={`mark-read-${alert.id}`}
                       onClick={() => markOneAsRead(alert.id)}
                       title="Tandai dibaca"
-                      className="absolute right-3 top-3 text-[#6b7280] hover:text-[#00c9a5] cursor-pointer"
+                      className="absolute right-3 top-3 text-[#6b7280] hover:text-[#00f5a0] cursor-pointer"
                     >
                       <MailOpen className="w-3.5 h-3.5" />
                     </button>

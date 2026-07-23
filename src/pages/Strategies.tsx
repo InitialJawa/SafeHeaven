@@ -6,12 +6,13 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../stores';
 import { Strategy } from '../types';
-import { Sliders, Plus, Trash2, Shield, Percent, Check, X } from 'lucide-react';
+import { Sliders, Plus, Trash2, Shield, Percent, Check, X, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const Strategies: React.FC = () => {
-  const { strategies, addStrategy, deleteStrategy } = useAppStore();
+  const { strategies, portfolioConfig, addStrategy, updateStrategy, deleteStrategy, updatePortfolioConfig } = useAppStore();
   const [isOpen, setIsOpen] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
   
   // Modal states
   const [name, setName] = useState('');
@@ -20,7 +21,7 @@ export const Strategies: React.FC = () => {
   const [weightQuality, setWeightQuality] = useState(20);
   const [weightMomentum, setWeightMomentum] = useState(20);
   const [weightValue, setWeightValue] = useState(20);
-  const [weightVolume, setWeightVolume] = useState(20);
+  const [weightGrowth, setWeightGrowth] = useState(20);
   const [weightDividend, setWeightDividend] = useState(20);
 
   const [allocSaham, setAllocSaham] = useState(50);
@@ -31,7 +32,31 @@ export const Strategies: React.FC = () => {
   const [crashThreshold, setCrashThreshold] = useState(15);
   const [stopLoss, setStopLoss] = useState(10);
 
-  const totalScoreWeights = weightQuality + weightMomentum + weightValue + weightVolume + weightDividend;
+  const openCreateModal = () => {
+    setEditId(null);
+    resetForm();
+    setIsOpen(true);
+  };
+
+  const openEditModal = (strat: Strategy) => {
+    setEditId(strat.id);
+    setName(strat.name);
+    setDescription(strat.description);
+    setWeightQuality(strat.weightQuality);
+    setWeightMomentum(strat.weightMomentum);
+    setWeightValue(strat.weightValue);
+    setWeightGrowth(strat.weightGrowth);
+    setWeightDividend(strat.weightDividend);
+    setAllocSaham(strat.allocationSaham);
+    setAllocEmas(strat.allocationEmas);
+    setAllocCash(strat.allocationCash);
+    setAllocUSD(strat.allocationUSD);
+    setCrashThreshold(strat.crashThreshold);
+    setStopLoss(strat.stopLoss);
+    setIsOpen(true);
+  };
+
+  const totalScoreWeights = weightQuality + weightMomentum + weightValue + weightGrowth + weightDividend;
   const totalAllocation = allocSaham + allocEmas + allocCash + allocUSD;
 
   const handleSave = async (e: React.FormEvent) => {
@@ -42,10 +67,7 @@ export const Strategies: React.FC = () => {
       toast.error(`Total bobot kualitatif harus bernilai tepat 100% (Saat ini: ${totalScoreWeights}%)`);
       return;
     }
-    if (totalAllocation !== 100) {
-      toast.error(`Total alokasi aset harus bernilai tepat 100% (Saat ini: ${totalAllocation}%)`);
-      return;
-    }
+    
 
     const payload: Omit<Strategy, 'id'> = {
       name,
@@ -53,7 +75,8 @@ export const Strategies: React.FC = () => {
       weightQuality,
       weightMomentum,
       weightValue,
-      weightVolume,
+      weightVolume: 0,
+      weightGrowth,
       weightDividend,
       allocationSaham: allocSaham,
       allocationEmas: allocEmas,
@@ -63,8 +86,14 @@ export const Strategies: React.FC = () => {
       stopLoss
     };
 
-    await addStrategy(payload);
-    toast.success(`Strategi "${name}" berhasil dibuat!`);
+    if (editId) {
+      await updateStrategy(editId, payload);
+      toast.success(`Strategi "${name}" berhasil diperbarui.`);
+    } else {
+      await addStrategy(payload);
+      toast.success(`Strategi "${name}" berhasil dibuat!`);
+    }
+
     setIsOpen(false);
     resetForm();
   };
@@ -75,7 +104,7 @@ export const Strategies: React.FC = () => {
     setWeightQuality(20);
     setWeightMomentum(20);
     setWeightValue(20);
-    setWeightVolume(20);
+    setWeightGrowth(20);
     setWeightDividend(20);
     setAllocSaham(50);
     setAllocEmas(20);
@@ -98,7 +127,7 @@ export const Strategies: React.FC = () => {
         </div>
         <button
           id="create-strategy-btn"
-          onClick={() => setIsOpen(true)}
+          onClick={openCreateModal}
           className="px-4.5 py-3 bg-[#ccff00] hover:bg-[#ddff33] text-black text-xs font-extrabold rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-[#ccff00]/10 hover:shadow-[#ccff00]/20 active:scale-95"
         >
           <Plus className="w-4 h-4 stroke-[2.5px]" /> Buat Strategi Baru
@@ -110,21 +139,56 @@ export const Strategies: React.FC = () => {
         {strategies.map((strat) => (
           <div key={strat.id} className="card card-elevated p-6 space-y-5 flex flex-col justify-between bg-[#0b0a10]/45">
             <div className="space-y-3.5">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-white font-sans">{strat.name}</h3>
-                {strategies.length > 1 && (
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
+                <div className="flex items-center gap-3">
+                  <h3 className="text-sm font-bold text-white font-sans">{strat.name}</h3>
+                  {portfolioConfig?.strategyTemplate === strat.id ? (
+                    <span className="px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider bg-[#ccff00]/10 text-[#ccff00] border border-[#ccff00]/20 flex items-center gap-1.5">
+                      <div className="w-1.5 h-1.5 rounded-full bg-[#ccff00] animate-[pulse_2s_ease-in-out_infinite]"></div> Aktif
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        updatePortfolioConfig({
+                          strategyTemplate: strat.id,
+                          strategyName: strat.name,
+                          allocationSaham: strat.allocationSaham,
+                          allocationEmas: strat.allocationEmas,
+                          allocationCash: strat.allocationCash,
+                          allocationUSD: strat.allocationUSD
+                        });
+                        toast.success(`Strategi aktif diubah ke ${strat.name}`);
+                      }}
+                      className="px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider bg-[#1b1926]/50 text-[#686477] border border-[#1b1926] hover:text-white hover:border-[#686477]/50 cursor-pointer transition-colors"
+                      title="Gunakan strategi ini"
+                    >
+                      Tidak Aktif
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
                   <button
-                    id={`delete-strat-${strat.id}`}
-                    onClick={() => {
-                      deleteStrategy(strat.id);
-                      toast.info(`Strategi dihapus.`);
-                    }}
-                    className="text-[#686477] hover:text-[#ff3366] p-1.5 hover:bg-[#ff3366]/5 rounded-lg transition-colors cursor-pointer border border-transparent hover:border-[#ff3366]/20"
-                    title="Hapus"
+                    id={`edit-strat-${strat.id}`}
+                    onClick={() => openEditModal(strat)}
+                    className="text-[#9f9bac] hover:text-white p-1.5 hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
+                    title="Edit Strategi"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Pencil className="w-4 h-4" />
                   </button>
-                )}
+                  {strategies.length > 1 && (
+                    <button
+                      id={`delete-strat-${strat.id}`}
+                      onClick={() => {
+                        deleteStrategy(strat.id);
+                        toast.info(`Strategi dihapus.`);
+                      }}
+                      className="text-[#686477] hover:text-[#ff3366] p-1.5 hover:bg-[#ff3366]/5 rounded-lg transition-colors cursor-pointer border border-transparent hover:border-[#ff3366]/20"
+                      title="Hapus"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
               </div>
               <p className="text-xs text-[#9f9bac] leading-relaxed font-sans font-medium">{strat.description}</p>
 
@@ -145,8 +209,8 @@ export const Strategies: React.FC = () => {
                     <div className="font-extrabold mt-1 text-[#00f5a0]">{strat.weightValue}%</div>
                   </div>
                   <div className="bg-[#111018]/60 border border-[#1b1926] rounded-xl p-2.5">
-                    <div className="text-[#686477] text-[8px] font-extrabold uppercase font-sans">Vol</div>
-                    <div className="font-extrabold mt-1 text-white">{strat.weightVolume}%</div>
+                    <div className="text-[#686477] text-[8px] font-extrabold uppercase font-sans">Growth</div>
+                    <div className="font-extrabold mt-1 text-white">{strat.weightGrowth}%</div>
                   </div>
                   <div className="bg-[#111018]/60 border border-[#1b1926] rounded-xl p-2.5">
                     <div className="text-[#686477] text-[8px] font-extrabold uppercase font-sans">Div</div>
@@ -155,22 +219,7 @@ export const Strategies: React.FC = () => {
                 </div>
               </div>
 
-              {/* Progress bars of Asset Allocation */}
-              <div className="space-y-2 pt-2">
-                <span className="text-[10px] font-extrabold text-[#686477] uppercase tracking-wider font-sans">Alokasi Sasaran Makro</span>
-                <div className="w-full h-2.5 rounded-full overflow-hidden flex bg-[#111018]/80 border border-[#1b1926]">
-                  <div style={{ width: `${strat.allocationSaham}%` }} className="bg-[#ccff00]" title="Saham"></div>
-                  <div style={{ width: `${strat.allocationEmas}%` }} className="bg-[#00f0ff]" title="Emas"></div>
-                  <div style={{ width: `${strat.allocationCash}%` }} className="bg-[#686477]" title="Kas"></div>
-                  <div style={{ width: `${strat.allocationUSD}%` }} className="bg-[#ff3366]" title="USD"></div>
-                </div>
-                <div className="flex justify-between text-[9px] text-[#9f9bac] font-mono font-bold">
-                  <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-[#ccff00]"></span> Saham: {strat.allocationSaham}%</span>
-                  <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-[#00f0ff]"></span> Emas: {strat.allocationEmas}%</span>
-                  <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-[#686477]"></span> Kas: {strat.allocationCash}%</span>
-                  <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-[#ff3366]"></span> USD: {strat.allocationUSD}%</span>
-                </div>
-              </div>
+
             </div>
 
             {/* Threshold controls display */}
@@ -192,7 +241,9 @@ export const Strategies: React.FC = () => {
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-2">
                 <Sliders className="w-5 h-5 text-[#ccff00]" />
-                <h3 className="text-sm font-bold text-white tracking-tight font-sans">Definisikan Strategi Kuantitatif</h3>
+                <h3 className="text-sm font-bold text-white tracking-tight font-sans">
+                  {editId ? 'Edit Strategi' : 'Definisikan Strategi Kuantitatif'}
+                </h3>
               </div>
               <button
                 id="modal-close-btn"
@@ -244,7 +295,7 @@ export const Strategies: React.FC = () => {
                     { label: 'Bobot Quality', val: weightQuality, set: setWeightQuality, color: '#ccff00' },
                     { label: 'Bobot Momentum', val: weightMomentum, set: setWeightMomentum, color: '#00f0ff' },
                     { label: 'Bobot Value', val: weightValue, set: setWeightValue, color: '#00f5a0' },
-                    { label: 'Bobot Volume', val: weightVolume, set: setWeightVolume, color: '#ffffff' },
+                    { label: 'Bobot Growth', val: weightGrowth, set: setWeightGrowth, color: '#ffffff' },
                     { label: 'Bobot Dividend', val: weightDividend, set: setWeightDividend, color: '#9f9bac' },
                   ].map((s) => (
                     <div key={s.label} className="grid grid-cols-4 items-center gap-4">
@@ -263,40 +314,11 @@ export const Strategies: React.FC = () => {
                   ))}
                 </div>
               </div>
-
-              {/* Allocation Weights sliders group */}
-              <div className="space-y-3 pt-3 border-t border-[#1b1926]">
-                <div className="flex justify-between items-center">
-                  <span className="font-extrabold text-[#9f9bac] uppercase text-[10px] tracking-wider">Alokasi Sasaran (Total 100%)</span>
-                  <span className={`font-mono font-extrabold text-sm ${totalAllocation === 100 ? 'text-[#ccff00]' : 'text-[#ff3366]'}`}>
-                    {totalAllocation}% / 100%
-                  </span>
-                </div>
-
-                <div className="space-y-3">
-                  {[
-                    { label: 'Alokasi Saham', val: allocSaham, set: setAllocSaham },
-                    { label: 'Alokasi Emas', val: allocEmas, set: setAllocEmas },
-                    { label: 'Alokasi Kas IDR', val: allocCash, set: setAllocCash },
-                    { label: 'Alokasi USD Cash', val: allocUSD, set: setAllocUSD },
-                  ].map((a) => (
-                    <div key={a.label} className="grid grid-cols-4 items-center gap-4">
-                      <span className="text-[11px] text-[#9f9bac] font-semibold">{a.label}</span>
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        step="5"
-                        value={a.val}
-                        onChange={(e) => a.set(parseInt(e.target.value))}
-                        className="col-span-2 accent-[#ccff00]"
-                      />
-                      <span className="text-right font-mono text-white font-extrabold text-xs">{a.val}%</span>
-                    </div>
-                  ))}
-                </div>
+              <div className="p-4 rounded-xl bg-[#ccff00]/10 border border-[#ccff00]/20 mt-4">
+                <p className="text-[11px] text-[#ccff00] font-bold leading-relaxed">
+                  Sistem Alokasi Aset (Saham, Emas, IDR, USD) diatur secara dinamis oleh <strong>Multi-Tier Rotation</strong> (Jaring Pengaman AI). Parameter di atas kini khusus digunakan sebagai pembobot skor kualitatif (Stock Picking) saat fase Saham aktif.
+                </p>
               </div>
-
               {/* Threshold controls */}
               <div className="grid grid-cols-2 gap-4 pt-3 border-t border-[#1b1926]">
                 <div className="space-y-2">
@@ -340,7 +362,7 @@ export const Strategies: React.FC = () => {
                   type="submit"
                   className="flex-1 bg-[#ccff00] hover:bg-[#ddff33] text-black py-3 rounded-xl font-extrabold transition-all cursor-pointer shadow-lg shadow-[#ccff00]/10 hover:shadow-[#ccff00]/20 active:scale-95"
                 >
-                  Simpan Strategi
+                  {editId ? 'Simpan Perubahan' : 'Simpan Strategi'}
                 </button>
               </div>
             </form>

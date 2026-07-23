@@ -82,7 +82,7 @@ export const Risk: React.FC = () => {
         <span className="w-1.5 h-8 bg-[#ccff00] rounded-full"></span>
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight text-white font-sans">Risk Control & Protection</h1>
-          <p className="text-xs text-[#9f9bac] font-sans mt-0.5">Sistem mitigasi penarikan dana ekstrem dan proteksi stop-loss otomatis.</p>
+          <p className="text-xs text-[#9f9bac] font-sans mt-0.5">Sistem mitigasi penarikan dana ekstrem, proteksi stop-loss, dan pemantauan Multi-Tier Rotation.</p>
         </div>
       </div>
 
@@ -91,7 +91,7 @@ export const Risk: React.FC = () => {
         {/* Card 1: Stop Loss State */}
         <div className={`card card-elevated p-6 flex items-center justify-between border-l-2 bg-[#0b0a10]/45 ${data.stopLossTriggered ? 'border-l-[#ff3366] shadow-lg shadow-[#ff3366]/5' : 'border-l-[#ccff00] shadow-lg shadow-[#ccff00]/5'}`}>
           <div className="space-y-1">
-            <span className="text-[10px] text-[#686477] font-extrabold uppercase tracking-wider font-sans">Stop Loss Triggered</span>
+            <span className="text-[10px] text-[#686477] font-extrabold uppercase tracking-wider font-sans">Sinyal Rotasi & Trigger</span>
             <h2 className="text-lg font-extrabold text-white font-sans">
               {data.stopLossTriggered ? 'STOP LOSS AKTIF' : 'Sistem Aman'}
             </h2>
@@ -105,7 +105,7 @@ export const Risk: React.FC = () => {
         {/* Card 2: Crash Shield */}
         <div className={`card card-elevated p-6 flex items-center justify-between border-l-2 bg-[#0b0a10]/45 ${data.crashShieldActive ? 'border-l-[#f59e0b] shadow-lg shadow-[#f59e0b]/5' : 'border-l-[#ccff00] shadow-lg shadow-[#ccff00]/5'}`}>
           <div className="space-y-1">
-            <span className="text-[10px] text-[#686477] font-extrabold uppercase tracking-wider font-sans">Crash Shield Active</span>
+            <span className="text-[10px] text-[#686477] font-extrabold uppercase tracking-wider font-sans">Multi-Tier Shield</span>
             <h2 className="text-lg font-extrabold text-white font-sans">
               {data.crashShieldActive ? 'SHIELD PROTECT ON' : 'Deaktif / Normal'}
             </h2>
@@ -155,7 +155,7 @@ export const Risk: React.FC = () => {
 
       {/* Table: Asset levels risk checking */}
       <div className="card card-elevated p-6 bg-[#0b0a10]/45">
-        <h3 className="text-sm font-bold text-white tracking-tight font-sans mb-4">Tingkat Proteksi Konstituen (Asset Drawdown Watchlist)</h3>
+        <h3 className="text-sm font-bold text-white tracking-tight font-sans mb-4">Tingkat Proteksi Konstituen & Triggered Alerts (Watchlist Rotasi)</h3>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs font-sans">
             <thead>

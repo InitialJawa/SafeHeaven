@@ -23,8 +23,8 @@ export const SignalBadge: React.FC<SignalBadgeProps> = ({ signal, id }) => {
   
   switch (signal) {
     case 'Beli':
-      bgColor = 'bg-[#00c9a5]/15 border-[#00c9a5]/30';
-      textColor = 'text-[#00c9a5]';
+      bgColor = 'bg-[#00f5a0]/15 border-[#00f5a0]/30';
+      textColor = 'text-[#00f5a0]';
       break;
     case 'Akumulasi':
       bgColor = 'bg-[#0891b2]/15 border-[#0891b2]/30';
@@ -39,8 +39,8 @@ export const SignalBadge: React.FC<SignalBadgeProps> = ({ signal, id }) => {
       textColor = 'text-[#f97316]';
       break;
     case 'Jual':
-      bgColor = 'bg-[#f23645]/15 border-[#f23645]/30';
-      textColor = 'text-[#f23645]';
+      bgColor = 'bg-[#ff3366]/15 border-[#ff3366]/30';
+      textColor = 'text-[#ff3366]';
       break;
   }
 

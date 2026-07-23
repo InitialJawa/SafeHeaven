@@ -5,13 +5,15 @@ import { LiveTicker } from '../components/LiveTicker';
 import { SignalBadge } from '../components/SignalBadge';
 import { TickerLogo } from '../components/TickerLogo';
 import { PhysicalWallet } from '../components/PhysicalWallet';
-import { AnimatedTierCard } from '../components/AnimatedTierCard';
 import { AssetTreemap } from '../components/AssetTreemap';
+import { PortfolioGrowthChart } from '../components/PortfolioGrowthChart';
+import { PortfolioSummaryWidget } from '../components/PortfolioSummaryWidget';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, AreaChart, Area, XAxis, YAxis } from 'recharts';
 import { 
   Wallet, 
   LineChart, 
   ShieldAlert, 
+  AlertTriangle,
   Award, 
   ArrowUpRight, 
   Check, 
@@ -23,9 +25,22 @@ import {
   TrendingUp, 
   Landmark,
   CheckCircle,
-  Bell
+  Bell,
+  Activity,
+  TrendingDown,
+  DollarSign,
+  PieChart as PieChartIcon
 } from 'lucide-react';
 import { toast } from 'sonner';
+
+import { WidgetConfigModal, WidgetId, DEFAULT_ORDER } from '../components/WidgetConfigModal';
+import { Skeleton } from '../components/Skeleton';
+import { 
+  WidgetKinerja, 
+  WidgetMusiman, 
+  WidgetGauges,
+  WidgetWatchlistDetail 
+} from '../components/TickerAnalysisWidgets';
 
 export const Dashboard: React.FC = () => {
   const [, setLocation] = useLocation();
@@ -35,13 +50,33 @@ export const Dashboard: React.FC = () => {
     tier, 
     stockPicks, 
     alerts, 
-    fetchInitialData 
+    fetchInitialData,
+    isLoadingData,
+    marketRegime
   } = useAppStore();
 
   const [activeAlertsCount, setActiveAlertsCount] = useState(0);
   const [activeCurrency, setActiveCurrency] = useState<'IDR' | 'USD' | 'EUR'>('IDR');
   const [rebalancing, setRebalancing] = useState(false);
   const [growthData, setGrowthData] = useState<any[]>([]);
+  const [isWidgetModalOpen, setIsWidgetModalOpen] = useState(false);
+  const isEmasRegime = marketRegime === 'bear';
+  const [widgetOrder, setWidgetOrder] = useState<WidgetId[]>(() => {
+    const saved = localStorage.getItem('dashboard_widget_order');
+    if (!saved) return DEFAULT_ORDER;
+    try {
+      const parsed: WidgetId[] = JSON.parse(saved);
+      const missing = DEFAULT_ORDER.filter(id => !parsed.includes(id));
+      return missing.length > 0 ? [...parsed, ...missing] : parsed;
+    } catch {
+      return DEFAULT_ORDER;
+    }
+  });
+
+  const handleSaveWidgetOrder = (newOrder: WidgetId[]) => {
+    setWidgetOrder(newOrder);
+    localStorage.setItem('dashboard_widget_order', JSON.stringify(newOrder));
+  };
 
   useEffect(() => {
     fetchInitialData();
@@ -72,19 +107,23 @@ export const Dashboard: React.FC = () => {
     toast.success('Notifikasi ditandai sebagai dibaca.');
   };
 
-  const handleQuickRebalance = () => {
+  const handleQuickRebalance = async () => {
     setRebalancing(true);
-    toast.promise(
-      new Promise((resolve) => setTimeout(resolve, 1500)),
-      {
-        loading: 'Mengalkulasi deviasi bobot portofolio...',
-        success: () => {
-          setRebalancing(false);
-          return 'Portofolio berhasil direbalancing ke alokasi optimal!';
-        },
-        error: 'Gagal melakukan rebalancing.'
+    try {
+      const base = window.location.origin;
+      const res = await fetch(`${base}/api/admin/trigger-rebalance`, { method: 'POST' });
+      if (res.ok) {
+        toast.success('Portofolio berhasil direbalancing ke alokasi optimal!');
+        await fetchInitialData();
+      } else {
+        toast.error('Gagal melakukan rebalancing.');
       }
-    );
+    } catch (err) {
+      console.error(err);
+      toast.error('Gagal terhubung ke server.');
+    } finally {
+      setRebalancing(false);
+    }
   };
 
   // Portfolio allocation donut chart
@@ -133,62 +172,130 @@ export const Dashboard: React.FC = () => {
             </div>
             <p className="text-xs text-[#9f9bac] mt-1 font-sans">Pusat komando finansial dan intelijen kuantitatif cerdas Anda.</p>
           </div>
-          <div className="text-xs text-[#686477] font-mono bg-[#111018] border border-[#1b1926] px-3.5 py-1.5 rounded-xl">
-            Hari ini: {new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+          <div className="flex items-center gap-3">
+            <div className="text-xs text-[#686477] font-mono bg-[#111018] border border-[#1b1926] px-3.5 py-1.5 rounded-xl hidden sm:block">
+              Hari ini: {new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            </div>
+            <button
+              onClick={() => setIsWidgetModalOpen(true)}
+              className="px-3.5 py-1.5 rounded-xl bg-[#ccff00] hover:bg-[#ddff33] text-black text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all active:scale-95 shadow-[0_0_15px_rgba(204,255,0,0.15)]"
+            >
+              <Plus className="w-3.5 h-3.5" /> Tambah Widget
+            </button>
+            <button
+              onClick={() => setIsWidgetModalOpen(true)}
+              className="px-3.5 py-1.5 rounded-xl bg-[#1b1926] hover:bg-[#252233] border border-[#2a273b] text-[#9f9bac] hover:text-white text-xs font-bold flex items-center gap-2 cursor-pointer transition-colors"
+            >
+              <Sliders className="w-3.5 h-3.5" /> Susun Widget
+            </button>
           </div>
         </div>
 
-        {/* TOP ROW: Visual Cards and Currency Switchers (Bento Grid) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-          
-          {/* Bento Column 1: SafeHeaven Signature Credit Card Widget (8 Cols) */}
-          <div className="card card-elevated p-6 lg:col-span-8 grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
-            
-            {/* Visual Glassmorphic Card (Left side, 7 cols) */}
-            <div className="md:col-span-7 select-none">
-              <PhysicalWallet 
-                capital={capital}
-                strategyName={portfolioConfig?.strategyName || 'IMAM NASRULLOH'}
-                onTopUp={() => {
-                  toast.success('Pintu Deposit Instan siap di Settings Workbench.');
-                  setLocation('/settings');
-                }}
-                onTransfer={() => {
-                  toast.info('Modul Transfer diaktifkan. Pilih instrumen bursa tujuan.');
-                  setLocation('/portfolio');
-                }}
-              />
+        {/* Active Market Stress / Simulator Banner */}
+        {portfolioConfig?.activeStressScenario && (
+          <div className="p-4 bg-[#ff3366]/10 border border-[#ff3366]/30 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg shadow-[#ff3366]/5 animate-fade-in">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="w-5 h-5 text-[#ff3366] shrink-0 animate-bounce" />
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-extrabold text-[#ff3366] uppercase font-mono tracking-wider">
+                    SIMULASI STRESS TEST AKTIF
+                  </span>
+                  <span className="px-2 py-0.5 rounded text-[9px] font-extrabold bg-[#ff3366]/20 text-[#ff3366] font-mono">
+                    {portfolioConfig.stressImpactPct !== undefined && portfolioConfig.stressImpactPct !== 0 ? `${portfolioConfig.stressImpactPct}% Impact` : 'Asset Drift'}
+                  </span>
+                </div>
+                <p className="text-xs text-white font-bold font-sans mt-0.5">
+                  {portfolioConfig.activeStressScenario}
+                </p>
+              </div>
             </div>
 
-            {/* Quick Actions (Right side, 5 cols) */}
-            <div className="md:col-span-5 flex flex-col justify-between h-full space-y-4">
-              <div>
-                <h4 className="text-xs font-bold uppercase text-[#9f9bac] tracking-wider font-sans">Quick Cockpit Actions</h4>
-                <p className="text-[10px] text-[#686477] mt-0.5">Aksi transfer cepat dan rebalancing bursa instan.</p>
-              </div>
+            <button
+              onClick={handleQuickRebalance}
+              disabled={rebalancing}
+              className="px-4 py-2 bg-[#ccff00] hover:bg-[#ddff33] text-black text-xs font-extrabold rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shrink-0 active:scale-95 shadow-md shadow-[#ccff00]/10"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${rebalancing ? 'animate-spin' : ''}`} />
+              {rebalancing ? 'Merebalancing...' : 'Eksekusi Rebalance'}
+            </button>
+          </div>
+        )}
 
-              {/* Action Buttons Grid */}
-              <div className="grid grid-cols-2 gap-2.5">
-                <button
-                  id="action-quick-transfer"
-                  onClick={() => {
+        
+        {/* WIDGET GRID */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 flex-col lg:grid">
+          {isLoadingData ? (
+            <>
+              <Skeleton className="lg:col-span-8 h-[380px] rounded-3xl" />
+              <Skeleton className="lg:col-span-4 h-[380px] rounded-3xl" />
+              <Skeleton className="lg:col-span-8 h-[420px] rounded-3xl" />
+              <Skeleton className="lg:col-span-4 h-[420px] rounded-3xl" />
+              <Skeleton className="lg:col-span-12 h-[350px] rounded-3xl" />
+              <Skeleton className="lg:col-span-12 h-[350px] rounded-3xl" />
+            </>
+          ) : (
+            <>
+              {/* Bento Card: Portfolio Summary (12 Cols) */}
+              {widgetOrder.includes('summary') && (
+                <div style={{ order: widgetOrder.indexOf('summary') }} className="lg:col-span-12">
+                  <PortfolioSummaryWidget />
+                </div>
+              )}
+
+              {/* Bento Card 1: SafeHeaven Signature Wallet & Cockpit (8 Cols) */}
+              {widgetOrder.includes('wallet') && (
+          <div style={{ order: widgetOrder.indexOf('wallet') }} className="card card-elevated p-6 lg:col-span-8 flex flex-col justify-between bg-[#0b0a10]/45 border border-[#1b1926] space-y-4">
+            <div className="flex flex-row justify-between items-start">
+              <div>
+                <h4 className="text-xs font-bold uppercase text-[#9f9bac] tracking-wider font-sans">Kartu Manajemen Dana & Quick Actions</h4>
+                <p className="text-[10px] text-[#686477] mt-0.5">Akses saldo aktif, transfer cepat, dan kontrol kokpit portofolio utama.</p>
+              </div>
+              <div className="pt-1 text-[9px] text-[#686477] flex items-center gap-2">
+                 <span className="font-mono">Pusat Pintar</span>
+                 <span className="font-mono text-[#ccff00]">Autopilot ON</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center my-auto">
+              {/* Wallet Left */}
+              <div className="select-none flex justify-center lg:col-span-7">
+                <PhysicalWallet 
+                  capital={capital}
+                  strategyName={portfolioConfig?.strategyName || 'IMAM NASRULLOH'}
+                  onTopUp={() => {
+                    toast.success('Pintu Deposit Instan siap di Settings Workbench.');
+                    setLocation('/settings');
+                  }}
+                  onTransfer={() => {
                     toast.info('Modul Transfer diaktifkan. Pilih instrumen bursa tujuan.');
                     setLocation('/portfolio');
                   }}
-                  className="flex flex-col items-center justify-center p-3 rounded-xl bg-[#111018] border border-[#1b1926] hover:border-[#ccff00]/40 text-[#9f9bac] hover:text-white transition-all text-center cursor-pointer group"
+                />
+              </div>
+
+              {/* Actions Right */}
+              <div className="grid grid-cols-2 gap-3 lg:col-span-5">
+                <button
+                  id="action-quick-transfer"
+                  onClick={() => {
+                    toast.success('Modul Transfer Instan (IDR/USD) dibuka.');
+                    setLocation('/portfolio');
+                  }}
+                  className="flex flex-col items-center justify-center p-4 rounded-xl bg-[#111018] border border-[#1b1926] hover:border-[#ccff00]/40 text-[#9f9bac] hover:text-white transition-all text-center cursor-pointer group"
                 >
-                  <Send className="w-4 h-4 text-[#ccff00] mb-1.5 group-hover:scale-110 transition-transform" />
-                  <span className="text-[10px] font-bold">Kirim Dana</span>
+                  <Send className="w-5 h-5 text-[#00f5a0] mb-2 group-hover:-translate-y-1 transition-transform" />
+                  <span className="text-[11px] font-bold">Kirim Dana</span>
                 </button>
 
                 <button
                   id="action-quick-rebalance"
                   onClick={handleQuickRebalance}
                   disabled={rebalancing}
-                  className="flex flex-col items-center justify-center p-3 rounded-xl bg-[#111018] border border-[#1b1926] hover:border-[#ccff00]/40 text-[#9f9bac] hover:text-white transition-all text-center cursor-pointer group disabled:opacity-55"
+                  className="flex flex-col items-center justify-center p-4 rounded-xl bg-[#111018] border border-[#1b1926] hover:border-[#ccff00]/40 text-[#9f9bac] hover:text-white transition-all text-center cursor-pointer group disabled:opacity-55"
                 >
-                  <RefreshCw className={`w-4 h-4 text-[#00f0ff] mb-1.5 group-hover:rotate-180 transition-all ${rebalancing ? 'animate-spin' : ''}`} />
-                  <span className="text-[10px] font-bold">Rebalance</span>
+                  <RefreshCw className={`w-5 h-5 text-[#00f0ff] mb-2 group-hover:rotate-180 transition-all ${rebalancing ? 'animate-spin' : ''}`} />
+                  <span className="text-[11px] font-bold">Rebalance</span>
                 </button>
 
                 <button
@@ -196,185 +303,154 @@ export const Dashboard: React.FC = () => {
                   onClick={() => {
                     setLocation('/alerts');
                   }}
-                  className="flex flex-col items-center justify-center p-3 rounded-xl bg-[#111018] border border-[#1b1926] hover:border-[#ccff00]/40 text-[#9f9bac] hover:text-white transition-all text-center cursor-pointer group"
+                  className="flex flex-col items-center justify-center p-4 rounded-xl bg-[#111018] border border-[#1b1926] hover:border-[#ccff00]/40 text-[#9f9bac] hover:text-white transition-all text-center cursor-pointer group"
                 >
-                  <Bell className="w-4 h-4 text-pink-400 mb-1.5 group-hover:scale-110 transition-transform" />
-                  <span className="text-[10px] font-bold">Alerts</span>
+                  <Bell className="w-5 h-5 text-pink-400 mb-2 group-hover:scale-110 transition-transform" />
+                  <span className="text-[11px] font-bold">Alerts</span>
                 </button>
 
                 <button
                   id="action-card-compare"
                   onClick={() => setLocation('/compare')}
-                  className="flex flex-col items-center justify-center p-3 rounded-xl bg-[#111018] border border-[#1b1926] hover:border-[#ccff00]/40 text-[#9f9bac] hover:text-white transition-all text-center cursor-pointer group"
+                  className="flex flex-col items-center justify-center p-4 rounded-xl bg-[#111018] border border-[#1b1926] hover:border-[#ccff00]/40 text-[#9f9bac] hover:text-white transition-all text-center cursor-pointer group"
                 >
-                  <Sliders className="w-4 h-4 text-orange-400 mb-1.5 group-hover:scale-110 transition-transform" />
-                  <span className="text-[10px] font-bold">Bandingkan</span>
+                  <Sliders className="w-5 h-5 text-orange-400 mb-2 group-hover:scale-110 transition-transform" />
+                  <span className="text-[11px] font-bold">Bandingkan</span>
                 </button>
               </div>
             </div>
-
           </div>
+          )}
 
-          {/* Bento Column 2: Multi-Currency Multi-Accounts (4 Cols) */}
-          <div className="card card-elevated p-6 lg:col-span-4 flex flex-col justify-between space-y-4">
-            <div>
-              <h4 className="text-xs font-bold uppercase text-[#9f9bac] tracking-wider">Multi-Currency Accounts</h4>
-              <p className="text-[10px] text-[#686477]">Daftar saldo berdasarkan denominasi bursa dunia.</p>
-            </div>
-
-            {/* Currency list */}
-            <div className="space-y-2.5">
-              {/* Account 1: IDR */}
-              <div 
-                onClick={() => setActiveCurrency('IDR')}
-                className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
-                  activeCurrency === 'IDR' ? 'bg-[#ccff00]/5 border-[#ccff00]/30' : 'bg-[#111018]/50 border-transparent hover:border-[#1b1926]'
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-full bg-red-600/10 border border-red-500/20 flex items-center justify-center text-xs font-bold text-red-400">IDR</div>
-                  <div>
-                    <p className="text-[10px] text-[#686477] uppercase font-bold leading-none">Rupiah Indonesia</p>
-                    <p className="text-xs font-extrabold text-white mt-1">Rp Account</p>
-                  </div>
+          {/* Bento Card 2: Multi-Tier Rotation (4 Cols) */}
+          {widgetOrder.includes('rotation') && (
+          <div style={{ order: widgetOrder.indexOf('rotation') }} className="card card-elevated p-6 lg:col-span-4 flex flex-col justify-between space-y-4 bg-[#0b0a10]/45 border border-[#1b1926]">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <RefreshCw className="w-4 h-4 text-[#00f0ff]" />
+                  <h4 className="text-xs font-bold uppercase text-white tracking-wider font-sans">Multi-Tier Rotation</h4>
                 </div>
-                <p className="text-xs font-extrabold font-mono text-white">{formatIDR(capital)}</p>
+                <p className="text-[10px] text-[#686477] mt-0.5">Rotasi aset dinamis (Jaring Pengaman).</p>
               </div>
-
-              {/* Account 2: USD */}
-              <div 
-                onClick={() => setActiveCurrency('USD')}
-                className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
-                  activeCurrency === 'USD' ? 'bg-[#ccff00]/5 border-[#ccff00]/30' : 'bg-[#111018]/50 border-transparent hover:border-[#1b1926]'
-                }`}
+              <button
+                onClick={() => setLocation('/optimize')}
+                className="text-[10px] font-extrabold text-[#ccff00] hover:underline flex items-center gap-1 cursor-pointer"
               >
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-full bg-blue-600/10 border border-blue-500/20 flex items-center justify-center text-xs font-bold text-blue-400">USD</div>
-                  <div>
-                    <p className="text-[10px] text-[#686477] uppercase font-bold leading-none">US Dollar</p>
-                    <p className="text-xs font-extrabold text-white mt-1">US$ Offshore</p>
-                  </div>
-                </div>
-                <p className="text-xs font-extrabold font-mono text-white">{formatUSD(capital / 15000)}</p>
-              </div>
+                Walk Forward <ArrowUpRight className="w-3 h-3" />
+              </button>
+            </div>
 
-              {/* Account 3: EUR */}
-              <div 
-                onClick={() => setActiveCurrency('EUR')}
-                className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
-                  activeCurrency === 'EUR' ? 'bg-[#ccff00]/5 border-[#ccff00]/30' : 'bg-[#111018]/50 border-transparent hover:border-[#1b1926]'
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-full bg-indigo-600/10 border border-indigo-500/20 flex items-center justify-center text-xs font-bold text-indigo-400">EUR</div>
-                  <div>
-                    <p className="text-[10px] text-[#686477] uppercase font-bold leading-none">Eurozone</p>
-                    <p className="text-xs font-extrabold text-white mt-1">€ European</p>
-                  </div>
-                </div>
-                <p className="text-xs font-extrabold font-mono text-white">€ {Math.round(capital / 16200).toLocaleString('id-ID')}</p>
-              </div>
+            <div className="space-y-2.5 my-auto">
+               {/* Item 1: Saham */}
+               {isEmasRegime ? (
+                 <div className="p-3 rounded-xl bg-[#111018]/80 border border-[#1bfb7c]/20 flex items-center justify-between opacity-60">
+                   <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-[#1bfb7c]/10 flex items-center justify-center text-[#1bfb7c]">
+                         <LineChart className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-[#1bfb7c] uppercase font-extrabold leading-none">Saham</p>
+                        <p className="text-xs font-bold text-white mt-1">Fase Koreksi</p>
+                      </div>
+                   </div>
+                   <div className="text-right">
+                      <span className="text-[9px] font-bold text-[#1bfb7c] bg-[#1bfb7c]/10 px-1.5 py-0.5 rounded">AVOID</span>
+                   </div>
+                 </div>
+               ) : (
+                 <div className="p-3 rounded-xl bg-[#1bfb7c]/10 border border-[#1bfb7c]/30 shadow-[0_0_15px_rgba(27,251,124,0.15)] flex items-center justify-between relative overflow-hidden">
+                   <div className="absolute top-0 right-0 w-12 h-12 bg-gradient-to-bl from-[#1bfb7c]/20 to-transparent blur-md rounded-bl-full" />
+                   <div className="flex items-center gap-2.5 relative z-10">
+                      <div className="w-8 h-8 rounded-lg bg-[#1bfb7c]/20 flex items-center justify-center text-[#1bfb7c]">
+                         <LineChart className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-[#1bfb7c] uppercase font-extrabold leading-none">Saham</p>
+                        <p className="text-xs font-bold text-white mt-1">Uptrend Kuat (Bullish)</p>
+                      </div>
+                   </div>
+                   <div className="text-right relative z-10">
+                      <span className="text-[9px] font-bold text-black bg-[#1bfb7c] px-1.5 py-0.5 rounded">REKOMENDASI</span>
+                   </div>
+                 </div>
+               )}
+
+               {/* Item 2: Emas */}
+               {isEmasRegime ? (
+                 <div className="p-3 rounded-xl bg-[#ffbe3b]/10 border border-[#ffbe3b]/30 shadow-[0_0_15px_rgba(255,190,59,0.15)] flex items-center justify-between relative overflow-hidden">
+                   <div className="absolute top-0 right-0 w-12 h-12 bg-gradient-to-bl from-[#ffbe3b]/20 to-transparent blur-md rounded-bl-full" />
+                   <div className="flex items-center gap-2.5 relative z-10">
+                      <div className="w-8 h-8 rounded-lg bg-[#ffbe3b]/20 flex items-center justify-center text-[#ffbe3b]">
+                         <Award className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-[#ffbe3b] uppercase font-extrabold leading-none">Emas</p>
+                        <p className="text-xs font-bold text-white mt-1">Uptrend Kuat</p>
+                      </div>
+                   </div>
+                   <div className="text-right relative z-10">
+                      <span className="text-[9px] font-bold text-black bg-[#ffbe3b] px-1.5 py-0.5 rounded">REKOMENDASI</span>
+                   </div>
+                 </div>
+               ) : (
+                 <div className="p-3 rounded-xl bg-[#111018]/80 border border-[#ffbe3b]/20 flex items-center justify-between opacity-60">
+                   <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-[#ffbe3b]/10 flex items-center justify-center text-[#ffbe3b]">
+                         <Award className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-[#ffbe3b] uppercase font-extrabold leading-none">Emas</p>
+                        <p className="text-xs font-bold text-white mt-1">Fase Konsolidasi</p>
+                      </div>
+                   </div>
+                   <div className="text-right">
+                      <span className="text-[9px] font-bold text-[#ffbe3b] bg-[#ffbe3b]/10 px-1.5 py-0.5 rounded">HOLD</span>
+                   </div>
+                 </div>
+               )}
+
+               {/* Item 3 & 4: USD & IDR */}
+               <div className="grid grid-cols-2 gap-2.5">
+                 <div className="p-2.5 rounded-xl bg-[#111018]/80 border border-[#545863]/30 flex items-center justify-between opacity-80">
+                    <div className="flex items-center gap-1.5">
+                      <DollarSign className="w-3.5 h-3.5 text-[#545863]" />
+                      <span className="text-[10px] text-[#545863] font-bold">Cash USD</span>
+                    </div>
+                    <span className="text-[9px] font-bold text-[#686477] bg-white/5 px-1.5 py-0.5 rounded">HOLD</span>
+                 </div>
+                 <div className="p-2.5 rounded-xl bg-[#111018]/80 border border-[#9d1df2]/30 flex items-center justify-between opacity-80">
+                    <div className="flex items-center gap-1.5">
+                      <Landmark className="w-3.5 h-3.5 text-[#9d1df2]" />
+                      <span className="text-[10px] text-[#9d1df2] font-bold">Cash IDR</span>
+                    </div>
+                    <span className="text-[9px] font-bold text-[#686477] bg-white/5 px-1.5 py-0.5 rounded">HOLD</span>
+                 </div>
+               </div>
+            </div>
+
+            <div className="pt-2 border-t border-[#1b1926] flex items-center justify-between text-[9px] text-[#686477]">
+              <span>Alokasi mengikuti</span>
+              <span className="text-[#ccff00] font-bold flex items-center gap-1 cursor-pointer hover:underline" onClick={() => setLocation('/settings')}><CheckCircle className="w-3 h-3"/> Active Strategy</span>
             </div>
           </div>
-
-        </div>
-
-        {/* SECOND ROW: Stat Mini Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {/* Stat 1 */}
-          <div className="card p-5 flex items-center justify-between bg-[#0b0a10]/40">
-            <div className="space-y-1">
-              <span className="text-[10px] font-bold text-[#686477] tracking-wider uppercase font-sans">Saham Ter-Scoring</span>
-              <h2 className="text-lg font-bold font-mono text-white">
-                {tickers.length} / 45
-              </h2>
-              <span className="text-[9px] text-[#9f9bac] font-sans">Sinyal fundamental diperbarui live</span>
-            </div>
-            <div className="w-9 h-9 bg-[#ccff00]/10 border border-[#ccff00]/25 rounded-xl flex items-center justify-center text-[#ccff00]">
-              <LineChart className="w-4.5 h-4.5" />
-            </div>
-          </div>
-
-          {/* Stat 2 */}
-          <div className="card p-5 flex items-center justify-between bg-[#0b0a10]/40">
-            <div className="space-y-1">
-              <span className="text-[10px] font-bold text-[#686477] tracking-wider uppercase font-sans">Alert Sistem Aktif</span>
-              <h2 className="text-lg font-bold font-mono text-[#ff3366] glow-text-lime">
-                {activeAlertsCount}
-              </h2>
-              <span className="text-[9px] text-[#9f9bac] font-sans">Notifikasi kualitatif ON</span>
-            </div>
-            <div className="w-9 h-9 bg-[#ff3366]/10 border border-[#ff3366]/25 rounded-xl flex items-center justify-center text-[#ff3366]">
-              <ShieldAlert className="w-4.5 h-4.5" />
-            </div>
-          </div>
-
-          {/* Stat 3 */}
-          <div className="flex flex-col justify-end -mx-3">
-            <AnimatedTierCard />
-          </div>
-        </div>
-
-        {/* THIRD ROW: Chart and Allocation Allocation (Bento Grid) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+          )}
           
           {/* Historic Capital Performance Chart (8 Cols) */}
-          <div className="card card-elevated p-6 lg:col-span-8 flex flex-col space-y-4">
-            <div>
-              <h3 className="text-sm font-bold text-white tracking-tight font-sans">Kurva Pertumbuhan Portofolio</h3>
-              <p className="text-[11px] text-[#686477] font-sans">Hasil akumulasi strategis SafeHeaven kumulatif semester ini.</p>
-            </div>
-
-            <div className="w-full flex-grow">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={growthData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorBalance" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#ccff00" stopOpacity={0.25}/>
-                      <stop offset="95%" stopColor="#ccff00" stopOpacity={0.01}/>
-                    </linearGradient>
-                  </defs>
-                  <XAxis 
-                    dataKey="date" 
-                    stroke="#494554" 
-                    fontSize={10}
-                    tickLine={false}
-                    axisLine={false}
-                    dy={10}
-                  />
-                  <YAxis 
-                    stroke="#494554" 
-                    fontSize={10}
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={(val) => `Rp ${(val / 1000000)}M`}
-                  />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#0b0a10', borderColor: '#1b1926', borderRadius: '12px' }}
-                    labelStyle={{ color: '#ffffff', fontWeight: 'bold', fontSize: '11px' }}
-                    itemStyle={{ color: '#ccff00', fontSize: '11px' }}
-                    formatter={(val: number) => [formatIDR(val), 'Dana Aktif']}
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="balance" 
-                    stroke="#ccff00" 
-                    strokeWidth={2}
-                    fillOpacity={1} 
-                    fill="url(#colorBalance)" 
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
+          {widgetOrder.includes('performance') && (
+          <div style={{ order: widgetOrder.indexOf('performance') }} className="card card-elevated p-6 lg:col-span-8 flex flex-col h-full">
+            <PortfolioGrowthChart initialCapital={capital} />
           </div>
+          )}
 
           {/* Allocation Treemap Chart (4 Cols) */}
-          <AssetTreemap capital={capital} />
-
-        </div>
+          {widgetOrder.includes('treemap') && (
+          <AssetTreemap style={{ order: widgetOrder.indexOf('treemap') }} capital={capital} />
+          )}
 
         {/* FOURTH ROW: High-fidelity transaction log (Top Picks) */}
-        <div className="card card-elevated p-6 flex flex-col">
+        {widgetOrder.includes('picks') && (
+        <div style={{ order: widgetOrder.indexOf('picks') }} className="card card-elevated p-6 flex flex-col lg:col-span-12">
           <div className="flex items-center justify-between mb-5">
             <div>
               <h3 className="text-sm font-bold text-white tracking-tight font-sans">Sinyal Pilihan Teratas (Top Picks / Ledger)</h3>
@@ -406,13 +482,21 @@ export const Dashboard: React.FC = () => {
                   return (
                     <tr key={pick.symbol} className="hover:bg-white/[0.01] transition-colors group">
                       <td className="py-3.5">
-                        <div className="flex items-center gap-3">
+                        <div 
+                          className="flex items-center gap-3 cursor-pointer group-hover:text-[#ccff00]" 
+                          onClick={() => setLocation(`/ticker/${pick.symbol}`)}
+                        >
                           <TickerLogo symbol={pick.symbol} sizeClassName="w-8 h-8" />
-                          <span className="font-extrabold font-mono text-white text-sm">{pick.symbol}</span>
+                          <span className="font-extrabold font-mono text-white text-sm transition-colors group-hover:text-[#ccff00]">{pick.symbol}</span>
                         </div>
                       </td>
-                      <td className="py-3.5 text-[#9f9bac] font-medium max-w-[180px] truncate">{pick.name}</td>
-                      <td className="py-3.5 text-center font-extrabold font-mono text-white text-sm">{pick.score}</td>
+                      <td 
+                        className="py-3.5 text-[#9f9bac] font-medium max-w-[180px] truncate cursor-pointer hover:text-white transition-colors"
+                        onClick={() => setLocation(`/ticker/${pick.symbol}`)}
+                      >
+                        {pick.name}
+                      </td>
+                      <td className="py-3.5 text-center font-extrabold font-mono text-white text-sm">{typeof pick.score === 'number' ? pick.score.toFixed(1) : pick.score}</td>
                       <td className="py-3.5"><SignalBadge signal={pick.signal} /></td>
                       <td className="py-3.5 text-right">
                         <button
@@ -430,15 +514,17 @@ export const Dashboard: React.FC = () => {
             </table>
           </div>
         </div>
+        )}
 
         {/* FIFTH ROW: Alert Notification ledger */}
-        <div className="card card-elevated p-6">
+        {widgetOrder.includes('alerts') && (
+        <div style={{ order: widgetOrder.indexOf('alerts') }} className="card card-elevated p-6 lg:col-span-12">
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2">
               <Bell className="w-4.5 h-4.5 text-[#ccff00]" />
               <div>
-                <h3 className="text-sm font-bold text-white tracking-tight font-sans">Riwayat Amunisi Sinyal Alarm</h3>
-                <p className="text-[11px] text-[#686477] font-sans">Log alarm harga, target deviasi aset, dan analisis fundamental real-time.</p>
+                <h3 className="text-sm font-bold text-white tracking-tight font-sans">Riwayat Rotasi & Sinyal Alarm</h3>
+                <p className="text-[11px] text-[#686477] font-sans">Log pergerakan rotasi dinamis, alarm harga, dan aksi jaring pengaman.</p>
               </div>
             </div>
             {alerts.filter(a => a.status === 'unread').length > 0 && (
@@ -504,8 +590,204 @@ export const Dashboard: React.FC = () => {
             </table>
           </div>
         </div>
+        )}
 
+        {/* RSI Indicator Widget */}
+        {widgetOrder.includes('rsi') && (
+          <div style={{ order: widgetOrder.indexOf('rsi') }} className="card card-elevated p-6 lg:col-span-4 flex flex-col justify-between space-y-4 bg-[#0b0a10]/45 border border-[#1b1926]">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-purple-400" />
+                  <h4 className="text-xs font-bold uppercase text-white tracking-wider font-sans">RSI Indicator</h4>
+                </div>
+                <p className="text-[10px] text-[#686477] mt-1">Relative Strength Index (14 Hari)</p>
+              </div>
+            </div>
+            <div className="flex flex-col space-y-4 my-auto">
+              <div className="flex justify-center items-center">
+                <div className="relative w-32 h-32 flex items-center justify-center">
+                  <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="40" stroke="#1b1926" strokeWidth="10" fill="none" />
+                    <circle cx="50" cy="50" r="40" stroke="url(#rsiGradient)" strokeWidth="10" fill="none" strokeDasharray="251.2" strokeDashoffset="100.48" className="transition-all duration-1000 ease-out" />
+                    <defs>
+                      <linearGradient id="rsiGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stopColor="#00f0ff" />
+                        <stop offset="100%" stopColor="#9d1df2" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                  <div className="absolute flex flex-col items-center">
+                    <span className="text-3xl font-extrabold text-white font-mono tracking-tight">60</span>
+                    <span className="text-[9px] font-bold text-[#686477] uppercase">Netral</span>
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-center">
+                <div className="p-2 rounded-xl bg-[#111018] border border-[#1b1926]">
+                  <span className="text-[10px] text-[#686477] block mb-1">Overbought</span>
+                  <span className="text-xs font-bold text-rose-400">&gt; 70</span>
+                </div>
+                <div className="p-2 rounded-xl bg-[#111018] border border-[#1b1926]">
+                  <span className="text-[10px] text-[#686477] block mb-1">Oversold</span>
+                  <span className="text-xs font-bold text-[#00f0ff]">&lt; 30</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Sector Weighting Widget */}
+        {widgetOrder.includes('sector') && (
+          <div style={{ order: widgetOrder.indexOf('sector') }} className="card card-elevated p-6 lg:col-span-4 flex flex-col justify-between space-y-4 bg-[#0b0a10]/45 border border-[#1b1926]">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <PieChartIcon className="w-4 h-4 text-amber-400" />
+                  <h4 className="text-xs font-bold uppercase text-white tracking-wider font-sans">Sector Weighting</h4>
+                </div>
+                <p className="text-[10px] text-[#686477] mt-1">Distribusi Sektor Portofolio</p>
+              </div>
+            </div>
+            <div className="space-y-4 my-auto">
+              <div className="space-y-3">
+                {[
+                  { name: 'Financials', weight: 45, color: 'bg-sky-400' },
+                  { name: 'Consumer Goods', weight: 25, color: 'bg-[#ccff00]' },
+                  { name: 'Infrastructure', weight: 20, color: 'bg-amber-400' },
+                  { name: 'Technology', weight: 10, color: 'bg-purple-400' },
+                ].map((sector) => (
+                  <div key={sector.name} className="space-y-1">
+                    <div className="flex justify-between text-[11px] font-bold">
+                      <span className="text-[#e1e1e1]">{sector.name}</span>
+                      <span className="text-white">{sector.weight}%</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-[#111018] rounded-full overflow-hidden">
+                      <div className={`h-full ${sector.color} rounded-full`} style={{ width: `${sector.weight}%` }}></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="pt-2 border-t border-[#1b1926] flex items-center justify-between text-[9px] text-[#686477]">
+              <span>Dikalibrasi ulang 2 jam lalu</span>
+            </div>
+          </div>
+        )}
+
+        {/* MACD Momentum Tracker Widget */}
+        {widgetOrder.includes('macd') && (
+          <div style={{ order: widgetOrder.indexOf('macd') }} className="card card-elevated p-6 lg:col-span-4 flex flex-col justify-between space-y-4 bg-[#0b0a10]/45 border border-[#1b1926]">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-[#ccff00]" />
+                  <h4 className="text-xs font-bold uppercase text-white tracking-wider font-sans">MACD Momentum</h4>
+                </div>
+                <p className="text-[10px] text-[#686477] mt-1">Konvergensi & Divergensi (12, 26, 9)</p>
+              </div>
+              <span className="text-[9px] font-extrabold text-[#ccff00] bg-[#ccff00]/10 border border-[#ccff00]/20 px-2 py-0.5 rounded font-mono">BULLISH CROSS</span>
+            </div>
+            <div className="space-y-3 my-auto">
+              <div className="p-3 rounded-xl bg-[#111018] border border-[#1b1926] space-y-2">
+                <div className="flex justify-between text-[11px] font-bold">
+                  <span className="text-[#9f9bac]">MACD Line:</span>
+                  <span className="text-[#ccff00] font-mono">+1.42</span>
+                </div>
+                <div className="flex justify-between text-[11px] font-bold">
+                  <span className="text-[#9f9bac]">Signal Line:</span>
+                  <span className="text-sky-400 font-mono">+0.85</span>
+                </div>
+                <div className="flex justify-between text-[11px] font-bold">
+                  <span className="text-[#9f9bac]">Histogram:</span>
+                  <span className="text-[#1bfb7c] font-mono">+0.57</span>
+                </div>
+              </div>
+              <div className="h-2 w-full bg-[#111018] rounded-full overflow-hidden flex">
+                <div className="h-full bg-rose-500 w-1/3"></div>
+                <div className="h-full bg-[#ccff00] w-2/3"></div>
+              </div>
+            </div>
+            <div className="pt-2 border-t border-[#1b1926] flex items-center justify-between text-[9px] text-[#686477]">
+              <span>Momentum Tren Naik</span>
+              <span className="text-[#ccff00] font-bold font-mono">+2.4% Est. Vol</span>
+            </div>
+          </div>
+        )}
+
+        {/* Volatility Index Widget */}
+        {widgetOrder.includes('volatility') && (
+          <div style={{ order: widgetOrder.indexOf('volatility') }} className="card card-elevated p-6 lg:col-span-4 flex flex-col justify-between space-y-4 bg-[#0b0a10]/45 border border-[#1b1926]">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <ShieldAlert className="w-4 h-4 text-cyan-400" />
+                  <h4 className="text-xs font-bold uppercase text-white tracking-wider font-sans">Market Volatility</h4>
+                </div>
+                <p className="text-[10px] text-[#686477] mt-1">Indeks Risiko & Volatilitas (VIX Equiv.)</p>
+              </div>
+              <span className="text-[9px] font-extrabold text-cyan-400 bg-cyan-400/10 border border-cyan-400/20 px-2 py-0.5 rounded font-mono">RENDAH - TERKONTROL</span>
+            </div>
+            <div className="space-y-3 my-auto">
+              <div className="flex items-center justify-between p-3 rounded-xl bg-[#111018] border border-[#1b1926]">
+                <div>
+                  <span className="text-[10px] text-[#686477] uppercase font-bold block">Skor Volatilitas</span>
+                  <span className="text-2xl font-extrabold text-white font-mono">14.8 <span className="text-xs font-normal text-[#686477]">/ 100</span></span>
+                </div>
+                <div className="px-2.5 py-1 rounded-lg bg-[#1bfb7c]/10 text-[#1bfb7c] text-xs font-bold font-mono">
+                  -1.2 pts
+                </div>
+              </div>
+              <p className="text-[10px] text-[#9f9bac] leading-relaxed">
+                Pasar berada dalam kondisi stabil. Jaring pengaman otomatis beroperasi dengan batas slippage minimal.
+              </p>
+            </div>
+            <div className="pt-2 border-t border-[#1b1926] flex items-center justify-between text-[9px] text-[#686477]">
+              <span>Risk Management Engine</span>
+              <span className="text-cyan-400 font-bold">Optimal</span>
+            </div>
+          </div>
+        )}
+
+        {/* Watchlist & Key Stats Widget (Yahoo Finance Live) */}
+        {widgetOrder.includes('watchlist_detail') && (
+          <div style={{ order: widgetOrder.indexOf('watchlist_detail') }} className="lg:col-span-4">
+            <WidgetWatchlistDetail defaultSymbol="IHSG" />
+          </div>
+        )}
+
+        {/* IHSG Custom Market Cockpit Widget */}
+        {widgetOrder.includes('ihsg_analysis') && (
+          <div style={{ order: widgetOrder.indexOf('ihsg_analysis') }} className="lg:col-span-12 space-y-5 bg-[#0b0a10]/45 border border-[#1b1926] p-6 rounded-2xl">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="w-1.5 h-4 bg-[#ccff00] rounded-full"></span>
+                  <h4 className="text-xs font-bold uppercase text-white tracking-wider font-sans">Analisis IHSG Terpadu (Yahoo Finance Live)</h4>
+                </div>
+                <p className="text-[10px] text-[#686477] mt-1">Umpan real-time dari bursa saham Indonesia (^JKSE)</p>
+              </div>
+            </div>
+            
+            <WidgetGauges symbol="IHSG" />
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <WidgetKinerja symbol="IHSG" />
+              <WidgetMusiman symbol="IHSG" />
+            </div>
+          </div>
+        )}
+        </>
+        )}
       </div>
+
+      <WidgetConfigModal
+        isOpen={isWidgetModalOpen}
+        onClose={() => setIsWidgetModalOpen(false)}
+        currentOrder={widgetOrder}
+        onSave={handleSaveWidgetOrder}
+      />
+    </div>
     </div>
   );
 };

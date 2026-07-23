@@ -11,62 +11,31 @@ export const LiveTicker: React.FC = () => {
   const { tickers, updateTickerPrice } = useAppStore();
 
   useEffect(() => {
-    // Establish WebSocket Connection
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/ws`;
-    let ws: WebSocket | null = null;
-    let fallbackInterval: any = null;
-
-    try {
-      ws = new WebSocket(wsUrl);
-
-      ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          if (data.type === 'prices' && data.tickers) {
-            // Feed into global store
-            data.tickers.forEach((t: TickerInfo) => {
-              updateTickerPrice(t.symbol, t.price, t.changePercent);
+    let interval: any;
+    
+    const fetchLiveTickers = async () => {
+      try {
+        const base = window.location.origin;
+        const res = await fetch(`${base}/api/live-tickers`);
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            data.forEach((t: TickerInfo) => {
+              if (t && t.symbol && typeof t.price === 'number') {
+                updateTickerPrice(t.symbol, t.price, t.changePercent || 0);
+              }
             });
           }
-        } catch (e) {
-          console.error('Error parsing WS price updates:', e);
         }
-      };
-
-      ws.onerror = () => {
-        setupFallback();
-      };
-
-      ws.onclose = () => {
-        setupFallback();
-      };
-    } catch {
-      setupFallback();
-    }
-
-    function setupFallback() {
-      if (fallbackInterval) return;
-      // Failover to client-side live simulated updates
-      fallbackInterval = setInterval(() => {
-        const currentTickers = useAppStore.getState().tickers;
-        if (currentTickers.length === 0) return;
-        currentTickers.forEach((t) => {
-          // Random tiny fluctuation (-0.5% to +0.5%)
-          const pctDelta = (Math.random() - 0.5) * 0.4;
-          const newPrice = Math.max(50, Math.round(t.price * (1 + pctDelta / 100)));
-          const newPct = parseFloat((t.changePercent + pctDelta).toFixed(2));
-          
-          // Notify store directly in an async block
-          updateTickerPrice(t.symbol, newPrice, newPct);
-        });
-      }, 3000);
-    }
-
-    return () => {
-      if (ws) ws.close();
-      if (fallbackInterval) clearInterval(fallbackInterval);
+      } catch (err) {
+        // Soft fallback to existing store tickers
+      }
     };
+    
+    fetchLiveTickers();
+    interval = setInterval(fetchLiveTickers, 15000);
+    
+    return () => clearInterval(interval);
   }, [updateTickerPrice]);
 
   return (
@@ -82,7 +51,7 @@ export const LiveTicker: React.FC = () => {
             >
               <span className="text-[#ffffff] font-medium">{t.symbol}</span>
               <span className="text-[#a0a0a0]">Rp {t.price.toLocaleString('id-ID')}</span>
-              <span className={`font-semibold ${isPositive ? 'text-[#00c9a5]' : 'text-[#f23645]'}`}>
+              <span className={`font-semibold ${isPositive ? 'text-[#00f5a0]' : 'text-[#ff3366]'}`}>
                 {isPositive ? '▲' : '▼'} {Math.abs(t.changePercent).toFixed(2)}%
               </span>
             </div>

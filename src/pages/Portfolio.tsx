@@ -1,9 +1,13 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
 import { useAppStore } from '../stores';
 import { SignalBadge } from '../components/SignalBadge';
 import { TickerLogo } from '../components/TickerLogo';
-import { Wallet, Settings, Award, TrendingUp, Compass, ArrowRight, Eye, CheckCircle } from 'lucide-react';
+import { PortfolioGrowthChart } from '../components/PortfolioGrowthChart';
+import { Wallet, Settings, TrendingUp, Compass, ArrowRight, Eye, CheckCircle, Award, Clock, Download } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
+import { downloadPDF } from '../lib/pdfUtils';
+import { Skeleton } from '../components/Skeleton';
 
 export const Portfolio: React.FC = () => {
   const [, setLocation] = useLocation();
@@ -12,12 +16,36 @@ export const Portfolio: React.FC = () => {
     stockPicks, 
     tier, 
     tierProgress, 
-    fetchInitialData 
+    fetchInitialData,
+    isLoadingData
   } = useAppStore();
+
+  const [growthData, setGrowthData] = useState<any[]>([]);
+  const [signals, setSignals] = useState<any[]>([]);
 
   useEffect(() => {
     fetchInitialData();
   }, []);
+
+  useEffect(() => {
+    const fetchGrowthAndSignals = async () => {
+        if (!portfolioConfig?.capital) return;
+        
+        try {
+            const base = window.location.origin;
+            
+            const gRes = await fetch(`${base}/api/portfolio/growth?capital=${portfolioConfig.capital}`);
+            if (gRes.ok) setGrowthData(await gRes.json());
+            
+            const sRes = await fetch(`${base}/api/portfolio/signals`);
+            if (sRes.ok) setSignals(await sRes.json());
+            
+        } catch (e) {
+            console.error(e);
+        }
+    };
+    fetchGrowthAndSignals();
+  }, [portfolioConfig?.capital, portfolioConfig?.universe, portfolioConfig?.strategyTemplate]);
 
   const formatIDR = (val: number) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val);
@@ -67,13 +95,37 @@ export const Portfolio: React.FC = () => {
             </p>
           </div>
         </div>
-        <div className="bg-[#111018]/50 border border-[#1b1926] rounded-xl px-5 py-3.5 text-right min-w-[200px]">
-          <span className="text-[10px] uppercase font-bold tracking-wider text-[#686477]">Total Capital Allocation</span>
-          <h2 className="text-xl font-bold font-mono text-[#ccff00] mt-0.5">{formatIDR(capital)}</h2>
+        <div className="flex items-center gap-3">
+            <button
+                onClick={() => downloadPDF('portfolio-view', 'Portfolio_Summary')}
+                className="flex items-center gap-2 px-4 py-3 bg-[#1b1926] hover:bg-[#252233] border border-[#2a273b] text-[#9f9bac] hover:text-white rounded-xl text-xs font-bold transition-colors cursor-pointer h-[66px]"
+            >
+                <Download className="w-4 h-4" />
+                <span className="hidden sm:inline">Export PDF</span>
+            </button>
+            <div className="bg-[#111018]/50 border border-[#1b1926] rounded-xl px-5 py-3.5 text-right min-w-[200px]">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-[#686477]">Total Capital Allocation</span>
+              <h2 className="text-xl font-bold font-mono text-[#ccff00] mt-0.5">{formatIDR(capital)}</h2>
+            </div>
         </div>
       </div>
 
-      {/* 4 AllocationCards Horizontal */}
+      {isLoadingData ? (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+            {[...Array(4)].map((_, i) => (
+              <Skeleton key={i} className="w-full h-32 rounded-xl" />
+            ))}
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+            <Skeleton className="lg:col-span-8 h-64 rounded-3xl" />
+            <Skeleton className="lg:col-span-4 h-64 rounded-3xl" />
+          </div>
+          <Skeleton className="w-full h-96 rounded-3xl" />
+        </div>
+      ) : (
+        <>
+          {/* 4 AllocationCards Horizontal */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
         {allocations.map((item) => {
           const absoluteVal = (capital * item.pct) / 100;
@@ -96,10 +148,49 @@ export const Portfolio: React.FC = () => {
         })}
       </div>
 
-      {/* Stock Picks and Tier grid */}
+      {/* Custom Graphics & Signals Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        
+        {/* Performance Chart */}
+        <div className="card card-elevated p-6 lg:col-span-8 flex flex-col">
+          <PortfolioGrowthChart initialCapital={capital} height={240} />
+        </div>
+
+        {/* Latest Signals */}
+        <div className="card card-elevated p-6 lg:col-span-4 flex flex-col h-96 overflow-hidden">
+          <div className="flex items-center justify-between mb-4 shrink-0">
+            <div>
+              <h3 className="text-sm font-bold text-white tracking-tight font-sans">Daftar Sinyal Terbaru</h3>
+              <p className="text-[11px] text-[#686477] font-sans">Rekomendasi taktis instan.</p>
+            </div>
+            <Clock className="w-4 h-4 text-[#ccff00]" />
+          </div>
+          <div className="overflow-y-auto pr-1 space-y-3">
+            {signals.map((sig) => (
+              <div 
+                key={sig.id} 
+                className="bg-[#111018]/60 border border-[#1b1926] rounded-xl p-3.5 hover:bg-[#111018] hover:border-[#ccff00]/30 transition-colors cursor-pointer group"
+                onClick={() => setLocation(`/ticker/${sig.symbol}`)}
+              >
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-white font-mono text-xs group-hover:text-[#ccff00] transition-colors">{sig.symbol}</span>
+                    <span className="text-[10px] text-[#686477] truncate max-w-[80px]">{sig.name}</span>
+                  </div>
+                  <SignalBadge signal={sig.signal} />
+                </div>
+                <p className="text-[10px] text-[#9f9bac] leading-relaxed mb-2">{sig.reason}</p>
+                <span className="text-[9px] font-mono text-[#686477]">{new Date(sig.time).toLocaleString('id-ID', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' })}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Stock Picks grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* Table of active Stock Picks */}
-        <div className="card card-elevated p-6 lg:col-span-8 flex flex-col">
+        <div className="card card-elevated p-6 lg:col-span-12 flex flex-col">
           <div>
             <h3 className="text-sm font-bold text-white tracking-tight font-sans">Daftar Rekomendasi (Stock Picks / Asset List)</h3>
             <p className="text-[11px] text-[#686477] font-sans mb-4">Bobot alokasi dihitung proporsional dari total modal saham.</p>
@@ -124,13 +215,21 @@ export const Portfolio: React.FC = () => {
                   return (
                     <tr key={pick.symbol} className="hover:bg-white/[0.01] transition-colors group">
                       <td className="py-3.5">
-                        <div className="flex items-center gap-3">
+                        <div 
+                          className="flex items-center gap-3 cursor-pointer group-hover:text-[#ccff00]" 
+                          onClick={() => setLocation(`/ticker/${pick.symbol}`)}
+                        >
                           <TickerLogo symbol={pick.symbol} sizeClassName="w-8 h-8" />
-                          <span className="font-extrabold font-mono text-white text-sm">{pick.symbol}</span>
+                          <span className="font-extrabold font-mono text-white text-sm transition-colors group-hover:text-[#ccff00]">{pick.symbol}</span>
                         </div>
                       </td>
-                      <td className="py-3.5 text-[#9f9bac] font-medium max-w-[150px] truncate">{pick.name}</td>
-                      <td className="py-3.5 text-center font-extrabold font-mono text-white">{pick.score}</td>
+                      <td 
+                        className="py-3.5 text-[#9f9bac] font-medium max-w-[150px] truncate cursor-pointer hover:text-white transition-colors"
+                        onClick={() => setLocation(`/ticker/${pick.symbol}`)}
+                      >
+                        {pick.name}
+                      </td>
+                      <td className="py-3.5 text-center font-extrabold font-mono text-white">{typeof pick.score === 'number' ? pick.score.toFixed(1) : pick.score}</td>
                       <td className="py-3.5 text-center font-mono text-[#ccff00] font-bold">{pick.weight}%</td>
                       <td className="py-3.5 font-mono text-[#00f5a0] font-extrabold">{formatIDR(pick.allocation)}</td>
                       <td className="py-3.5"><SignalBadge signal={pick.signal} /></td>
@@ -150,46 +249,9 @@ export const Portfolio: React.FC = () => {
             </table>
           </div>
         </div>
-
-        {/* Tier Status card */}
-        <div className="card card-elevated p-6 lg:col-span-4 flex flex-col justify-between bg-[#0b0a10]/45">
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <Award className="w-5 h-5 text-[#ccff00]" />
-              <h3 className="text-sm font-bold text-white tracking-tight font-sans">Checkpoint Premium</h3>
-            </div>
-            <p className="text-[11px] text-[#9f9bac] leading-relaxed font-sans mb-4">
-              Status akun Anda meningkat selaras dengan pertambahan alokasi modal dan konsistensi diversifikasi aset.
-            </p>
-
-            <div className="bg-[#111018] border border-[#1b1926] rounded-xl p-4 space-y-3.5 shadow-inner">
-              <div className="flex justify-between text-xs font-sans">
-                <span className="text-[#686477]">Tier Sekarang</span>
-                <span className="text-[#ccff00] font-bold">{tier}</span>
-              </div>
-              <div className="flex justify-between text-xs font-sans">
-                <span className="text-[#686477]">Target Berikutnya</span>
-                <span className="text-[#00f0ff] font-bold">Tier {tierProgress.current === 4 ? 'Apex VIP' : 'Platinum'}</span>
-              </div>
-
-              {/* Tier Progress visual dots */}
-              <div className="flex items-center space-x-1.5 py-1">
-                {[1, 2, 3, 4, 5].map((idx) => (
-                  <div 
-                    key={idx}
-                    className={`flex-1 h-2 rounded-full border border-black/30 transition-colors ${idx <= tierProgress.current ? 'bg-[#ccff00]' : 'bg-[#1b1926]'}`}
-                  ></div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="pt-4 border-t border-[#1b1926] mt-4 text-[11px] text-[#686477] leading-relaxed font-sans flex items-start gap-2">
-            <span className="text-[#ccff00] font-bold shrink-0">Syarat:</span>
-            <span>{tierProgress.req}</span>
-          </div>
-        </div>
       </div>
+      </>
+      )}
     </div>
   );
 };
