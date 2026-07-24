@@ -37,6 +37,10 @@ if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'MY_GEMINI_API_
 
 import { createClient } from '@libsql/client';
 
+if (!fs.existsSync('data')) {
+  fs.mkdirSync('data', { recursive: true });
+}
+
 // Initialize SQLite database connection
 const dbClient = createClient({
   url: "file:data/safehaven.db",
