@@ -632,7 +632,9 @@ app.put('/api/portfolio/config', async (req, res) => {
 });
 
 import yahooFinance from 'yahoo-finance2';
-const yf = new yahooFinance();
+const yf: any = typeof (yahooFinance as any) === 'function'
+  ? new (yahooFinance as any)()
+  : ((yahooFinance as any).chart ? yahooFinance : ((yahooFinance as any).default || yahooFinance));
 
 // New IHSG historical data endpoint
 app.get('/api/market/macro', async (req, res) => {
