@@ -631,10 +631,21 @@ app.put('/api/portfolio/config', async (req, res) => {
   res.json(portfolioConfig);
 });
 
-import yahooFinance from 'yahoo-finance2';
-const yf: any = typeof (yahooFinance as any) === 'function'
-  ? new (yahooFinance as any)()
-  : ((yahooFinance as any).chart ? yahooFinance : ((yahooFinance as any).default || yahooFinance));
+import YahooFinance from 'yahoo-finance2';
+
+function initYahooFinance(): any {
+  try {
+    const YFClass: any = YahooFinance || (YahooFinance as any)?.default || (YahooFinance as any)?.YahooFinance;
+    if (typeof YFClass === 'function') {
+      return new YFClass();
+    }
+  } catch (e) {
+    console.warn("Failed to instantiate YahooFinance:", e);
+  }
+  return YahooFinance;
+}
+
+const yf = initYahooFinance();
 
 // New IHSG historical data endpoint
 app.get('/api/market/macro', async (req, res) => {
