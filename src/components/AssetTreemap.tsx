@@ -79,6 +79,26 @@ export const AssetTreemap: React.FC<AssetTreemapProps> = ({ capital = 500000000,
   };
 
   useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const updateSize = () => {
+      const parent = canvas.parentElement;
+      if (parent) {
+        const rect = parent.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0) {
+          canvas.width = rect.width;
+          canvas.height = rect.height;
+        }
+      }
+    };
+
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
+  }, []);
+
+  useEffect(() => {
     let animationFrameId: number;
     let lastTime = performance.now();
 
@@ -132,7 +152,7 @@ export const AssetTreemap: React.FC<AssetTreemapProps> = ({ capital = 500000000,
             const usd = rawAssets.find(a => a.id === 'usd')!;
             const idr = rawAssets.find(a => a.id === 'idr')!;
 
-            const leftW = (innerW - gap) * 0.58;
+            const leftW = Math.round((innerW - gap) * 0.52);
             const rightW = innerW - leftW - gap;
 
             // 1. Saham (Left block, full height)
@@ -145,41 +165,41 @@ export const AssetTreemap: React.FC<AssetTreemapProps> = ({ capital = 500000000,
               h: innerH
             });
 
-            // Right column vertical stack: Emas (40%), USD (30%), IDR (30%)
-            const rightH1 = Math.round((innerH - gap * 2) * 0.38);
-            const rightH2 = Math.round((innerH - gap * 2) * 0.31);
-            const rightH3 = innerH - rightH1 - rightH2 - gap * 2;
+            // Right column: Top is Emas (52% height), Bottom split into USD Cash & Cash IDR side-by-side
+            const rightTopH = Math.round((innerH - gap) * 0.52);
+            const rightBotH = innerH - rightTopH - gap;
+            const subW = Math.round((rightW - gap) * 0.5);
 
             const rx = padding + leftW + gap;
 
-            // 2. Emas (Top right)
+            // 2. Emas (Top right, full right width)
             layoutRects.push({
               ...emas,
               val: activeCapital * (emas.percentage / 100),
               x: rx,
               y: padding,
               w: rightW,
-              h: rightH1
+              h: rightTopH
             });
 
-            // 3. USD Cash (Middle right)
+            // 3. USD Cash (Bottom right left)
             layoutRects.push({
               ...usd,
               val: activeCapital * (usd.percentage / 100),
               x: rx,
-              y: padding + rightH1 + gap,
-              w: rightW,
-              h: rightH2
+              y: padding + rightTopH + gap,
+              w: subW,
+              h: rightBotH
             });
 
-            // 4. Cash IDR (Bottom right)
+            // 4. Cash IDR (Bottom right right)
             layoutRects.push({
               ...idr,
               val: activeCapital * (idr.percentage / 100),
-              x: rx,
-              y: padding + rightH1 + rightH2 + gap * 2,
-              w: rightW,
-              h: rightH3
+              x: rx + subW + gap,
+              y: padding + rightTopH + gap,
+              w: rightW - subW - gap,
+              h: rightBotH
             });
           } else {
             let curX = padding;
@@ -359,8 +379,6 @@ export const AssetTreemap: React.FC<AssetTreemapProps> = ({ capital = 500000000,
       <div className="relative w-full h-[340px] rounded-2xl overflow-hidden border border-[#1b1926] bg-[#0b0a10]">
         <canvas
           ref={canvasRef}
-          width={520}
-          height={360}
           onMouseMove={handleMouseMove}
           onMouseLeave={handleMouseLeave}
           className="w-full h-full cursor-pointer block"

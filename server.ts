@@ -39,7 +39,7 @@ import { createClient } from '@libsql/client';
 
 // Initialize SQLite database connection
 const dbClient = createClient({
-  url: "file:safehaven.db",
+  url: "file:data/safehaven.db",
 });
 
 // Robust query executor with Cloudflare D1 REST API and local SQLite fallback
@@ -209,31 +209,6 @@ async function initDbSchema() {
         allocation_usd REAL
       );
     `);
-
-    // Self-healing: ensure all columns exist if table was created previously without them
-    try {
-      const columnsToAdd = [
-        "strategy_template TEXT",
-        "strategy_profile TEXT",
-        "allocation_saham REAL",
-        "allocation_emas REAL",
-        "allocation_cash REAL",
-        "allocation_usd REAL",
-        "strategy_name TEXT",
-        "universe TEXT",
-        "top_n INTEGER",
-        "capital REAL"
-      ];
-      for (const colDef of columnsToAdd) {
-        try {
-          await executeQuery(`ALTER TABLE portfolio_configs ADD COLUMN ${colDef};`);
-        } catch (e) {
-          // column already exists or table issue, ignore safely
-        }
-      }
-    } catch (err) {
-      // ignore
-    }
 
     // Ensure default portfolio config row exists
     await executeQuery(`
@@ -423,7 +398,7 @@ let strategies = [
   }
 ];
 
-const rawTickers = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'tickers.json'), 'utf-8'));
+const rawTickers = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'data/tickers.json'), 'utf-8'));
 const realSymbols = [
   'BBCA', 'BBRI', 'BMRI', 'BBNI', 'TLKM', 'ASII', 'ADRO', 'GOTO', 'UNVR', 'KLBF',
   'TINS', 'TPIA', 'BUKA', 'HRTA', 'JPFA', 'ESSA', 'AMMN', 'BRPT', 'ADMR', 'EMTK',
@@ -505,8 +480,8 @@ app.get('/api/db/stats', async (req, res) => {
     const tables = tableRes.rows.map(r => r.name);
 
     let sizeMb = '0.0';
-    if (fs.existsSync('safehaven.db')) {
-      const stats = fs.statSync('safehaven.db');
+    if (fs.existsSync('data/safehaven.db')) {
+      const stats = fs.statSync('data/safehaven.db');
       sizeMb = (stats.size / (1024 * 1024)).toFixed(1);
     }
 

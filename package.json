@@ -33,7 +33,6 @@
     "simple-icons": "^16.27.0",
     "sonner": "^2.0.7",
     "sqlite3": "^6.0.1",
-    "vite": "^6.2.3",
     "wouter": "^3.10.0",
     "yahoo-finance2": "^4.0.0",
     "zustand": "^5.0.14"
