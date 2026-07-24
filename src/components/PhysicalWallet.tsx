@@ -19,7 +19,16 @@ export const PhysicalWallet: React.FC<PhysicalWalletProps> = ({
 }) => {
   const [hideBalance, setHideBalance] = useState(false);
 
-  const { user } = useAppStore();
+  const { user, portfolioConfig, strategies } = useAppStore();
+
+  const getActiveProfileLabel = () => {
+    const profile = portfolioConfig?.strategyProfile || 'auto';
+    if (profile === 'auto') return 'Auto Regime (IHSG)';
+    if (profile === 'aggressive_momentum') return 'Aggressive Momentum';
+    if (profile === 'defensive_value') return 'Defensive Value';
+    const matchedStrat = strategies.find(s => s.id === portfolioConfig?.strategyTemplate);
+    return matchedStrat ? matchedStrat.name : (strategyName || 'Warren Buffett');
+  };
 
   // Helper to format currency
   const formatIDR = (num: number) => {
@@ -40,8 +49,12 @@ export const PhysicalWallet: React.FC<PhysicalWalletProps> = ({
         {/* Visa and card decor */}
         <div className="flex justify-between items-start">
           <div className="space-y-0.5">
-            <p className="text-[9px] text-purple-200/90 uppercase tracking-wider font-mono font-bold max-w-[170px] truncate">{strategyName || 'SAFEHEAVEN PRIVATE'}</p>
-            <h4 className="text-sm font-extrabold text-white tracking-wide truncate max-w-[180px] uppercase">{user?.name || 'IMAM NASRULLOH'}</h4>
+            <p className="text-[9px] text-purple-200/90 uppercase tracking-wider font-mono font-bold max-w-[170px] truncate">
+              {getActiveProfileLabel()}
+            </p>
+            <h4 className="text-sm font-extrabold text-white tracking-wide truncate max-w-[180px] uppercase">
+              {user?.name || 'IMAM NASRULLOH'}
+            </h4>
           </div>
           <div className="text-right">
             <span className="text-[11px] font-extrabold italic text-white tracking-wider">VISA</span>

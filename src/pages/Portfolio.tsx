@@ -4,7 +4,7 @@ import { useAppStore } from '../stores';
 import { SignalBadge } from '../components/SignalBadge';
 import { TickerLogo } from '../components/TickerLogo';
 import { PortfolioGrowthChart } from '../components/PortfolioGrowthChart';
-import { Wallet, Settings, TrendingUp, Compass, ArrowRight, Eye, CheckCircle, Award, Clock, Download } from 'lucide-react';
+import { Wallet, Settings, TrendingUp, Compass, ArrowRight, Eye, CheckCircle, Award, Clock, Download, Coins, DollarSign, LineChart, Banknote } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
 import { downloadPDF } from '../lib/pdfUtils';
 import { Skeleton } from '../components/Skeleton';
@@ -76,16 +76,16 @@ export const Portfolio: React.FC = () => {
   // Calculated absolute rupiah amounts for each allocation bucket
   const capital = portfolioConfig.capital;
   const allocations = [
-    { name: 'Saham', pct: portfolioConfig.allocationSaham, color: 'bg-[#ccff00]', text: 'text-[#ccff00]' },
-    { name: 'Emas Batangan', pct: portfolioConfig.allocationEmas, color: 'bg-[#00f0ff]', text: 'text-[#00f0ff]' },
-    { name: 'Cash IDR', pct: portfolioConfig.allocationCash, color: 'bg-[#a855f7]', text: 'text-[#a855f7]' },
-    { name: 'USD Currency', pct: portfolioConfig.allocationUSD, color: 'bg-[#6366f1]', text: 'text-[#6366f1]' }
+    { name: 'Saham', pct: portfolioConfig.allocationSaham, color: 'bg-[#ccff00]', text: 'text-[#ccff00]', icon: LineChart },
+    { name: 'Emas Batangan', pct: portfolioConfig.allocationEmas, color: 'bg-[#00f0ff]', text: 'text-[#00f0ff]', icon: Coins },
+    { name: 'Cash IDR', pct: portfolioConfig.allocationCash, color: 'bg-[#a855f7]', text: 'text-[#a855f7]', icon: Wallet },
+    { name: 'USD Currency', pct: portfolioConfig.allocationUSD, color: 'bg-[#6366f1]', text: 'text-[#6366f1]', icon: DollarSign }
   ];
 
   return (
     <div id="portfolio-view" className="px-6 space-y-6">
       {/* Header Info */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="flex items-center gap-3">
           <span className="w-1.5 h-8 bg-[#ccff00] rounded-full"></span>
           <div>
@@ -95,28 +95,18 @@ export const Portfolio: React.FC = () => {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-            <button
-                onClick={() => downloadPDF('portfolio-view', 'Portfolio_Summary')}
-                className="flex items-center gap-2 px-4 py-3 bg-[#1b1926] hover:bg-[#252233] border border-[#2a273b] text-[#9f9bac] hover:text-white rounded-xl text-xs font-bold transition-colors cursor-pointer h-[66px]"
-            >
-                <Download className="w-4 h-4" />
-                <span className="hidden sm:inline">Export PDF</span>
-            </button>
-            <div className="bg-[#111018]/50 border border-[#1b1926] rounded-xl px-5 py-3.5 text-right min-w-[200px]">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-[#686477]">Total Capital Allocation</span>
-              <h2 className="text-xl font-bold font-mono text-[#ccff00] mt-0.5">{formatIDR(capital)}</h2>
-            </div>
-        </div>
+        <button
+            onClick={() => downloadPDF('portfolio-view', 'Portfolio_Summary')}
+            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#1b1926] hover:bg-[#252233] border border-[#2a273b] text-[#9f9bac] hover:text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
+        >
+            <Download className="w-4 h-4" />
+            <span className="hidden sm:inline">Export PDF</span>
+        </button>
       </div>
 
       {isLoadingData ? (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-            {[...Array(4)].map((_, i) => (
-              <Skeleton key={i} className="w-full h-32 rounded-xl" />
-            ))}
-          </div>
+          <Skeleton className="w-full h-48 rounded-3xl" />
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
             <Skeleton className="lg:col-span-8 h-64 rounded-3xl" />
             <Skeleton className="lg:col-span-4 h-64 rounded-3xl" />
@@ -125,28 +115,57 @@ export const Portfolio: React.FC = () => {
         </div>
       ) : (
         <>
-          {/* 4 AllocationCards Horizontal */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-        {allocations.map((item) => {
-          const absoluteVal = (capital * item.pct) / 100;
-          return (
-            <div key={item.name} className="card card-elevated p-5 space-y-3 bg-[#0b0a10]/45">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-[#9f9bac] font-sans font-semibold">{item.name}</span>
-                <span className={`text-xs font-extrabold font-mono ${item.text}`}>{item.pct}%</span>
+          {/* Unified Portfolio Summary Card */}
+          <div className="card card-elevated p-0 overflow-hidden bg-[#0b0a10]/45 border-[#1b1926]">
+            {/* Top row: Total Modal & Proyeksi */}
+            <div className="flex flex-col sm:flex-row border-b border-[#1b1926]">
+              <div className="flex-1 p-5 border-b sm:border-b-0 sm:border-r border-[#1b1926] flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-[#686477]">Total Modal Portofolio</span>
+                  <h2 className="text-2xl font-bold font-mono text-[#00f0ff] mt-1">{formatIDR(capital)}</h2>
+                </div>
+                <div className="w-10 h-10 rounded-full bg-[#00f0ff]/10 flex items-center justify-center">
+                  <Wallet className="w-5 h-5 text-[#00f0ff]" />
+                </div>
               </div>
-              <h3 className="text-base font-bold font-mono text-white">{formatIDR(absoluteVal)}</h3>
-              {/* Custom progress bar */}
-              <div className="w-full bg-[#111018] h-1.5 rounded-full overflow-hidden border border-[#1b1926]">
-                <div 
-                  className={`h-full ${item.color}`}
-                  style={{ width: `${item.pct}%` }}
-                ></div>
+              <div className="flex-1 p-5 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-[#9f9bac]">Proyeksi Dividen Tahunan</span>
+                  <h2 className="text-2xl font-bold font-mono text-[#ccff00] mt-1">{portfolioConfig.projectedAnnualDividend ? formatIDR(portfolioConfig.projectedAnnualDividend) : 'Rp 0'}</h2>
+                </div>
+                <div className="w-10 h-10 rounded-full bg-[#ccff00]/10 flex items-center justify-center">
+                  <Banknote className="w-5 h-5 text-[#ccff00]" />
+                </div>
               </div>
             </div>
-          );
-        })}
-      </div>
+            
+            {/* Bottom row: Allocations */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-y lg:divide-y-0 divide-[#1b1926]">
+              {allocations.map((item, idx) => {
+                const absoluteVal = (capital * item.pct) / 100;
+                const Icon = item.icon;
+                return (
+                  <div key={item.name} className={`p-5 space-y-3 ${idx === 2 || idx === 3 ? 'border-t lg:border-t-0' : ''}`}>
+                    <div className="flex items-center gap-2">
+                      <div className={`p-1.5 rounded-lg bg-[#111018] border border-[#1b1926] ${item.text}`}>
+                        <Icon className="w-3.5 h-3.5" />
+                      </div>
+                      <span className="text-xs text-[#9f9bac] font-sans font-semibold">{item.name}</span>
+                      <span className={`text-xs font-extrabold font-mono ml-auto ${item.text}`}>{item.pct}%</span>
+                    </div>
+                    <h3 className="text-base font-bold font-mono text-white">{formatIDR(absoluteVal)}</h3>
+                    {/* Custom progress bar */}
+                    <div className="w-full bg-[#111018] h-1.5 rounded-full overflow-hidden border border-[#1b1926]">
+                      <div 
+                        className={`h-full ${item.color}`}
+                        style={{ width: `${item.pct}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
 
       {/* Custom Graphics & Signals Row */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">

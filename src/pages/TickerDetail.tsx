@@ -2,16 +2,18 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useLocation } from 'wouter';
 import { SignalBadge } from '../components/SignalBadge';
 import { TickerLogo } from '../components/TickerLogo';
-import { ArrowLeft, Bot, Brain, Info, Layers, LineChart, Activity, PieChart, LayoutDashboard, TrendingUp, Download, ChevronDown, SlidersHorizontal, Check } from 'lucide-react';
+import { ArrowLeft, Bot, Brain, Info, Layers, LineChart, Activity, PieChart, LayoutDashboard, TrendingUp, Download, ChevronDown, SlidersHorizontal, Check, Newspaper } from 'lucide-react';
 import { createChart, IChartApi, ISeriesApi, CandlestickSeries, HistogramSeries, LineSeries, ColorType, LineStyle } from 'lightweight-charts';
 import { toast } from 'sonner';
 import { downloadPDF } from '../lib/pdfUtils';
+import { Skeleton, SkeletonCard, SkeletonChart, SkeletonText } from '../components/Skeleton';
 import { 
   WidgetKinerja, 
   WidgetMusiman, 
   WidgetFinancials, 
   WidgetDividen, 
   WidgetGauges,
+  WidgetNews,
   WidgetWatchlistDetail 
 } from '../components/TickerAnalysisWidgets';
 
@@ -81,7 +83,7 @@ export const TickerDetail: React.FC<{ params: TickerParams }> = ({ params }) => 
   const [aiAnalysis, setAiAnalysis] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'technical' | 'financials' | 'ai'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'technical' | 'financials' | 'ai' | 'news'>('overview');
 
   // Lightweight Charts refs
   const chartContainerRef = useRef<HTMLDivElement>(null);
@@ -473,9 +475,44 @@ export const TickerDetail: React.FC<{ params: TickerParams }> = ({ params }) => 
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 text-center">
-        <span className="w-8 h-8 border-3 border-[#ccff00]/30 border-t-[#ccff00] rounded-full animate-spin"></span>
-        <p className="text-xs text-[#9f9bac] mt-4 font-sans uppercase tracking-wider">Memuat Analisis {symbol}...</p>
+      <div className="px-4 lg:px-6 space-y-6 pb-20 animate-in fade-in duration-300">
+        {/* Header Skeleton */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <Skeleton className="w-14 h-14 rounded-2xl" />
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-8 w-24 rounded-lg" />
+                <Skeleton className="h-6 w-16 rounded-full" />
+              </div>
+              <Skeleton className="h-4 w-40" />
+            </div>
+          </div>
+          <Skeleton className="h-16 w-full md:w-72 rounded-xl" />
+        </div>
+
+        {/* Chart & Watchlist Grid Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+          <div className="lg:col-span-8">
+            <SkeletonChart height="h-[450px]" />
+          </div>
+          <div className="lg:col-span-4">
+            <SkeletonCard className="h-[450px] flex flex-col justify-between" />
+          </div>
+        </div>
+
+        {/* Tabs Bar Skeleton */}
+        <div className="flex items-center gap-2 border-b border-[#1b1926] pb-3 pt-2">
+          {[1, 2, 3, 4].map(i => (
+            <Skeleton key={i} className="h-9 w-32 rounded-xl" />
+          ))}
+        </div>
+
+        {/* Tab Content Cards Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <SkeletonCard className="h-[300px]" />
+          <SkeletonCard className="h-[300px]" />
+        </div>
       </div>
     );
   }
@@ -753,6 +790,18 @@ export const TickerDetail: React.FC<{ params: TickerParams }> = ({ params }) => 
           <Brain className="w-4 h-4" />
           <span>Analisis AI</span>
         </button>
+
+        <button
+          onClick={() => setActiveTab('news')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+            activeTab === 'news'
+              ? 'bg-[#ccff00] text-black shadow-lg shadow-[#ccff00]/10 font-black'
+              : 'bg-[#111018] text-[#9f9bac] hover:text-white hover:bg-[#1b1926]'
+          }`}
+        >
+          <Newspaper className="w-4 h-4" />
+          <span>Berita & Sentimen</span>
+        </button>
       </div>
 
       {/* 4. Tab Panes Content */}
@@ -977,6 +1026,11 @@ export const TickerDetail: React.FC<{ params: TickerParams }> = ({ params }) => 
             </div>
           </div>
         </div>
+      )}
+
+      {/* TAB 5: BERITA & SENTIMEN */}
+      {activeTab === 'news' && (
+        <WidgetNews symbol={symbol} />
       )}
     </div>
   );

@@ -8,7 +8,8 @@ interface RegimeItem {
 }
 
 interface RegimeTreemapProps {
-  distribution: RegimeItem[];
+  distribution?: RegimeItem[];
+  showHeader?: boolean;
 }
 
 interface RegimeCardProps {
@@ -173,7 +174,7 @@ const RegimeCard: React.FC<RegimeCardProps> = ({
   );
 };
 
-export const RegimeTreemap: React.FC<RegimeTreemapProps> = ({ distribution }) => {
+export const RegimeTreemap: React.FC<RegimeTreemapProps> = ({ distribution = [], showHeader = false }) => {
   // Map design color schemes to names
   const getRegimeStyle = (name: string) => {
     const norm = name.toLowerCase();
@@ -216,8 +217,17 @@ export const RegimeTreemap: React.FC<RegimeTreemapProps> = ({ distribution }) =>
     }
   };
 
+  const defaultDist = [
+    { name: 'Normal', value: 40 },
+    { name: 'Bull', value: 30 },
+    { name: 'Volatile', value: 20 },
+    { name: 'Bear', value: 10 }
+  ];
+
+  const activeDist = (distribution && distribution.length > 0) ? distribution : defaultDist;
+
   // Sort distribution descending so the highest is always the prominent one on the left
-  const sortedDistribution = [...distribution].sort((a, b) => b.value - a.value);
+  const sortedDistribution = [...activeDist].sort((a, b) => b.value - a.value);
 
   // Split into left (largest item) and right (remaining items)
   const leftItem = sortedDistribution[0];
@@ -228,31 +238,33 @@ export const RegimeTreemap: React.FC<RegimeTreemapProps> = ({ distribution }) =>
   const rightColFlex = Math.max(100 - leftColFlex, 35);
 
   return (
-    <div id="regime-treemap-card" className="card card-elevated p-6 lg:col-span-3 flex flex-col justify-between h-full min-h-[420px] bg-[#0b0a10]/45">
+    <div id="regime-treemap-card" className={`w-full flex flex-col justify-between ${showHeader ? 'card card-elevated p-6 bg-[#0b0a10]/45 border border-[#1b1926] rounded-2xl min-h-[380px]' : 'space-y-3'}`}>
       
       {/* Header Info */}
-      <div className="flex justify-between items-start mb-6">
-        <div className="space-y-1">
-          <span className="text-[10px] font-bold text-[#686477] tracking-widest uppercase font-sans">
-            Sebaran Durasi
-          </span>
-          <h2 className="text-3xl font-bold text-white tracking-tight leading-none font-mono text-shadow-glow">
-            Regime Pasar
-          </h2>
+      {showHeader && (
+        <div className="flex justify-between items-start mb-4">
+          <div className="space-y-0.5">
+            <span className="text-[10px] font-bold text-[#686477] tracking-widest uppercase font-sans">
+              Sebaran Durasi
+            </span>
+            <h2 className="text-2xl font-bold text-white tracking-tight leading-none font-mono text-shadow-glow">
+              Regime Pasar
+            </h2>
+          </div>
+          <div className="w-8 h-8 rounded-full bg-[#111018] border border-[#1b1926] flex items-center justify-center text-[#686477]">
+            <Layers className="w-4 h-4" />
+          </div>
         </div>
-        <div className="w-8 h-8 rounded-full bg-[#111018] border border-[#1b1926] flex items-center justify-center text-[#686477]">
-          <Layers className="w-4 h-4" />
-        </div>
-      </div>
+      )}
 
-      {/* Grid Layout copying the exact pattern of the sample image */}
-      <div className="flex flex-col gap-3 flex-1 h-[290px] min-h-0">
+      {/* Grid Layout */}
+      <div className="flex flex-col gap-3 min-h-[200px]">
         
         {/* Left Column (Main/Dominant Regime) and Right Column */}
-        <div className="flex gap-3 min-h-0 h-full w-full">
+        <div className="flex flex-col md:flex-row gap-3 min-h-[180px] w-full">
           {/* Left Column (Main/Dominant Regime) */}
           {leftItem && (
-            <div style={{ flex: `${leftColFlex} ${leftColFlex} 0%` }} className="min-w-0 min-h-0 h-full w-full">
+            <div style={{ flex: `${leftColFlex} ${leftColFlex} 0%` }} className="min-w-0 min-h-[130px] md:min-h-0 w-full">
               {(() => {
                 const style = getRegimeStyle(leftItem.name);
                 return (
@@ -273,11 +285,11 @@ export const RegimeTreemap: React.FC<RegimeTreemapProps> = ({ distribution }) =>
           )}
 
           {/* Right Column (Stacked smaller regimes) */}
-          <div style={{ flex: `${rightColFlex} ${rightColFlex} 0%` }} className="flex flex-col gap-3 min-w-0 min-h-0 h-full w-full">
+          <div style={{ flex: `${rightColFlex} ${rightColFlex} 0%` }} className="flex flex-col gap-2.5 min-w-0 w-full">
             {rightItems.map((item) => {
               const style = getRegimeStyle(item.name);
               return (
-                <div key={item.name} style={{ flex: '1 1 0%' }} className="min-w-0 min-h-0 w-full">
+                <div key={item.name} className="min-w-0 w-full flex-1 min-h-[48px]">
                   <RegimeCard
                     name={item.name}
                     percentage={item.value}
@@ -296,18 +308,15 @@ export const RegimeTreemap: React.FC<RegimeTreemapProps> = ({ distribution }) =>
         </div>
       </div>
 
-      <div className="mt-4 pt-3 border-t border-[#1b1926]/40 flex flex-col items-center">
-        <div className="flex items-center gap-2 text-[8px] text-[#686477] font-mono uppercase tracking-[0.1em]">
-          SafeHeaven Regime Engine Active
-          <span className="inline-block w-0.5 h-0.5 bg-[#686477] rounded-full"></span>
-          <span className="flex items-center gap-1 text-[#1ae88e]">
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#1ae88e] opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#1ae88e]"></span>
-            </span>
-            Live data update
+      <div className="pt-2.5 border-t border-[#1b1926]/40 flex items-center justify-between text-[9px] text-[#686477] font-mono">
+        <span className="uppercase tracking-widest">SafeHaven Regime Engine Active</span>
+        <span className="flex items-center gap-1 text-[#1ae88e] font-bold">
+          <span className="relative flex h-1.5 w-1.5">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#1ae88e] opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#1ae88e]"></span>
           </span>
-        </div>
+          Live data update
+        </span>
       </div>
 
     </div>

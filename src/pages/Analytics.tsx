@@ -16,7 +16,6 @@ import {
   Filter, 
   Check,
   Plus,
-  Trash2,
   ArrowUp,
   ArrowDown,
   X,
@@ -28,12 +27,19 @@ import {
 import { toast } from 'sonner';
 import { RegimeTreemap } from '../components/RegimeTreemap';
 import { MacroChart } from '../components/MacroChart';
+import { Skeleton, SkeletonCard, SkeletonChart } from '../components/Skeleton';
 import { 
   WidgetKinerja, 
   WidgetMusiman, 
   WidgetGauges,
   WidgetWatchlistDetail 
 } from '../components/TickerAnalysisWidgets';
+import { 
+  WidgetConfigModal, 
+  WidgetId, 
+  WIDGET_NAMES, 
+  WIDGET_DESCRIPTIONS 
+} from '../components/WidgetConfigModal';
 
 interface AnalyticsData {
   scoredToday: number;
@@ -55,11 +61,17 @@ interface AnalyticsData {
   regimeDistribution: { name: string; value: number }[];
 }
 
-interface CustomWidgetConfig {
-  id: string;
-  symbol: string;
-  type: 'regime' | 'gauges' | 'kinerja' | 'musiman' | 'watchlist_detail';
-}
+const DEFAULT_ANALYTICS_ORDER: WidgetId[] = ['regime', 'gauges', 'kinerja', 'musiman'];
+const AVAILABLE_ANALYTICS_WIDGETS: WidgetId[] = [
+  'regime',
+  'gauges',
+  'kinerja',
+  'musiman',
+  'rsi',
+  'sector',
+  'macd',
+  'volatility'
+];
 
 export const Analytics: React.FC = () => {
   const { universes } = useAppStore();
@@ -67,83 +79,25 @@ export const Analytics: React.FC = () => {
   const [marketIndex, setMarketIndex] = useState(universes[0]?.name || 'LQ45 Core Universe');
   const [loading, setLoading] = useState(true);
 
-  // Custom Widgets State
-  const [customWidgets, setCustomWidgets] = useState<CustomWidgetConfig[]>(() => {
-    const saved = localStorage.getItem('custom_analytics_widgets_v3');
+  // Analytics Widget Order State using WidgetConfigModal
+  const [analyticsWidgetOrder, setAnalyticsWidgetOrder] = useState<WidgetId[]>(() => {
+    const saved = localStorage.getItem('analytics_widget_order_v5');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed: WidgetId[] = JSON.parse(saved);
+        return parsed.filter(id => id !== 'watchlist_detail');
       } catch (e) {
         console.error(e);
       }
     }
-    return [
-      { id: 'widget-ihsg-regime', symbol: 'IHSG', type: 'regime' },
-      { id: 'widget-ihsg-gauges', symbol: 'IHSG', type: 'gauges' },
-      { id: 'widget-ihsg-kinerja', symbol: 'IHSG', type: 'kinerja' },
-      { id: 'widget-ihsg-musiman', symbol: 'IHSG', type: 'musiman' },
-    ];
+    return DEFAULT_ANALYTICS_ORDER;
   });
 
   const [isWidgetModalOpen, setIsWidgetModalOpen] = useState(false);
-  const [newWidgetSymbol, setNewWidgetSymbol] = useState('');
-  const [newWidgetType, setNewWidgetType] = useState<'regime' | 'gauges' | 'kinerja' | 'musiman' | 'watchlist_detail'>('gauges');
 
   useEffect(() => {
-    localStorage.setItem('custom_analytics_widgets_v3', JSON.stringify(customWidgets));
-  }, [customWidgets]);
-
-  const addCustomWidget = (symbol: string, type: 'regime' | 'gauges' | 'kinerja' | 'musiman' | 'watchlist_detail') => {
-    const symClean = symbol.trim().toUpperCase();
-    if (!symClean) {
-      toast.error('Simbol ticker tidak boleh kosong');
-      return;
-    }
-
-    const newWidget: CustomWidgetConfig = {
-      id: `widget-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-      symbol: symClean,
-      type
-    };
-
-    setCustomWidgets(prev => [...prev, newWidget]);
-    setIsWidgetModalOpen(false);
-    setNewWidgetSymbol('');
-    toast.success(`Widget ${type.toUpperCase()} untuk ${symClean} berhasil ditambahkan!`);
-  };
-
-  const removeWidget = (id: string) => {
-    setCustomWidgets(prev => prev.filter(w => w.id !== id));
-    toast.success('Widget berhasil dihapus');
-  };
-
-  const moveWidgetUp = (index: number) => {
-    if (index === 0) return;
-    setCustomWidgets(prev => {
-      const copy = [...prev];
-      [copy[index - 1], copy[index]] = [copy[index], copy[index - 1]];
-      return copy;
-    });
-  };
-
-  const moveWidgetDown = (index: number) => {
-    setCustomWidgets(prev => {
-      if (index === prev.length - 1) return prev;
-      const copy = [...prev];
-      [copy[index + 1], copy[index]] = [copy[index], copy[index + 1]];
-      return copy;
-    });
-  };
-
-  const resetWidgetsToDefault = () => {
-    setCustomWidgets([
-      { id: 'widget-ihsg-regime', symbol: 'IHSG', type: 'regime' },
-      { id: 'widget-ihsg-gauges', symbol: 'IHSG', type: 'gauges' },
-      { id: 'widget-ihsg-kinerja', symbol: 'IHSG', type: 'kinerja' },
-      { id: 'widget-ihsg-musiman', symbol: 'IHSG', type: 'musiman' },
-    ]);
-    toast.success('Widget di-reset ke standar IHSG');
-  };
+    localStorage.setItem('analytics_widget_order_v5', JSON.stringify(analyticsWidgetOrder));
+  }, [analyticsWidgetOrder]);
 
   useEffect(() => {
     const fetchAnalytics = async () => {
@@ -177,9 +131,35 @@ export const Analytics: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-center">
-        <span className="w-8 h-8 border-3 border-[#ccff00]/30 border-t-[#ccff00] rounded-full animate-spin"></span>
-        <p className="text-xs text-[#9f9bac] mt-4 font-sans uppercase tracking-wider">Menghubungkan Mesin Analitik...</p>
+      <div className="px-6 space-y-6 pb-20 animate-in fade-in duration-300">
+        {/* Header Skeleton */}
+        <div className="flex items-center gap-3">
+          <Skeleton className="w-1.5 h-8 rounded-full" />
+          <div className="space-y-1.5">
+            <Skeleton className="h-7 w-64 rounded-lg" />
+            <Skeleton className="h-3.5 w-96 rounded-md" />
+          </div>
+        </div>
+
+        {/* 4 Stat Cards Skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+          {[1, 2, 3, 4].map(i => (
+            <SkeletonCard key={i} className="h-28" />
+          ))}
+        </div>
+
+        {/* Treemap & Macro Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+          <div className="lg:col-span-8">
+            <SkeletonChart height="h-[380px]" />
+          </div>
+          <div className="lg:col-span-4">
+            <SkeletonCard className="h-[380px]" />
+          </div>
+        </div>
+
+        {/* Spatial Matrix Skeleton */}
+        <SkeletonCard className="h-[320px]" />
       </div>
     );
   }
@@ -200,21 +180,26 @@ export const Analytics: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className="bg-[#111018]/50 border border-[#1b1926] rounded-xl px-4.5 py-2 flex items-center gap-2.5">
-            <Layers className="w-4 h-4 text-[#ccff00]" />
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="bg-[#111018]/50 border border-[#1b1926] rounded-xl px-3.5 py-1.5 flex items-center gap-2 hidden lg:flex">
+            <Layers className="w-3.5 h-3.5 text-[#ccff00]" />
             <div className="text-left">
-              <div className="text-[9px] uppercase text-[#686477] font-bold font-sans">Market Regime</div>
+              <div className="text-[8px] uppercase text-[#686477] font-bold font-sans">Regime</div>
               <div className="text-xs text-white font-extrabold font-sans">{data.marketRegime}</div>
             </div>
           </div>
-          <div className="bg-[#111018]/50 border border-[#1b1926] rounded-xl px-4.5 py-2 flex items-center gap-2.5">
-            <Calendar className="w-4 h-4 text-[#00f0ff]" />
-            <div className="text-left">
-              <div className="text-[9px] uppercase text-[#686477] font-bold font-sans">Score Update</div>
-              <div className="text-xs text-white font-extrabold font-mono">{data.scoreDate}</div>
-            </div>
-          </div>
+          <button
+            onClick={() => setIsWidgetModalOpen(true)}
+            className="px-3.5 py-1.5 rounded-xl bg-[#ccff00] hover:bg-[#ddff33] text-black text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all active:scale-95 shadow-[0_0_15px_rgba(204,255,0,0.15)]"
+          >
+            <Plus className="w-3.5 h-3.5" /> Tambah Widget
+          </button>
+          <button
+            onClick={() => setIsWidgetModalOpen(true)}
+            className="px-3.5 py-1.5 rounded-xl bg-[#1b1926] hover:bg-[#252233] border border-[#2a273b] text-[#9f9bac] hover:text-white text-xs font-bold flex items-center gap-2 cursor-pointer transition-colors"
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5" /> Susun Widget
+          </button>
         </div>
       </div>
 
@@ -290,26 +275,17 @@ export const Analytics: React.FC = () => {
 
       {/* Yahoo Finance Custom/Manageable Widgets */}
       <div className="space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#111018]/30 border border-[#1b1926]/60 p-4 rounded-xl">
-          <div className="flex items-center gap-2.5">
-            <span className="w-1.5 h-6 bg-[#ccff00] rounded-full"></span>
-            <div>
-              <h2 className="text-sm font-bold tracking-tight text-white font-sans flex items-center gap-1.5">
-                <SlidersHorizontal className="w-4 h-4 text-[#ccff00]" /> Visualisasi & Intelijen Kustom (Live Yahoo Finance)
-              </h2>
-              <p className="text-[10px] text-[#9f9bac] font-sans mt-0.5">Kelola, tambah, urutkan, atau hapus widget analisa teknikal, kinerja return, dan analisis musiman bulanan.</p>
-            </div>
+        <div className="flex items-center gap-2.5 bg-[#111018]/30 border border-[#1b1926]/60 p-4 rounded-xl">
+          <span className="w-1.5 h-6 bg-[#ccff00] rounded-full"></span>
+          <div>
+            <h2 className="text-sm font-bold tracking-tight text-white font-sans flex items-center gap-1.5">
+              <SlidersHorizontal className="w-4 h-4 text-[#ccff00]" /> Visualisasi & Intelijen Kustom (Live Yahoo Finance)
+            </h2>
+            <p className="text-[10px] text-[#9f9bac] font-sans mt-0.5">Kelola, tambah, urutkan, atau hapus widget analisa teknikal, kinerja return, dan analisis musiman bulanan.</p>
           </div>
-          <button
-            onClick={() => setIsWidgetModalOpen(true)}
-            className="px-4 py-2 bg-[#ccff00] hover:bg-[#ddff33] text-black rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all shadow-lg hover:shadow-[#ccff00]/10 shrink-0 cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Tambah Widget</span>
-          </button>
         </div>
 
-        {customWidgets.length === 0 ? (
+        {analyticsWidgetOrder.length === 0 ? (
           <div className="card card-elevated p-8 text-center bg-[#0b0a10]/45 border border-[#1b1926] rounded-2xl flex flex-col items-center justify-center space-y-3">
             <div className="w-12 h-12 rounded-full bg-[#1b1926] flex items-center justify-center text-[#686477]">
               <Settings2 className="w-6 h-6" />
@@ -319,7 +295,7 @@ export const Analytics: React.FC = () => {
               <p className="text-xs text-[#686477] mt-1 max-w-sm">Klik tombol "Tambah Widget" di atas untuk menambahkan visualisasi teknikal, kinerja, atau musiman untuk saham pilihan Anda.</p>
             </div>
             <button
-              onClick={resetWidgetsToDefault}
+              onClick={() => setAnalyticsWidgetOrder(DEFAULT_ANALYTICS_ORDER)}
               className="px-4 py-1.5 bg-[#1b1926] hover:bg-[#252233] text-white text-xs font-bold rounded-xl transition-all border border-[#2a273b] cursor-pointer"
             >
               Gunakan Default (IHSG)
@@ -327,77 +303,37 @@ export const Analytics: React.FC = () => {
           </div>
         ) : (
           <div className="space-y-6">
-            {customWidgets.map((widget, idx) => {
-              const isFirst = idx === 0;
-              const isLast = idx === customWidgets.length - 1;
-
-              let widgetName = '';
-              let widgetDesc = '';
-              if (widget.type === 'regime') {
-                widgetName = 'Sebaran Durasi Regime Pasar (Regime Treemap)';
-                widgetDesc = 'Persentase dominasi regime Bull, Bear, Normal, dan Volatile.';
-              } else if (widget.type === 'gauges') {
-                widgetName = 'Analisa Teknikal & Penilaian Analis';
-                widgetDesc = 'Gauges osilator, rata-rata bergerak, dan target harga konsensus analis.';
-              } else if (widget.type === 'kinerja') {
-                widgetName = 'Kinerja Historis & Return (%)';
-                widgetDesc = 'Tabel performa return periodik (1 minggu hingga 1 tahun terakhir).';
-              } else if (widget.type === 'musiman') {
-                widgetName = 'Analisis Musiman Bulanan';
-                widgetDesc = 'Grafik garis performa return bulanan historis per tahun (2024 - 2026).';
-              } else if (widget.type === 'watchlist_detail' || widget.type === 'watchlist') {
-                widgetName = 'Daftar Pantau & Statistik Kunci (Yahoo Finance Live)';
-                widgetDesc = 'Informasi harga real-time, rentang hari & 52-minggu, berita terkini, dan statistik kunci.';
-              }
+            {analyticsWidgetOrder.map((widgetId) => {
+              const widgetName = WIDGET_NAMES[widgetId] || widgetId;
+              const widgetDesc = WIDGET_DESCRIPTIONS[widgetId] || '';
 
               return (
                 <div 
-                  key={widget.id} 
+                  key={widgetId} 
                   className="bg-[#0b0a10]/30 border border-[#1b1926]/80 rounded-2xl p-5 space-y-4 hover:border-[#1b1926] transition-all"
                 >
                   <div className="flex items-center justify-between pb-3.5 border-b border-[#1b1926]/40">
                     <div className="flex items-center gap-3">
                       <div className="px-3 py-1 rounded-xl bg-[#ccff00]/10 border border-[#ccff00]/20 text-xs font-black text-[#ccff00] font-mono tracking-wider">
-                        {widget.symbol.toUpperCase()}
+                        IHSG
                       </div>
                       <div>
-                        <span className="text-xs font-extrabold text-white font-sans block">{widgetName}</span>
-                        <span className="text-[9px] text-[#686477] block mt-0.5">{widgetDesc}</span>
+                        <span className="text-sm font-bold text-white font-sans block">{widgetName}</span>
+                        <span className="text-xs text-[#9f9bac] block mt-0.5">{widgetDesc}</span>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        onClick={() => moveWidgetUp(idx)}
-                        disabled={isFirst}
-                        className="p-1.5 rounded-lg bg-[#111018] hover:bg-[#1b1926] text-[#9f9bac] hover:text-white disabled:opacity-20 disabled:hover:bg-[#111018] disabled:hover:text-[#9f9bac] cursor-pointer transition-all border border-[#1b1926] disabled:cursor-not-allowed"
-                        title="Pindah ke Atas"
-                      >
-                        <ArrowUp className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => moveWidgetDown(idx)}
-                        disabled={isLast}
-                        className="p-1.5 rounded-lg bg-[#111018] hover:bg-[#1b1926] text-[#9f9bac] hover:text-white disabled:opacity-20 disabled:hover:bg-[#111018] disabled:hover:text-[#9f9bac] cursor-pointer transition-all border border-[#1b1926] disabled:cursor-not-allowed"
-                        title="Pindah ke Bawah"
-                      >
-                        <ArrowDown className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => removeWidget(widget.id)}
-                        className="p-1.5 rounded-lg bg-[#111018] hover:bg-red-500/10 text-red-400 hover:text-red-300 border border-red-500/20 hover:border-red-500/40 cursor-pointer transition-all"
-                        title="Hapus Widget"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
                     </div>
                   </div>
 
                   <div className="pt-1">
-                    {widget.type === 'regime' && <RegimeTreemap distribution={data?.regimeDistribution || []} />}
-                    {widget.type === 'gauges' && <WidgetGauges symbol={widget.symbol} />}
-                    {widget.type === 'kinerja' && <WidgetKinerja symbol={widget.symbol} />}
-                    {widget.type === 'musiman' && <WidgetMusiman symbol={widget.symbol} />}
-                    {(widget.type === 'watchlist_detail' || widget.type === 'watchlist') && <WidgetWatchlistDetail defaultSymbol={widget.symbol} />}
+                    {widgetId === 'regime' && <RegimeTreemap distribution={data?.regimeDistribution || []} />}
+                    {widgetId === 'gauges' && <WidgetGauges symbol="IHSG" />}
+                    {widgetId === 'kinerja' && <WidgetKinerja symbol="IHSG" />}
+                    {widgetId === 'musiman' && <WidgetMusiman symbol="IHSG" />}
+                    {(widgetId === 'watchlist_detail' || widgetId === 'watchlist') && <WidgetWatchlistDetail defaultSymbol="IHSG" />}
+                    {widgetId === 'rsi' && <WidgetGauges symbol="IHSG" />}
+                    {widgetId === 'sector' && <WidgetKinerja symbol="IHSG" />}
+                    {widgetId === 'macd' && <WidgetGauges symbol="IHSG" />}
+                    {widgetId === 'volatility' && <WidgetKinerja symbol="IHSG" />}
                   </div>
                 </div>
               );
@@ -526,157 +462,16 @@ export const Analytics: React.FC = () => {
       </div>
 
       {/* Custom Widget Configuration Modal */}
-      {isWidgetModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-          <div className="bg-[#0b0a10] border border-[#1b1926] rounded-2xl w-full max-w-lg shadow-2xl flex flex-col overflow-hidden animate-[scaleIn_0.2s_ease-out]">
-            {/* Modal Header */}
-            <div className="px-5 py-4 border-b border-[#1b1926] flex items-center justify-between bg-[#111018]/50">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-[#ccff00]/10 border border-[#ccff00]/20 flex items-center justify-center">
-                  <Plus className="w-4 h-4 text-[#ccff00]" />
-                </div>
-                <div>
-                  <h2 className="text-sm font-bold text-white tracking-tight">Tambah Widget Analitik Kustom</h2>
-                  <p className="text-[10px] text-[#9f9bac]">Pilih saham/indeks dan jenis visualisasi interaktif</p>
-                </div>
-              </div>
-              <button 
-                onClick={() => setIsWidgetModalOpen(false)} 
-                className="text-[#686477] hover:text-white p-1 rounded-lg hover:bg-[#1b1926] transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <div className="p-5 space-y-4">
-              {/* Symbol Input */}
-              <div className="space-y-1.5">
-                <label className="text-[10px] text-[#686477] font-bold uppercase tracking-wider block">Ticker Saham / Indeks</label>
-                <input
-                  type="text"
-                  placeholder="Contoh: BBCA, BBRI, ASII, IHSG..."
-                  value={newWidgetSymbol}
-                  onChange={(e) => setNewWidgetSymbol(e.target.value)}
-                  className="w-full bg-[#111018] border border-[#1b1926] rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-[#686477] focus:outline-none focus:border-[#ccff00] font-mono tracking-wider"
-                />
-                
-                {/* Suggestions */}
-                <div className="pt-1">
-                  <span className="text-[9px] text-[#686477] block mb-1">Rekomendasi Cepat:</span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {['IHSG', 'BBCA', 'BBRI', 'TLKM', 'ASII', 'BMRI', 'BBNI', 'GOTO', 'ADRO'].map(sym => (
-                      <button
-                        key={sym}
-                        type="button"
-                        onClick={() => setNewWidgetSymbol(sym)}
-                        className="px-2.5 py-1 bg-[#111018] hover:bg-[#1b1926] hover:border-[#ccff00]/40 border border-[#1b1926] rounded-lg text-[9px] font-mono font-bold text-[#9f9bac] hover:text-white transition-all cursor-pointer"
-                      >
-                        {sym}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Widget Type Selector */}
-              <div className="space-y-2">
-                <label className="text-[10px] text-[#686477] font-bold uppercase tracking-wider block">Jenis Widget Visualisasi</label>
-                <div className="grid grid-cols-1 gap-2">
-                  {[
-                    {
-                      type: 'regime',
-                      title: 'Sebaran Durasi Regime Pasar',
-                      desc: 'Peta distribusi durasi regime pasar (Normal, Bull, Bear, Volatile).',
-                      icon: <Layers className="w-4 h-4 text-[#00f5a0]" />
-                    },
-                    {
-                      type: 'watchlist_detail',
-                      title: 'Daftar Pantau & Statistik Kunci (Yahoo Finance Live)',
-                      desc: 'Harga real-time, bid/ask, rentang 52-minggu, berita terkini ticker & statistik lengkap.',
-                      icon: <Activity className="w-4 h-4 text-[#b482ff]" />
-                    },
-                    {
-                      type: 'gauges',
-                      title: 'Analisa Gauges (Teknikal & Analis)',
-                      desc: 'Indikator konsensus osilator & MA dengan jarum dinamis (TradingView Style).',
-                      icon: <Activity className="w-4 h-4 text-[#ccff00]" />
-                    },
-                    {
-                      type: 'kinerja',
-                      title: 'Kinerja Return Historis',
-                      desc: 'Tabel ringkasan performa kenaikan/penurunan harga (1Mgg s/d 1Thn).',
-                      icon: <TrendingUp className="w-4 h-4 text-[#00f5a0]" />
-                    },
-                    {
-                      type: 'musiman',
-                      title: 'Analisis Musiman Bulanan',
-                      desc: 'Grafik garis performa return bulanan historis per tahun (2024 - 2026).',
-                      icon: <Calendar className="w-4 h-4 text-[#00f0ff]" />
-                    }
-                  ].map(opt => {
-                    const active = newWidgetType === opt.type;
-                    return (
-                      <button
-                        key={opt.type}
-                        type="button"
-                        onClick={() => setNewWidgetType(opt.type as any)}
-                        className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex gap-3 items-start ${
-                          active
-                            ? 'bg-[#ccff00]/5 border-[#ccff00]'
-                            : 'bg-[#111018] border-[#1b1926] hover:border-[#2a273b]'
-                        }`}
-                      >
-                        <div className={`p-2 rounded-lg ${active ? 'bg-[#ccff00]/10' : 'bg-[#0b0a10]'} shrink-0`}>
-                          {opt.icon}
-                        </div>
-                        <div>
-                          <div className={`text-xs font-bold ${active ? 'text-white' : 'text-[#9f9bac]'}`}>
-                            {opt.title}
-                          </div>
-                          <div className="text-[10px] text-[#686477] mt-0.5 leading-relaxed">
-                            {opt.desc}
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="px-5 py-4 border-t border-[#1b1926] flex items-center justify-between bg-[#111018]/30">
-              <button
-                type="button"
-                onClick={resetWidgetsToDefault}
-                className="px-3.5 py-2 text-[10px] font-bold text-[#ff3366] hover:text-white hover:bg-red-500/10 rounded-xl transition-all border border-transparent hover:border-red-500/20 cursor-pointer"
-              >
-                Reset ke Default
-              </button>
-              
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsWidgetModalOpen(false)}
-                  className="px-4 py-2 text-xs font-bold text-[#9f9bac] hover:text-white transition-all cursor-pointer"
-                >
-                  Batal
-                </button>
-                <button
-                  type="button"
-                  onClick={() => addCustomWidget(newWidgetSymbol, newWidgetType)}
-                  disabled={!newWidgetSymbol.trim()}
-                  className="px-4 py-2 bg-[#ccff00] hover:bg-[#ddff33] text-black rounded-xl text-xs font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1.5"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Tambah Widget</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <WidgetConfigModal
+        isOpen={isWidgetModalOpen}
+        onClose={() => setIsWidgetModalOpen(false)}
+        currentOrder={analyticsWidgetOrder}
+        onSave={(newOrder) => setAnalyticsWidgetOrder(newOrder)}
+        title="Kelola & Tambah Widget Analytics"
+        scopeName="Analytics"
+        availableWidgetList={AVAILABLE_ANALYTICS_WIDGETS}
+        defaultOrderList={DEFAULT_ANALYTICS_ORDER}
+      />
     </div>
   );
 };

@@ -67,6 +67,10 @@ export const Strategies: React.FC = () => {
       toast.error(`Total bobot kualitatif harus bernilai tepat 100% (Saat ini: ${totalScoreWeights}%)`);
       return;
     }
+    if (totalAllocation !== 100) {
+      toast.error(`Total alokasi aset harus bernilai tepat 100% (Saat ini: ${totalAllocation}%)`);
+      return;
+    }
     
 
     const payload: Omit<Strategy, 'id'> = {
@@ -314,10 +318,37 @@ export const Strategies: React.FC = () => {
                   ))}
                 </div>
               </div>
-              <div className="p-4 rounded-xl bg-[#ccff00]/10 border border-[#ccff00]/20 mt-4">
-                <p className="text-[11px] text-[#ccff00] font-bold leading-relaxed">
-                  Sistem Alokasi Aset (Saham, Emas, IDR, USD) diatur secara dinamis oleh <strong>Multi-Tier Rotation</strong> (Jaring Pengaman AI). Parameter di atas kini khusus digunakan sebagai pembobot skor kualitatif (Stock Picking) saat fase Saham aktif.
-                </p>
+              {/* Asset Allocations sliders group */}
+              <div className="space-y-3 pt-4 border-t border-[#1b1926] mt-4">
+                <div className="flex justify-between items-center">
+                  <span className="font-extrabold text-[#9f9bac] uppercase text-[10px] tracking-wider">Alokasi Sasaran Makro</span>
+                  <span className={`font-mono font-extrabold text-sm ${totalAllocation === 100 ? 'text-[#ccff00]' : 'text-[#ff3366]'}`}>
+                    {totalAllocation}% / 100%
+                  </span>
+                </div>
+
+                <div className="space-y-3">
+                  {[
+                    { label: 'Saham', val: allocSaham, set: setAllocSaham, color: '#ccff00' },
+                    { label: 'Emas', val: allocEmas, set: setAllocEmas, color: '#00f0ff' },
+                    { label: 'Kas IDR', val: allocCash, set: setAllocCash, color: '#00f5a0' },
+                    { label: 'USD', val: allocUSD, set: setAllocUSD, color: '#a855f7' }
+                  ].map((s) => (
+                    <div key={s.label} className="grid grid-cols-4 items-center gap-2">
+                      <span className="text-[10px] text-[#686477] font-extrabold uppercase">{s.label}</span>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        step="5"
+                        value={s.val}
+                        onChange={(e) => s.set(parseInt(e.target.value))}
+                        className="col-span-2 accent-[#ccff00]"
+                      />
+                      <span className="text-right font-mono text-white font-extrabold text-xs">{s.val}%</span>
+                    </div>
+                  ))}
+                </div>
               </div>
               {/* Threshold controls */}
               <div className="grid grid-cols-2 gap-4 pt-3 border-t border-[#1b1926]">

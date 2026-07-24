@@ -32,7 +32,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Search,
-  Activity
+  Activity,
+  Newspaper
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -40,8 +41,11 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
   const [location, setLocation] = useLocation();
   const { user, logout } = useAppStore();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
+  const [isHovered, setIsHovered] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  const isCollapsed = isSidebarCollapsed && !isHovered;
 
   const handleLogout = () => {
     logout();
@@ -73,6 +77,7 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
       items: [
         { name: 'Market Analytics', path: '/analytics', icon: BarChart2 },
         { name: 'Stock Analysis', path: '/stock-analysis', icon: Activity },
+        { name: 'Market News', path: '/news', icon: Newspaper },
         { name: 'Universe Builder', path: '/universe', icon: Layers },
         { name: 'Strategy Builder', path: '/strategies', icon: Sliders },
       ]
@@ -127,17 +132,19 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
       {/* 1. DESKTOP SIDEBAR PANEL */}
       <aside 
         id="sidebar-desktop" 
-        className={`hidden lg:flex flex-col border-r border-[#1b1926] bg-[#0a090f] shrink-0 fixed top-0 bottom-0 left-0 z-30 transition-all duration-300 ease-in-out ${isSidebarCollapsed ? 'w-[72px]' : 'w-60'}`}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        className={`hidden lg:flex flex-col border-r border-[#1b1926] bg-[#0a090f] shrink-0 fixed top-0 bottom-0 left-0 z-30 transition-all duration-300 ease-in-out ${isCollapsed ? 'w-[72px]' : 'w-60'}`}
       >
         {/* Brand Header */}
-        <div className={`h-14 border-b border-[#1b1926] flex items-center gap-2.5 transition-all duration-300 ${isSidebarCollapsed ? 'px-0 justify-center' : 'px-5'}`}>
+        <div className={`h-14 border-b border-[#1b1926] flex items-center gap-2.5 transition-all duration-300 ${isCollapsed ? 'px-0 justify-center' : 'px-5'}`}>
           <div className="w-8 h-8 bg-[#ccff00]/10 border border-[#ccff00]/30 rounded-lg flex items-center justify-center text-[#ccff00] shrink-0">
             <ShieldCheck className="w-4.5 h-4.5 glow-text-lime" />
           </div>
-          {!isSidebarCollapsed && (
+          {!isCollapsed && (
             <div className="flex-1 min-w-0 animate-[fadeIn_0.2s_ease-out]">
               <h1 className="text-base font-extrabold tracking-tight text-white leading-none font-sans truncate">
-                SafeHeaven<span className="text-[#ccff00]">.</span>
+                SafeHaven<span className="text-[#ccff00]">.</span>
               </h1>
               <span className="text-[9px] text-[#686477] block font-mono tracking-wider font-bold truncate">FINANCE COCKPIT</span>
             </div>
@@ -148,8 +155,8 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
         <nav className="flex-1 py-4 px-3 space-y-4 overflow-y-auto">
           {menuGroups.map((group) => (
             <div key={group.category} className="space-y-1">
-              <div className={`px-3 mb-2 flex items-center justify-between ${isSidebarCollapsed ? 'justify-center' : ''}`}>
-                {isSidebarCollapsed ? (
+              <div className={`px-3 mb-2 flex items-center justify-between ${isCollapsed ? 'justify-center' : ''}`}>
+                {isCollapsed ? (
                   <span className="h-[1px] w-4 bg-[#1b1926]/40"></span>
                 ) : (
                   <>
@@ -169,9 +176,9 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
                       key={item.path} 
                       href={item.path}
                       id={`nav-link-${item.path.replace('/', 'home')}`}
-                      title={isSidebarCollapsed ? item.name : undefined}
+                      title={isCollapsed ? item.name : undefined}
                       className={`flex items-center gap-3 py-2 rounded-xl text-xs font-semibold transition-all group cursor-pointer ${
-                        isSidebarCollapsed ? 'px-0 justify-center w-10 mx-auto' : 'px-3'
+                        isCollapsed ? 'px-0 justify-center w-10 mx-auto' : 'px-3'
                       } ${
                         isActive 
                           ? 'bg-[#ccff00]/10 border border-[#ccff00]/20 text-[#ccff00]' 
@@ -179,7 +186,7 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
                       }`}
                     >
                       <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-[#ccff00]' : 'text-[#686477] group-hover:text-white transition-colors'}`} />
-                      {!isSidebarCollapsed && <span className="truncate animate-[fadeIn_0.2s_ease-out]">{item.name}</span>}
+                      {!isCollapsed && <span className="truncate animate-[fadeIn_0.2s_ease-out]">{item.name}</span>}
                     </Link>
                   );
                 })}
@@ -192,8 +199,8 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
 
         {/* Sidebar Footer User Card */}
         {user && (
-          <div className={`p-4 border-t border-[#1b1926] bg-[#111018]/45 flex items-center justify-between gap-2 text-xs transition-all duration-300 ${isSidebarCollapsed ? 'justify-center px-0' : 'px-4'}`}>
-            {isSidebarCollapsed ? (
+          <div className={`p-4 border-t border-[#1b1926] bg-[#111018]/45 flex items-center justify-between gap-2 text-xs transition-all duration-300 ${isCollapsed ? 'justify-center px-0' : 'px-4'}`}>
+            {isCollapsed ? (
               <div 
                 className="w-8 h-8 rounded-full bg-[#ccff00]/10 border border-[#ccff00]/25 flex items-center justify-center text-[#ccff00] font-bold font-mono cursor-pointer shrink-0 hover:border-[#ff3366]/40 transition-colors"
                 onClick={handleLogout}

@@ -18,10 +18,32 @@ import {
   SlidersHorizontal,
   AlertTriangle,
   Lock,
-  Layers
+  Layers,
+  Bot,
+  Sparkles,
+  Cpu,
+  Key,
+  RefreshCw,
+  BrainCircuit,
+  Wand2,
+  Eye,
+  EyeOff,
+  Server,
+  PanelRight,
+  PanelRightClose,
+  Minimize2,
+  Maximize2,
+  ChevronDown,
+  ChevronUp,
+  LayoutGrid,
+  Webhook,
+  Plug,
+  Scale,
+  Rocket
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { NotificationChannelConfig, GlobalSystemConfig } from '../types';
+import { WhatsappIcon, TelegramIcon, DiscordIcon, GoogleGeminiIcon, OpenAIIcon, AnthropicIcon, DeepSeekIcon } from '../components/AppLogos';
+import { NotificationChannelConfig, GlobalSystemConfig, AiApiConfig, AiProvider } from '../types';
 import { NotificationTestInspectorModal, TestResultData } from '../components/NotificationTestInspectorModal';
 
 export const Settings: React.FC = () => {
@@ -33,7 +55,9 @@ export const Settings: React.FC = () => {
     notificationConfig,
     saveNotificationConfig,
     globalConfig,
-    saveGlobalConfig
+    saveGlobalConfig,
+    aiConfig,
+    saveAiConfig
   } = useAppStore();
 
   // 1. Portfolio Base Config
@@ -73,13 +97,44 @@ export const Settings: React.FC = () => {
     highContrastGlow: true,
   });
 
+  // 4. AI API Config State
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [aiState, setAiState] = useState<AiApiConfig>({
+    provider: 'gemini',
+    aiModel: 'gemini-3.6-flash',
+    customApiKey: '',
+    customBaseUrl: '',
+    aiTemperature: 0.3,
+    aiAdvisorTone: 'balanced',
+    autoNewsSentiment: true,
+    stockScoringReasoning: true,
+    maxTokens: 2048,
+    enableSearchGrounding: true
+  });
+
   const [isTestingNotif, setIsTestingNotif] = useState(false);
-  const [activeTab, setActiveTab] = useState<'portfolio' | 'notifications' | 'global'>('portfolio');
+  const [isTestingAi, setIsTestingAi] = useState(false);
+  const [aiTestResult, setAiTestResult] = useState<{ success: boolean; message: string; latencyMs: number; providerUsed?: string; modelUsed?: string } | null>(null);
+  const [activeTab, setActiveTab] = useState<'portfolio' | 'notifications' | 'global' | 'ai_api'>('portfolio');
 
   // Modal Inspector State
   const [isInspectorModalOpen, setIsInspectorModalOpen] = useState(false);
   const [selectedChannelName, setSelectedChannelName] = useState('WhatsApp');
   const [testResultData, setTestResultData] = useState<TestResultData | null>(null);
+
+  // 5. Simple Sidebar Visibility Toggle
+  const [showSidebar, setShowSidebar] = useState<boolean>(() => {
+    const saved = localStorage.getItem('safehaven_settings_show_sidebar');
+    return saved !== null ? saved === 'true' : true;
+  });
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
+
+  const toggleSidebar = () => {
+    const nextState = !showSidebar;
+    setShowSidebar(nextState);
+    localStorage.setItem('safehaven_settings_show_sidebar', String(nextState));
+    toast.info(nextState ? 'Sidebar ditampilkan' : 'Sidebar disembunyikan (Layar Penuh)');
+  };
 
   useEffect(() => {
     if (portfolioConfig) {
@@ -119,7 +174,21 @@ export const Settings: React.FC = () => {
         highContrastGlow: globalConfig.highContrastGlow ?? true,
       });
     }
-  }, [portfolioConfig, notificationConfig, globalConfig]);
+    if (aiConfig) {
+      setAiState({
+        provider: aiConfig.provider || 'gemini',
+        aiModel: aiConfig.aiModel || 'gemini-3.6-flash',
+        customApiKey: aiConfig.customApiKey || '',
+        customBaseUrl: aiConfig.customBaseUrl || '',
+        aiTemperature: aiConfig.aiTemperature ?? 0.3,
+        aiAdvisorTone: aiConfig.aiAdvisorTone || 'balanced',
+        autoNewsSentiment: aiConfig.autoNewsSentiment ?? true,
+        stockScoringReasoning: aiConfig.stockScoringReasoning ?? true,
+        maxTokens: aiConfig.maxTokens || 2048,
+        enableSearchGrounding: aiConfig.enableSearchGrounding ?? true
+      });
+    }
+  }, [portfolioConfig, notificationConfig, globalConfig, aiConfig]);
 
   const handleStrategyChange = (templateId: string) => {
     setStrategyTemplate(templateId);
@@ -145,12 +214,70 @@ export const Settings: React.FC = () => {
       await Promise.all([
         updatePortfolioConfig(portfolioPayload),
         saveNotificationConfig(notifState),
-        saveGlobalConfig(sysState)
+        saveGlobalConfig(sysState),
+        saveAiConfig(aiState)
       ]);
-      toast.success('Seluruh pengaturan SafeHeaven Workbench berhasil disimpan!');
+      toast.success('Seluruh pengaturan SafeHeaven Workbench & AI Engine berhasil disimpan!');
     } catch (err) {
       console.error(err);
       toast.error('Gagal menyimpan konfigurasi ke server.');
+    }
+  };
+
+  const handleProviderChange = (newProvider: AiProvider) => {
+    let defaultModel = 'gemini-3.6-flash';
+    if (newProvider === 'openai') defaultModel = 'gpt-4o-mini';
+    else if (newProvider === 'anthropic') defaultModel = 'claude-3-5-sonnet-20241022';
+    else if (newProvider === 'deepseek') defaultModel = 'deepseek-chat';
+    else if (newProvider === 'groq') defaultModel = 'llama-3.3-70b-versatile';
+    else if (newProvider === 'custom_openai') defaultModel = 'llama3';
+
+    let defaultBaseUrl = aiState.customBaseUrl || '';
+    if (newProvider === 'custom_openai' && !defaultBaseUrl) {
+      defaultBaseUrl = 'http://localhost:11434/v1';
+    }
+
+    setAiState(prev => ({
+      ...prev,
+      provider: newProvider,
+      aiModel: defaultModel,
+      customBaseUrl: defaultBaseUrl
+    }));
+  };
+
+  const handleTestAiApi = async () => {
+    setIsTestingAi(true);
+    setAiTestResult(null);
+    try {
+      const base = window.location.origin;
+      const res = await fetch(`${base}/api/ai/test`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          provider: aiState.provider,
+          aiModel: aiState.aiModel,
+          customApiKey: aiState.customApiKey,
+          customBaseUrl: aiState.customBaseUrl,
+          aiTemperature: aiState.aiTemperature,
+          maxTokens: aiState.maxTokens
+        })
+      });
+      const data = await res.json();
+      setAiTestResult(data);
+      if (data.success) {
+        toast.success(`Uji Coba AI (${data.providerUsed || aiState.provider} - ${data.modelUsed}): Terhubung OK (${data.latencyMs}ms)`);
+      } else {
+        toast.error(data.message || 'Gagal terhubung ke AI API.');
+      }
+    } catch (err: any) {
+      setAiTestResult({
+        success: false,
+        message: `Koneksi gagal: ${err.message || 'Network error'}`,
+        latencyMs: 0
+      });
+      toast.error('Gagal menghubungi endpoint tes AI API.');
+    } finally {
+      setIsTestingAi(false);
     }
   };
 
@@ -214,47 +341,100 @@ export const Settings: React.FC = () => {
             </p>
           </div>
         </div>
+
+        {/* Top Quick Save Button when Sidebar is Hidden */}
+        {!showSidebar && (
+          <button
+            onClick={(e) => handleSaveAll(e as any)}
+            type="button"
+            className="px-4 py-2.5 bg-[#ccff00] hover:bg-[#ddff33] text-black text-xs font-extrabold rounded-xl flex items-center gap-2 cursor-pointer shadow-lg shadow-[#ccff00]/10 transition-all active:scale-98 shrink-0 self-start md:self-center"
+          >
+            <Save className="w-4 h-4 stroke-[2.5px]" /> Simpan Semua Pengaturan
+          </button>
+        )}
       </div>
 
-      {/* Settings Navigation Tabs */}
-      <div className="flex items-center gap-2 border-b border-[#1b1926] pb-3">
-        <button
-          onClick={() => setActiveTab('portfolio')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold font-sans flex items-center gap-2 transition-all cursor-pointer ${
-            activeTab === 'portfolio' 
-              ? 'bg-[#ccff00]/15 text-[#ccff00] border border-[#ccff00]/30' 
-              : 'text-[#9f9bac] hover:text-white hover:bg-[#111018]'
-          }`}
-        >
-          <SettingsIcon className="w-4 h-4" /> Portfolio & Strategi
-        </button>
+      {/* Settings Navigation Tabs & Sidebar Controls */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+        <div className="bg-[#111018]/80 p-1.5 rounded-2xl border border-[#1b1926] flex items-center gap-1.5 overflow-x-auto no-scrollbar flex-1">
+          <button
+            type="button"
+            onClick={() => setActiveTab('portfolio')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold font-sans flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
+              activeTab === 'portfolio' 
+                ? 'bg-[#ccff00]/15 text-[#ccff00] border border-[#ccff00]/40 shadow-lg shadow-[#ccff00]/10' 
+                : 'text-[#9f9bac] hover:text-white hover:bg-[#1b1926]/60 border border-transparent'
+            }`}
+          >
+            <SettingsIcon className="w-4 h-4" /> Portfolio & Strategi
+          </button>
 
-        <button
-          onClick={() => setActiveTab('notifications')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold font-sans flex items-center gap-2 transition-all cursor-pointer ${
-            activeTab === 'notifications' 
-              ? 'bg-[#ccff00]/15 text-[#ccff00] border border-[#ccff00]/30' 
-              : 'text-[#9f9bac] hover:text-white hover:bg-[#111018]'
-          }`}
-        >
-          <Bell className="w-4 h-4" /> Saluran Notifikasi (WhatsApp/Email/Webhook)
-        </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('notifications')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold font-sans flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
+              activeTab === 'notifications' 
+                ? 'bg-[#ccff00]/15 text-[#ccff00] border border-[#ccff00]/40 shadow-lg shadow-[#ccff00]/10' 
+                : 'text-[#9f9bac] hover:text-white hover:bg-[#1b1926]/60 border border-transparent'
+            }`}
+          >
+            <Bell className="w-4 h-4" /> Notifikasi & Alert
+            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 ml-0.5">
+              {[notifState.whatsappEnabled, notifState.emailEnabled, notifState.telegramEnabled, notifState.discordEnabled, notifState.webhookEnabled].filter(Boolean).length} Aktif
+            </span>
+          </button>
 
+          <button
+            type="button"
+            onClick={() => setActiveTab('global')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold font-sans flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
+              activeTab === 'global' 
+                ? 'bg-[#ccff00]/15 text-[#ccff00] border border-[#ccff00]/40 shadow-lg shadow-[#ccff00]/10' 
+                : 'text-[#9f9bac] hover:text-white hover:bg-[#1b1926]/60 border border-transparent'
+            }`}
+          >
+            <SlidersHorizontal className="w-4 h-4" /> Sistem Global
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('ai_api')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold font-sans flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
+              activeTab === 'ai_api' 
+                ? 'bg-[#ccff00]/15 text-[#ccff00] border border-[#ccff00]/40 shadow-lg shadow-[#ccff00]/10' 
+                : 'text-[#9f9bac] hover:text-white hover:bg-[#1b1926]/60 border border-transparent'
+            }`}
+          >
+            <Bot className="w-4 h-4 text-[#ccff00]" /> AI Engine API
+            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-[#ccff00]/10 text-[#ccff00] border border-[#ccff00]/20 ml-0.5 uppercase">
+              {aiState.provider.toUpperCase()}
+            </span>
+          </button>
+        </div>
+
+        {/* Simple Sidebar Toggle Button */}
         <button
-          onClick={() => setActiveTab('global')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold font-sans flex items-center gap-2 transition-all cursor-pointer ${
-            activeTab === 'global' 
-              ? 'bg-[#ccff00]/15 text-[#ccff00] border border-[#ccff00]/30' 
-              : 'text-[#9f9bac] hover:text-white hover:bg-[#111018]'
-          }`}
+          type="button"
+          onClick={toggleSidebar}
+          className="px-3.5 py-2.5 bg-[#111018]/80 hover:bg-[#1b1926] border border-[#1b1926] text-xs font-bold text-[#9f9bac] hover:text-white rounded-2xl flex items-center gap-2 transition-all cursor-pointer shrink-0 self-start lg:self-center"
         >
-          <SlidersHorizontal className="w-4 h-4" /> Pengaturan Sistem Global
+          {showSidebar ? (
+            <>
+              <PanelRightClose className="w-4 h-4 text-[#ccff00]" />
+              <span>Sembunyikan Sidebar</span>
+            </>
+          ) : (
+            <>
+              <PanelRight className="w-4 h-4 text-[#ccff00]" />
+              <span>Tampilkan Sidebar</span>
+            </>
+          )}
         </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* Main Settings Form Container */}
-        <div className="lg:col-span-8 space-y-6">
+        <div className={`${showSidebar ? 'lg:col-span-8' : 'lg:col-span-12'} space-y-6 transition-all duration-300`}>
           <form onSubmit={handleSaveAll} className="space-y-6">
             
             {/* TAB 1: Portfolio & Strategy Settings */}
@@ -272,8 +452,9 @@ export const Settings: React.FC = () => {
                 {/* Capital & Target Universe */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs font-sans">
                   <div className="space-y-2">
-                    <label className="text-[#9f9bac] font-extrabold uppercase tracking-wide text-[10px] flex items-center gap-1.5">
-                      <DollarSign className="w-3.5 h-3.5 text-[#ccff00]" /> Modal Kerja Awal (Capital IDR)
+                    <label className="text-[#9f9bac] font-extrabold uppercase tracking-wide text-[10px] flex items-center justify-between">
+                      <span className="flex items-center gap-1.5"><DollarSign className="w-3.5 h-3.5 text-[#ccff00]" /> Modal Kerja Awal (Capital IDR)</span>
+                      <span className="text-[#ccff00] font-mono font-bold">Rp {capital.toLocaleString('id-ID')}</span>
                     </label>
                     <input
                       id="settings-capital-input"
@@ -284,7 +465,27 @@ export const Settings: React.FC = () => {
                       placeholder="Rp 500.000.000"
                       className="w-full bg-[#111018]/60 border border-[#1b1926] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#ccff00]/40 font-mono text-xs font-bold"
                     />
-                    <p className="text-[10px] text-[#686477]">Basis kalkulasi nominal pembelian saham per rebalancing.</p>
+                    <div className="flex items-center gap-1.5 pt-0.5">
+                      {[
+                        { label: '100 Jt', value: 100000000 },
+                        { label: '500 Jt', value: 500000000 },
+                        { label: '1 Milyar', value: 1000000000 },
+                        { label: '2.5 Milyar', value: 2500000000 }
+                      ].map((preset) => (
+                        <button
+                          key={preset.label}
+                          type="button"
+                          onClick={() => setCapital(preset.value)}
+                          className={`px-2.5 py-1 text-[10px] font-mono font-bold rounded-lg border transition-all cursor-pointer ${
+                            capital === preset.value
+                              ? 'bg-[#ccff00]/15 text-[#ccff00] border-[#ccff00]/40'
+                              : 'bg-[#111018] text-[#9f9bac] border-[#1b1926] hover:text-white'
+                          }`}
+                        >
+                          {preset.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
                   <div className="space-y-2">
@@ -305,8 +506,8 @@ export const Settings: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Top N & Strategy Preset */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs font-sans">
+                {/* Top N, Strategy Profile & Strategy Preset */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5 text-xs font-sans">
                   <div className="space-y-2">
                     <label className="text-[#9f9bac] font-extrabold uppercase tracking-wide text-[10px] flex items-center gap-1.5">
                       <Zap className="w-3.5 h-3.5 text-amber-400" /> Konstituen Unggulan (Top N Saham)
@@ -326,48 +527,63 @@ export const Settings: React.FC = () => {
 
                   <div className="space-y-2">
                     <label className="text-[#9f9bac] font-extrabold uppercase tracking-wide text-[10px] flex items-center gap-1.5">
-                      <Shield className="w-3.5 h-3.5 text-purple-400" /> Template Strategi Kuantitatif
+                      <Shield className="w-3.5 h-3.5 text-blue-400" /> Profil Strategi (Otoriter/Auto/Defensif)
                     </label>
+                    <select
+                      id="settings-strategy-profile-select"
+                      value={strategyProfile}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setStrategyProfile(val);
+                        if (val !== 'custom') {
+                          toast.info(`Profil Strategi (${val}) diaktifkan. Template Kuantitatif manual dikunci dan diganti otomatis oleh sistem.`);
+                        } else {
+                          toast.info('Profil Custom diaktifkan. Anda dapat memilih Template Kuantitatif manual.');
+                        }
+                      }}
+                      className="w-full bg-[#111018]/60 border border-[#1b1926] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#ccff00]/40 font-bold"
+                    >
+                      <option value="auto" className="bg-[#12111f]">Auto (Ikut Regime IHSG)</option>
+                      <option value="aggressive_momentum" className="bg-[#12111f]">Aggressive Momentum (Otoriter)</option>
+                      <option value="defensive_value" className="bg-[#12111f]">Defensive Value (Konservatif)</option>
+                      <option value="custom" className="bg-[#12111f]">Custom (Gunakan Template Manual)</option>
+                    </select>
+                    <p className="text-[10px] text-[#686477]">Mengatur skoring otomatis berbasis rezim pasar.</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[#9f9bac] font-extrabold uppercase tracking-wide text-[10px] flex items-center gap-1.5">
+                        <Shield className="w-3.5 h-3.5 text-purple-400" /> Template Strategi Kuantitatif
+                      </label>
+                      {strategyProfile !== 'custom' && (
+                        <span className="text-[9px] font-mono text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                          DIKUNCI OLEH PROFIL
+                        </span>
+                      )}
+                    </div>
                     <select
                       id="settings-strategy-select"
                       value={strategyTemplate}
+                      disabled={strategyProfile !== 'custom'}
                       onChange={(e) => handleStrategyChange(e.target.value)}
-                      className="w-full bg-[#111018]/60 border border-[#1b1926] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#ccff00]/40 font-bold"
+                      className={`w-full bg-[#111018]/60 border border-[#1b1926] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#ccff00]/40 font-bold ${
+                        strategyProfile !== 'custom' ? 'opacity-40 cursor-not-allowed bg-black/40' : ''
+                      }`}
                     >
                       {strategies.map((s) => (
                         <option key={s.id} value={s.id} className="bg-[#12111f]">{s.name}</option>
                       ))}
                     </select>
-                    <p className="text-[10px] text-[#686477]">Mengatur pembobotan otomatis (Quality, Value, Growth, Momentum, Dividen).</p>
+                    <p className="text-[10px] text-[#686477]">
+                      {strategyProfile !== 'custom' 
+                        ? 'Terkunci karena Profil Aktif. Ubah Profil ke Custom untuk mengaktifkan.' 
+                        : 'Mengatur pembobotan manual (Quality, Value, Growth, Momentum, Dividen).'}
+                    </p>
                   </div>
-                  <div className="space-y-2 mt-4">
-                    <label className="text-[#9f9bac] font-extrabold uppercase tracking-wide text-[10px] flex items-center gap-1.5">
-                      <Shield className="w-3.5 h-3.5 text-blue-400" /> Profil Strategi
-                    </label>
-                    <select
-                      id="settings-profile-select"
-                      value={strategyProfile}
-                      onChange={(e) => setStrategyProfile(e.target.value)}
-                      className="w-full bg-[#111018]/60 border border-[#1b1926] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#ccff00]/40 font-bold"
-                    >
-                      <option value="auto" className="bg-[#12111f]">Auto (Ikut Regime)</option>
-                      <option value="aggressive_momentum" className="bg-[#12111f]">Aggressive Momentum</option>
-                      <option value="defensive_value" className="bg-[#12111f]">Defensive Value</option>
-                      <option value="custom" className="bg-[#12111f]">Custom (Template)</option>
-                    </select>
-                    <p className="text-[10px] text-[#686477]">Pilih Auto untuk pembobotan otomatis mengikuti kondisi IHSG.</p>
-                  </div>
+                  
                 </div>
 
-                {/* Notice box replacing old sliders */}
-                <div className="p-4 rounded-xl bg-[#111018]/80 border border-[#1b1926] space-y-2 text-xs">
-                  <div className="flex items-center gap-2 text-[#ccff00] font-bold">
-                    <CheckCircle2 className="w-4 h-4" /> Alokasi Aset Otomatis & Dinamis
-                  </div>
-                  <p className="text-[#9f9bac] text-[11px] leading-relaxed">
-                    Pengaturan bobot pengaman alokasi manual (slider) telah dialihkan ke dalam <strong className="text-white">formula matematika strategi</strong>. Pembobotan saham, emas, dan kas IDR/USD kini diatur secara responsif berdasarkan sinyal makro dan regresi momentum real-time.
-                  </p>
-                </div>
               </div>
             )}
 
@@ -398,7 +614,7 @@ export const Settings: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
-                        <Smartphone className="w-5 h-5" />
+                        <WhatsappIcon className="w-5 h-5" />
                       </div>
                       <div>
                         <h4 className="text-xs font-bold text-white">Notifikasi WhatsApp (Instant Push)</h4>
@@ -486,7 +702,7 @@ export const Settings: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
-                        <Send className="w-5 h-5" />
+                        <TelegramIcon className="w-5 h-5" />
                       </div>
                       <div>
                         <h4 className="text-xs font-bold text-white">Custom Webhook Telegram Bot API</h4>
@@ -547,7 +763,7 @@ export const Settings: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
-                        <Globe className="w-5 h-5" />
+                        <DiscordIcon className="w-5 h-5" />
                       </div>
                       <div>
                         <h4 className="text-xs font-bold text-white">Custom Webhook Discord Channel</h4>
@@ -591,7 +807,7 @@ export const Settings: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
-                        <Radio className="w-5 h-5" />
+                        <Webhook className="w-5 h-5" />
                       </div>
                       <div>
                         <h4 className="text-xs font-bold text-white">Custom HTTP JSON Webhook (Sistem Eksternal)</h4>
@@ -766,113 +982,582 @@ export const Settings: React.FC = () => {
               </div>
             )}
 
-            {/* Bottom Save Action Button */}
-            <div className="pt-2 flex justify-end">
-              <button
-                id="save-settings-workbench-bottom-btn"
-                type="submit"
-                className="px-6 py-3 bg-[#ccff00] hover:bg-[#ddff33] text-black text-xs font-extrabold rounded-xl flex items-center gap-2 cursor-pointer shadow-lg shadow-[#ccff00]/10 hover:shadow-[#ccff00]/20 active:scale-98 transition-all"
-              >
-                <Save className="w-4 h-4 stroke-[2.5px]" /> Simpan Semua Konfigurasi
-              </button>
-            </div>
+            {/* TAB 4: AI API & Multi-Provider Engine Settings */}
+            {activeTab === 'ai_api' && (
+              <div className="card card-elevated p-6 space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#1b1926] pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-[#ccff00]/10 border border-[#ccff00]/20 flex items-center justify-center text-[#ccff00]">
+                      <Bot className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-extrabold text-white font-sans flex items-center gap-2">
+                        Konfigurasi Multi-Provider AI API & Engine
+                      </h3>
+                      <p className="text-xs text-[#9f9bac]">
+                        Pilih provider AI favorit Anda (Gemini, OpenAI, Anthropic, DeepSeek, Groq, atau Custom OpenAI / Ollama) dan atur parameter kinerjanya.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleTestAiApi}
+                    disabled={isTestingAi}
+                    className="px-4 py-2 bg-[#ccff00]/10 hover:bg-[#ccff00]/20 text-[#ccff00] border border-[#ccff00]/30 text-xs font-bold rounded-xl flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50 shrink-0"
+                  >
+                    {isTestingAi ? (
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-3.5 h-3.5" />
+                    )}
+                    {isTestingAi ? 'Menguji API...' : 'Tes Koneksi AI Engine'}
+                  </button>
+                </div>
+
+                {/* Test Result Inspector Banner */}
+                {aiTestResult && (
+                  <div className={`p-4 rounded-xl border text-xs space-y-1.5 ${
+                    aiTestResult.success 
+                      ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300' 
+                      : 'bg-rose-500/10 border-rose-500/20 text-rose-300'
+                  }`}>
+                    <div className="flex items-center justify-between font-bold">
+                      <span className="flex items-center gap-1.5">
+                        <CheckCircle2 className="w-4 h-4" /> Status Koneksi AI: {aiTestResult.success ? 'TERHUBUNG (OK)' : 'GAGAL'}
+                      </span>
+                      {aiTestResult.latencyMs > 0 && (
+                        <span className="font-mono text-[11px] px-2 py-0.5 rounded bg-black/40">
+                          {aiTestResult.latencyMs} ms
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[#c8c5d3] leading-relaxed">{aiTestResult.message}</p>
+                  </div>
+                )}
+
+                {/* Section 1: Provider Selection */}
+                <div className="space-y-3">
+                  <h4 className="text-xs font-bold text-white uppercase tracking-wider text-[10px] flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <Cpu className="w-3.5 h-3.5 text-[#ccff00]" /> Pilih AI Engine Provider
+                    </span>
+                    <span className="text-[10px] text-[#ccff00] font-mono flex items-center gap-1.5">
+                      {aiState.provider === 'gemini' ? <><GoogleGeminiIcon className="w-3 h-3" /> Google Gemini 2.5</> :
+                       aiState.provider === 'openai' ? <><OpenAIIcon className="w-3 h-3" /> OpenAI GPT-4o</> :
+                       aiState.provider === 'anthropic' ? <><AnthropicIcon className="w-3 h-3" /> Anthropic Claude</> :
+                       aiState.provider === 'deepseek' ? <><DeepSeekIcon className="w-3 h-3" /> DeepSeek R1/V3</> :
+                       aiState.provider === 'groq' ? <><Zap className="w-3 h-3" /> Groq LPU</> : <><Plug className="w-3 h-3" /> Custom API</>}
+                    </span>
+                  </h4>
+
+                  <div className="bg-[#111018] p-1.5 rounded-2xl border border-[#1b1926] flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+                    <button
+                      type="button"
+                      onClick={() => handleProviderChange('gemini')}
+                      className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
+                        aiState.provider === 'gemini'
+                          ? 'bg-[#ccff00] text-black shadow-lg shadow-[#ccff00]/20 font-extrabold'
+                          : 'text-[#9f9bac] hover:text-white hover:bg-[#1b1926]'
+                      }`}
+                    >
+                      <GoogleGeminiIcon className="w-4 h-4" /> Google Gemini
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleProviderChange('openai')}
+                      className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
+                        aiState.provider === 'openai'
+                          ? 'bg-emerald-400 text-black shadow-lg shadow-emerald-400/20 font-extrabold'
+                          : 'text-[#9f9bac] hover:text-white hover:bg-[#1b1926]'
+                      }`}
+                    >
+                      <OpenAIIcon className="w-4 h-4" /> OpenAI
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleProviderChange('anthropic')}
+                      className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
+                        aiState.provider === 'anthropic'
+                          ? 'bg-amber-400 text-black shadow-lg shadow-amber-400/20 font-extrabold'
+                          : 'text-[#9f9bac] hover:text-white hover:bg-[#1b1926]'
+                      }`}
+                    >
+                      <AnthropicIcon className="w-4 h-4" /> Claude
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleProviderChange('deepseek')}
+                      className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
+                        aiState.provider === 'deepseek'
+                          ? 'bg-purple-400 text-black shadow-lg shadow-purple-400/20 font-extrabold'
+                          : 'text-[#9f9bac] hover:text-white hover:bg-[#1b1926]'
+                      }`}
+                    >
+                      <DeepSeekIcon className="w-4 h-4" /> DeepSeek
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleProviderChange('groq')}
+                      className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
+                        aiState.provider === 'groq'
+                          ? 'bg-cyan-400 text-black shadow-lg shadow-cyan-400/20 font-extrabold'
+                          : 'text-[#9f9bac] hover:text-white hover:bg-[#1b1926]'
+                      }`}
+                    >
+                      <Zap className="w-4 h-4" /> Groq
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleProviderChange('custom_openai')}
+                      className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
+                        aiState.provider === 'custom_openai'
+                          ? 'bg-sky-400 text-black shadow-lg shadow-sky-400/20 font-extrabold'
+                          : 'text-[#9f9bac] hover:text-white hover:bg-[#1b1926]'
+                      }`}
+                    >
+                      <Plug className="w-4 h-4" /> Custom / Ollama
+                    </button>
+                  </div>
+                </div>
+
+                {/* Section 2: Model & Endpoint Details */}
+                <div className="space-y-4 pt-4 border-t border-[#1b1926]">
+                  <h4 className="text-xs font-bold text-white uppercase tracking-wider text-[10px] flex items-center gap-1.5">
+                    <SlidersHorizontal className="w-3.5 h-3.5 text-[#ccff00]" /> 2. Model & Endpoint Provider
+                  </h4>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Model Dropdown or Custom Input */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-white block">Pilih Model AI</label>
+                      {aiState.provider === 'gemini' && (
+                        <select
+                          value={aiState.aiModel}
+                          onChange={(e) => setAiState({ ...aiState, aiModel: e.target.value })}
+                          className="w-full bg-[#111018]/60 border border-[#1b1926] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#ccff00]/40 text-xs font-medium cursor-pointer"
+                        >
+                          <option value="gemini-3.6-flash">Gemini 3.6 Flash — Cepat & Efisien (Rekomendasi Utama)</option>
+                          <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro — Penalaran Kuantitatif Kompleks</option>
+                          <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite — Mode Kecepatan Tinggi</option>
+                        </select>
+                      )}
+
+                      {aiState.provider === 'openai' && (
+                        <select
+                          value={aiState.aiModel}
+                          onChange={(e) => setAiState({ ...aiState, aiModel: e.target.value })}
+                          className="w-full bg-[#111018]/60 border border-[#1b1926] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-400/40 text-xs font-medium cursor-pointer"
+                        >
+                          <option value="gpt-4o-mini">GPT-4o Mini — Cepat & Hemat Token (Standar)</option>
+                          <option value="gpt-4o">GPT-4o — Flagship Multimodal Intelligence</option>
+                          <option value="o3-mini">o3-mini — Special Reasoning Model</option>
+                          <option value="gpt-4-turbo">GPT-4 Turbo — Legacy High Performance</option>
+                        </select>
+                      )}
+
+                      {aiState.provider === 'anthropic' && (
+                        <select
+                          value={aiState.aiModel}
+                          onChange={(e) => setAiState({ ...aiState, aiModel: e.target.value })}
+                          className="w-full bg-[#111018]/60 border border-[#1b1926] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-400/40 text-xs font-medium cursor-pointer"
+                        >
+                          <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet — Presisi Laporan Keuangan</option>
+                          <option value="claude-3-5-haiku-20241022">Claude 3.5 Haiku — Super Cepat & Ringkas</option>
+                          <option value="claude-3-opus-20240229">Claude 3 Opus — Penalaran Sangat Mendalam</option>
+                        </select>
+                      )}
+
+                      {aiState.provider === 'deepseek' && (
+                        <select
+                          value={aiState.aiModel}
+                          onChange={(e) => setAiState({ ...aiState, aiModel: e.target.value })}
+                          className="w-full bg-[#111018]/60 border border-[#1b1926] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-400/40 text-xs font-medium cursor-pointer"
+                        >
+                          <option value="deepseek-chat">DeepSeek-V3 (deepseek-chat) — General Analysis</option>
+                          <option value="deepseek-reasoner">DeepSeek-R1 (deepseek-reasoner) — Chain-of-Thought Reasoning</option>
+                        </select>
+                      )}
+
+                      {aiState.provider === 'groq' && (
+                        <select
+                          value={aiState.aiModel}
+                          onChange={(e) => setAiState({ ...aiState, aiModel: e.target.value })}
+                          className="w-full bg-[#111018]/60 border border-[#1b1926] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-400/40 text-xs font-medium cursor-pointer"
+                        >
+                          <option value="llama-3.3-70b-versatile">Llama 3.3 70B Versatile — High Quality Inference</option>
+                          <option value="deepseek-r1-distill-llama-70b">DeepSeek R1 Distill Llama 70B — Deep Math/Logic</option>
+                          <option value="mixtral-8x7b-32768">Mixtral 8x7B (32k Context)</option>
+                        </select>
+                      )}
+
+                      {aiState.provider === 'custom_openai' && (
+                        <input
+                          type="text"
+                          value={aiState.aiModel}
+                          onChange={(e) => setAiState({ ...aiState, aiModel: e.target.value })}
+                          placeholder="misal: llama3, qwen2.5-coder, mistral-small, gpt-4o-custom"
+                          className="w-full bg-[#111018]/60 border border-[#1b1926] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-sky-400/40 text-xs font-medium"
+                        />
+                      )}
+                    </div>
+
+                    {/* Custom Base URL Input */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-white flex items-center justify-between">
+                        <span>Base URL Endpoint (Opsional / Custom)</span>
+                        {aiState.provider === 'custom_openai' && <span className="text-[10px] text-sky-400 font-mono">Wajib diisi</span>}
+                      </label>
+                      <input
+                        type="text"
+                        value={aiState.customBaseUrl || ''}
+                        onChange={(e) => setAiState({ ...aiState, customBaseUrl: e.target.value })}
+                        placeholder={
+                          aiState.provider === 'custom_openai' ? 'http://localhost:11434/v1 atau https://openrouter.ai/api/v1' :
+                          aiState.provider === 'openai' ? 'https://api.openai.com/v1 (default)' :
+                          aiState.provider === 'deepseek' ? 'https://api.deepseek.com (default)' :
+                          aiState.provider === 'groq' ? 'https://api.groq.com/openai/v1 (default)' :
+                          'https://api.anthropic.com/v1 (default)'
+                        }
+                        className="w-full bg-[#111018]/60 border border-[#1b1926] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#ccff00]/40 text-xs font-mono"
+                      />
+                      <p className="text-[10px] text-[#686477]">
+                        Biarkan kosong untuk menggunakan URL standar resmi dari provider.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* API Key Management Input */}
+                  <div className="p-4 rounded-xl bg-[#111018]/60 border border-[#1b1926] space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-white flex items-center gap-1.5">
+                        <Key className="w-3.5 h-3.5 text-[#ccff00]" /> Custom API Key ({aiState.provider.toUpperCase()})
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setShowApiKey(!showApiKey)}
+                        className="text-[11px] text-[#9f9bac] hover:text-white flex items-center gap-1 transition-all cursor-pointer"
+                      >
+                        {showApiKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        {showApiKey ? 'Sembunyikan' : 'Tampilkan Key'}
+                      </button>
+                    </div>
+
+                    <input
+                      type={showApiKey ? 'text' : 'password'}
+                      value={aiState.customApiKey || ''}
+                      onChange={(e) => setAiState({ ...aiState, customApiKey: e.target.value })}
+                      placeholder={
+                        aiState.provider === 'gemini' ? 'Biarkan kosong untuk menggunakan GEMINI_API_KEY lingkungan server' :
+                        `Masukkan API Key ${aiState.provider.toUpperCase()} Anda (misal: sk-...)`
+                      }
+                      className="w-full bg-[#0b0a10] border border-[#1b1926] rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-[#ccff00]/40 text-xs font-mono"
+                    />
+
+                    <div className="flex items-start gap-2 text-[11px] text-[#9f9bac]">
+                      <Shield className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                      <p className="leading-relaxed">
+                        {aiState.provider === 'gemini' ? (
+                          <>API Key Gemini dikelola dengan aman di server (<code className="text-[#ccff00] font-mono">process.env.GEMINI_API_KEY</code>). Isi input di atas jika ingin menggunakan API key pribadi.</>
+                        ) : (
+                          <>API Key disimpan aman di server backend dan digunakan khusus untuk proxy request ke <strong className="text-white">{aiState.provider.toUpperCase()}</strong>. Kunci tidak pernah diekspos di client browser.</>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Max Tokens & Temperature */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-white block">Maksimal Panjang Respons (Max Tokens)</label>
+                      <select
+                        value={aiState.maxTokens}
+                        onChange={(e) => setAiState({ ...aiState, maxTokens: parseInt(e.target.value) || 2048 })}
+                        className="w-full bg-[#111018]/60 border border-[#1b1926] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#ccff00]/40 text-xs font-medium cursor-pointer"
+                      >
+                        <option value={1024}>1024 Tokens — Ringkas & Cepat</option>
+                        <option value={2048}>2048 Tokens — Standar Komprehensif (Default)</option>
+                        <option value={4096}>4096 Tokens — Analisis Laporan Keuangan Panjang</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-2 p-3 bg-[#111018]/40 border border-[#1b1926] rounded-xl">
+                      <div className="flex items-center justify-between text-xs">
+                        <label className="font-bold text-white flex items-center gap-1.5">
+                          <Wand2 className="w-3.5 h-3.5 text-[#ccff00]" /> Temperature: <span className="text-[#ccff00] font-mono">{aiState.aiTemperature}</span>
+                        </label>
+                        <span className="text-[10px] font-mono text-[#9f9bac]">
+                          {aiState.aiTemperature <= 0.2 ? 'Presisi Ketat' : aiState.aiTemperature <= 0.5 ? 'Seimbang' : 'Kreatif'}
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0.1"
+                        max="1.0"
+                        step="0.1"
+                        value={aiState.aiTemperature}
+                        onChange={(e) => setAiState({ ...aiState, aiTemperature: parseFloat(e.target.value) || 0.3 })}
+                        className="w-full accent-[#ccff00] cursor-pointer"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section 3: Advisor Tone & Features */}
+                <div className="space-y-4 pt-4 border-t border-[#1b1926]">
+                  <h4 className="text-xs font-bold text-white uppercase tracking-wider text-[10px] flex items-center gap-1.5">
+                    <BrainCircuit className="w-3.5 h-3.5 text-[#ccff00]" /> 3. Gaya Penasihat (Advisor Tone) & Fitur Kecerdasan
+                  </h4>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-white block">Gaya Analisis AI Advisor</label>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setAiState({ ...aiState, aiAdvisorTone: 'balanced' })}
+                        className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
+                          aiState.aiAdvisorTone === 'balanced'
+                            ? 'bg-[#ccff00]/15 border-[#ccff00] text-white'
+                            : 'bg-[#111018]/40 border-[#1b1926] text-[#9f9bac] hover:border-[#333]'
+                        }`}
+                      >
+                        <div className="text-xs font-bold text-white flex items-center justify-between">
+                          <span className="flex items-center gap-1.5"><Scale className="w-3.5 h-3.5 text-[#ccff00]" /> Seimbang</span>
+                          {aiState.aiAdvisorTone === 'balanced' && <CheckCircle2 className="w-3.5 h-3.5 text-[#ccff00]" />}
+                        </div>
+                        <p className="text-[10px] text-[#9f9bac] mt-1">Analisis objektif antara risiko teknikal dan potensi fundamental.</p>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setAiState({ ...aiState, aiAdvisorTone: 'conservative' })}
+                        className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
+                          aiState.aiAdvisorTone === 'conservative'
+                            ? 'bg-emerald-500/15 border-emerald-400 text-white'
+                            : 'bg-[#111018]/40 border-[#1b1926] text-[#9f9bac] hover:border-[#333]'
+                        }`}
+                      >
+                        <div className="text-xs font-bold text-white flex items-center justify-between">
+                          <span className="flex items-center gap-1.5"><Shield className="w-3.5 h-3.5 text-emerald-400" /> Konservatif</span>
+                          {aiState.aiAdvisorTone === 'conservative' && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
+                        </div>
+                        <p className="text-[10px] text-[#9f9bac] mt-1">Mengutamakan pengamanan modal, kriteria likuiditas, dan stop-loss ketat.</p>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setAiState({ ...aiState, aiAdvisorTone: 'growth_momentum' })}
+                        className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
+                          aiState.aiAdvisorTone === 'growth_momentum'
+                            ? 'bg-purple-500/15 border-purple-400 text-white'
+                            : 'bg-[#111018]/40 border-[#1b1926] text-[#9f9bac] hover:border-[#333]'
+                        }`}
+                      >
+                        <div className="text-xs font-bold text-white flex items-center justify-between">
+                          <span className="flex items-center gap-1.5"><Rocket className="w-3.5 h-3.5 text-purple-400" /> Growth & Momentum</span>
+                          {aiState.aiAdvisorTone === 'growth_momentum' && <CheckCircle2 className="w-3.5 h-3.5 text-purple-400" />}
+                        </div>
+                        <p className="text-[10px] text-[#9f9bac] mt-1">Fokus pada sinyal breakout harga, pertumbuhan ekspansif, dan tren cepat.</p>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Feature Checkboxes */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs pt-2">
+                    <label className="flex items-center justify-between p-3 rounded-xl bg-[#111018]/40 border border-[#1b1926] cursor-pointer hover:border-[#ccff00]/30 transition-all">
+                      <div className="space-y-0.5">
+                        <span className="font-bold text-white block">Search Grounding / Web Verification</span>
+                        <span className="text-[10px] text-[#686477] block">Verifikasi berita & fakta langsung melalui pencarian web live.</span>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={aiState.enableSearchGrounding}
+                        onChange={(e) => setAiState({ ...aiState, enableSearchGrounding: e.target.checked })}
+                        className="accent-[#ccff00]"
+                      />
+                    </label>
+
+                    <label className="flex items-center justify-between p-3 rounded-xl bg-[#111018]/40 border border-[#1b1926] cursor-pointer hover:border-[#ccff00]/30 transition-all">
+                      <div className="space-y-0.5">
+                        <span className="font-bold text-white block">Sintesis Sentimen Berita Pasar</span>
+                        <span className="text-[10px] text-[#686477] block">Otomatisasi pengelompokan berita IHSG di halaman Market News.</span>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={aiState.autoNewsSentiment}
+                        onChange={(e) => setAiState({ ...aiState, autoNewsSentiment: e.target.checked })}
+                        className="accent-[#ccff00]"
+                      />
+                    </label>
+
+                    <label className="flex items-center justify-between p-3 rounded-xl bg-[#111018]/40 border border-[#1b1926] cursor-pointer hover:border-[#ccff00]/30 transition-all sm:col-span-2">
+                      <div className="space-y-0.5">
+                        <span className="font-bold text-white block">Penalaran Naratif Skor Emiten</span>
+                        <span className="text-[10px] text-[#686477] block">Tampilkan paragraf ringkasan AI alasan pemberian skor saham pada Ticker Detail.</span>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={aiState.stockScoringReasoning}
+                        onChange={(e) => setAiState({ ...aiState, stockScoringReasoning: e.target.checked })}
+                        className="accent-[#ccff00]"
+                      />
+                    </label>
+                  </div>
+                </div>
+              </div>
+            )}
+
           </form>
         </div>
 
         {/* Sidebar Status & Guidance Info Cards */}
-        <div className="lg:col-span-4 space-y-4">
-          
-          {/* Active Integration Status */}
-          <div className="card card-elevated p-6 space-y-4 bg-[#0b0a10]/45">
-            <h4 className="text-sm font-bold text-white tracking-tight flex items-center gap-2 border-b border-[#1b1926] pb-3">
-              <Zap className="w-4.5 h-4.5 text-[#ccff00]" /> Status Integrasi Workbench
-            </h4>
+        {showSidebar && (
+          <div className="lg:col-span-4 space-y-4 sticky top-20 self-start transition-all duration-300">
             
-            <div className="space-y-2.5 text-xs">
-              <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#111018]/60 border border-[#1b1926]">
-                <div className="flex items-center gap-2">
-                  <Smartphone className="w-4 h-4 text-emerald-400" />
-                  <span className="text-white font-bold">WhatsApp Push</span>
-                </div>
-                <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-md ${notifState.whatsappEnabled ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-[#1b1926] text-[#686477]'}`}>
-                  {notifState.whatsappEnabled ? 'TERHUBUNG' : 'NONAKTIF'}
+            {/* Quick Save Sidebar Banner */}
+            <div className="card card-elevated bg-[#0b0a10]/80 border border-[#1b1926] p-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono font-bold text-[#ccff00] uppercase tracking-wider">Aksi Cepat</span>
+                <button
+                  type="button"
+                  onClick={toggleSidebar}
+                  title="Sembunyikan Sidebar"
+                  className="p-1 rounded-md text-[#9f9bac] hover:text-white hover:bg-[#1b1926] transition-all cursor-pointer"
+                >
+                  <PanelRightClose className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <h4 className="text-xs font-bold text-white leading-tight">Simpan Perubahan Pengaturan</h4>
+              <p className="text-[10px] text-[#9f9bac]">
+                Simpan seluruh konfigurasi Portfolio, Notifikasi, Sistem Global, dan AI Engine sekaligus.
+              </p>
+              <button
+                onClick={(e) => handleSaveAll(e as any)}
+                type="button"
+                className="w-full py-2.5 bg-[#ccff00] hover:bg-[#ddff33] text-black text-xs font-extrabold rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-[#ccff00]/10 transition-all active:scale-98"
+              >
+                <Save className="w-4 h-4 stroke-[2.5px]" /> Simpan Semua
+              </button>
+            </div>
+
+            {/* Active Integration Status */}
+            <div className="card card-elevated bg-[#0b0a10]/45 p-5 space-y-4">
+              <div className="flex items-center justify-between border-b border-[#1b1926] pb-2.5">
+                <h4 className="text-xs font-bold text-white tracking-tight flex items-center gap-1.5">
+                  <Zap className="w-4 h-4 text-[#ccff00]" /> Status Integrasi
+                </h4>
+                <span className="text-[10px] font-mono text-[#ccff00] px-1.5 py-0.5 rounded bg-[#ccff00]/10 border border-[#ccff00]/20 font-bold">
+                  LIVE
                 </span>
               </div>
-
-              <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#111018]/60 border border-[#1b1926]">
-                <div className="flex items-center gap-2">
-                  <Mail className="w-4 h-4 text-cyan-400" />
-                  <span className="text-white font-bold">Email Alert</span>
+              
+              <div className="space-y-2 text-xs">
+                {/* WA */}
+                <div className="flex items-center justify-between p-2 rounded-xl bg-[#111018]/60 border border-[#1b1926]">
+                  <div className="flex items-center gap-1.5 truncate mr-1">
+                    <Smartphone className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <span className="text-white font-bold text-[11px] truncate">WhatsApp Push</span>
+                  </div>
+                  <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${notifState.whatsappEnabled ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-[#1b1926] text-[#686477]'}`}>
+                    {notifState.whatsappEnabled ? 'AKTIF' : 'NONAKTIF'}
+                  </span>
                 </div>
-                <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-md ${notifState.emailEnabled ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' : 'bg-[#1b1926] text-[#686477]'}`}>
-                  {notifState.emailEnabled ? 'AKTIF' : 'NONAKTIF'}
-                </span>
-              </div>
 
-              <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#111018]/60 border border-[#1b1926]">
-                <div className="flex items-center gap-2">
-                  <Send className="w-4 h-4 text-sky-400" />
-                  <span className="text-white font-bold">Telegram Bot</span>
+                {/* Email */}
+                <div className="flex items-center justify-between p-2 rounded-xl bg-[#111018]/60 border border-[#1b1926]">
+                  <div className="flex items-center gap-1.5 truncate mr-1">
+                    <Mail className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                    <span className="text-white font-bold text-[11px] truncate">Email Alert</span>
+                  </div>
+                  <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${notifState.emailEnabled ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' : 'bg-[#1b1926] text-[#686477]'}`}>
+                    {notifState.emailEnabled ? 'AKTIF' : 'NONAKTIF'}
+                  </span>
                 </div>
-                <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-md ${notifState.telegramEnabled ? 'bg-sky-500/10 text-sky-400 border border-sky-500/20' : 'bg-[#1b1926] text-[#686477]'}`}>
-                  {notifState.telegramEnabled ? 'TERHUBUNG' : 'NONAKTIF'}
-                </span>
-              </div>
 
-              <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#111018]/60 border border-[#1b1926]">
-                <div className="flex items-center gap-2">
-                  <Globe className="w-4 h-4 text-indigo-400" />
-                  <span className="text-white font-bold">Discord Webhook</span>
+                {/* Telegram */}
+                <div className="flex items-center justify-between p-2 rounded-xl bg-[#111018]/60 border border-[#1b1926]">
+                  <div className="flex items-center gap-1.5 truncate mr-1">
+                    <Send className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                    <span className="text-white font-bold text-[11px] truncate">Telegram Bot</span>
+                  </div>
+                  <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${notifState.telegramEnabled ? 'bg-sky-500/10 text-sky-400 border border-sky-500/20' : 'bg-[#1b1926] text-[#686477]'}`}>
+                    {notifState.telegramEnabled ? 'AKTIF' : 'NONAKTIF'}
+                  </span>
                 </div>
-                <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-md ${notifState.discordEnabled ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20' : 'bg-[#1b1926] text-[#686477]'}`}>
-                  {notifState.discordEnabled ? 'TERHUBUNG' : 'NONAKTIF'}
-                </span>
-              </div>
 
-              <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#111018]/60 border border-[#1b1926]">
-                <div className="flex items-center gap-2">
-                  <Radio className="w-4 h-4 text-purple-400" />
-                  <span className="text-white font-bold">Custom Webhook</span>
+                {/* Discord */}
+                <div className="flex items-center justify-between p-2 rounded-xl bg-[#111018]/60 border border-[#1b1926]">
+                  <div className="flex items-center gap-1.5 truncate mr-1">
+                    <Globe className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                    <span className="text-white font-bold text-[11px] truncate">Discord Webhook</span>
+                  </div>
+                  <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${notifState.discordEnabled ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20' : 'bg-[#1b1926] text-[#686477]'}`}>
+                    {notifState.discordEnabled ? 'AKTIF' : 'NONAKTIF'}
+                  </span>
                 </div>
-                <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-md ${notifState.webhookEnabled ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' : 'bg-[#1b1926] text-[#686477]'}`}>
-                  {notifState.webhookEnabled ? 'AKTIF' : 'NONAKTIF'}
-                </span>
-              </div>
 
-              <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#111018]/60 border border-[#1b1926]">
-                <div className="flex items-center gap-2">
-                  <Radio className="w-4 h-4 text-[#ccff00]" />
-                  <span className="text-white font-bold">Yahoo Finance Live</span>
+                {/* Webhook */}
+                <div className="flex items-center justify-between p-2 rounded-xl bg-[#111018]/60 border border-[#1b1926]">
+                  <div className="flex items-center gap-1.5 truncate mr-1">
+                    <Radio className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                    <span className="text-white font-bold text-[11px] truncate">Custom Webhook</span>
+                  </div>
+                  <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${notifState.webhookEnabled ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' : 'bg-[#1b1926] text-[#686477]'}`}>
+                    {notifState.webhookEnabled ? 'AKTIF' : 'NONAKTIF'}
+                  </span>
                 </div>
-                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-[#ccff00]/10 text-[#ccff00] border border-[#ccff00]/20">
-                  {sysState.autoSyncInterval}
-                </span>
+
+                {/* Yahoo */}
+                <div className="flex items-center justify-between p-2 rounded-xl bg-[#111018]/60 border border-[#1b1926]">
+                  <div className="flex items-center gap-1.5 truncate mr-1">
+                    <Radio className="w-3.5 h-3.5 text-[#ccff00] shrink-0" />
+                    <span className="text-white font-bold text-[11px] truncate">Yahoo Sync</span>
+                  </div>
+                  <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#ccff00]/10 text-[#ccff00] border border-[#ccff00]/20">
+                    {sysState.autoSyncInterval}
+                  </span>
+                </div>
+
+                {/* AI Engine */}
+                <div className="flex items-center justify-between p-2 rounded-xl bg-[#111018]/60 border border-[#1b1926]">
+                  <div className="flex items-center gap-1.5 truncate mr-1">
+                    <Bot className="w-3.5 h-3.5 text-[#ccff00] shrink-0" />
+                    <span className="text-white font-bold text-[11px] truncate">AI Engine</span>
+                  </div>
+                  <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#ccff00]/10 text-[#ccff00] border border-[#ccff00]/20 max-w-[90px] truncate">
+                    {aiState.provider.toUpperCase()}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Formula Allocation Guide Card */}
-          <div className="card card-elevated p-6 space-y-3 bg-[#0b0a10]/45">
-            <h4 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
-              <Shield className="w-4.5 h-4.5 text-[#ccff00]" /> Aturan Pembobotan Dinamis
-            </h4>
-            <p className="text-xs text-[#9f9bac] leading-relaxed font-sans">
-              Model SafeHeaven menggunakan <strong className="text-white">formula alokasi dinamis</strong>. Slider persentase aset manual telah ditiadakan agar porsi saham, emas, dan kas dapat beradaptasi secara otomatis mengikuti sinyal Crash Shield dan fluktuasi skor kuantitatif.
-            </p>
-          </div>
+            {/* Formula Allocation Guide Card */}
+            <div className="card card-elevated bg-[#0b0a10]/45 p-5 space-y-3">
+              <div 
+                className="flex items-center justify-between cursor-pointer"
+                onClick={() => setIsGuideOpen(!isGuideOpen)}
+              >
+                <h4 className="text-xs font-bold text-white tracking-tight flex items-center gap-2">
+                  <Shield className="w-4 h-4 text-[#ccff00]" /> Aturan Pembobotan
+                </h4>
+                <button type="button" className="text-[#9f9bac] hover:text-white">
+                  {isGuideOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+              {isGuideOpen && (
+                <p className="text-[11px] text-[#9f9bac] leading-relaxed font-sans pt-2 border-t border-[#1b1926]">
+                  Model SafeHeaven menggunakan <strong className="text-white">formula alokasi dinamis</strong>. Porsi saham, emas, dan kas beradaptasi secara otomatis mengikuti sinyal Crash Shield dan fluktuasi skor kuantitatif.
+                </p>
+              )}
+            </div>
 
-          {/* Help & Documentation */}
-          <div className="card card-elevated p-6 space-y-3 bg-[#0b0a10]/45">
-            <h4 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
-              <HelpCircle className="w-4.5 h-4.5 text-[#00f0ff]" /> Skenario & Bantuan
-            </h4>
-            <ul className="text-xs text-[#9f9bac] leading-relaxed space-y-2 list-disc pl-4 font-sans font-medium">
-              <li>Gunakan tombol <strong className="text-white">Tes Alert</strong> untuk memverifikasi penerimaan sinyal di HP atau email Anda.</li>
-              <li>Parameter <strong className="text-white">Max Single Stock Allocation</strong> mencegah kerugian sistemik bila satu emiten mengalami kejutan negatif.</li>
-            </ul>
           </div>
-
-        </div>
+        )}
       </div>
 
       {/* Real-time Notification Test Inspector Modal */}

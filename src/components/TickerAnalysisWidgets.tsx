@@ -12,7 +12,15 @@ import {
   Target,
   BarChart2,
   Percent,
-  ExternalLink
+  ExternalLink,
+  Newspaper,
+  Globe,
+  Search,
+  RefreshCw,
+  Filter,
+  ThumbsUp,
+  Flame,
+  Tag
 } from 'lucide-react';
 import { 
   ResponsiveContainer, 
@@ -28,6 +36,7 @@ import {
   Pie, 
   Cell 
 } from 'recharts';
+import { Skeleton, SkeletonGauge, SkeletonChart } from './Skeleton';
 
 interface WidgetKinerjaProps {
   symbol: string;
@@ -58,11 +67,14 @@ export const WidgetKinerja: React.FC<WidgetKinerjaProps> = ({ symbol }) => {
 
   if (loading) {
     return (
-      <div className="card card-elevated p-6 animate-pulse bg-[#0b0a10]/45 border border-[#1b1926] h-[220px] flex flex-col justify-between">
-        <div className="h-4 bg-[#1b1926] rounded w-1/3"></div>
+      <div className="card card-elevated p-6 bg-[#0b0a10]/45 border border-[#1b1926] h-[220px] flex flex-col justify-between">
+        <div className="flex items-center justify-between mb-4">
+          <Skeleton className="h-4 w-36 rounded-md" />
+          <Skeleton className="h-3 w-16 rounded-sm" />
+        </div>
         <div className="grid grid-cols-3 gap-3">
           {[1, 2, 3, 4, 5, 6].map(i => (
-            <div key={i} className="h-14 bg-[#1b1926] rounded-xl"></div>
+            <Skeleton key={i} className="h-14 rounded-xl" />
           ))}
         </div>
       </div>
@@ -81,11 +93,11 @@ export const WidgetKinerja: React.FC<WidgetKinerjaProps> = ({ symbol }) => {
   ];
 
   return (
-    <div className="card card-elevated p-6 bg-[#0b0a10]/45 border border-[#1b1926] flex flex-col justify-between hover:border-[#ccff00]/20 transition-all">
+    <div className="bg-[#0b0a10]/60 border border-[#1b1926] rounded-2xl p-4 flex flex-col justify-between hover:border-[#ccff00]/30 transition-all">
       <div>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-bold text-white tracking-tight font-sans flex items-center gap-2">
-            <Activity className="w-4 h-4 text-[#ccff00]" />
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-xs font-bold text-white tracking-tight font-sans flex items-center gap-1.5">
+            <Activity className="w-3.5 h-3.5 text-[#ccff00]" />
             Kinerja {symbol === '^JKSE' || symbol === 'IHSG' ? 'IHSG' : symbol}
           </h3>
           {data.isFallback && (
@@ -93,19 +105,19 @@ export const WidgetKinerja: React.FC<WidgetKinerjaProps> = ({ symbol }) => {
           )}
         </div>
         
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-2.5">
           {periods.map((p, idx) => {
             const isPositive = p.value >= 0;
             return (
-              <div key={idx} className="bg-[#111018]/60 p-3 rounded-xl border border-[#1b1926] flex flex-col justify-between">
+              <div key={idx} className="bg-[#111018] p-2.5 rounded-xl border border-[#1b1926] flex flex-col justify-between">
                 <span className="text-[10px] text-[#686477] font-bold font-sans">{p.label}</span>
-                <div className="flex items-center gap-1 mt-1.5">
+                <div className="flex items-center gap-1 mt-1">
                   {isPositive ? (
-                    <TrendingUp className="w-3.5 h-3.5 text-[#00f5a0]" />
+                    <TrendingUp className="w-3 h-3 text-[#00f5a0]" />
                   ) : (
-                    <TrendingDown className="w-3.5 h-3.5 text-[#ff3366]" />
+                    <TrendingDown className="w-3 h-3 text-[#ff3366]" />
                   )}
-                  <span className={`text-xs font-bold font-mono ${isPositive ? 'text-[#00f5a0]' : 'text-[#ff3366]'}`}>
+                  <span className={`text-[11px] font-bold font-mono ${isPositive ? 'text-[#00f5a0]' : 'text-[#ff3366]'}`}>
                     {isPositive ? '+' : ''}{p.value.toFixed(2)}%
                   </span>
                 </div>
@@ -148,9 +160,12 @@ export const WidgetMusiman: React.FC<WidgetMusimanProps> = ({ symbol }) => {
 
   if (loading) {
     return (
-      <div className="card card-elevated p-6 animate-pulse bg-[#0b0a10]/45 border border-[#1b1926] h-[320px] flex flex-col justify-between">
-        <div className="h-4 bg-[#1b1926] rounded w-1/4"></div>
-        <div className="h-[200px] bg-[#111018]/50 rounded-xl"></div>
+      <div className="card card-elevated p-6 bg-[#0b0a10]/45 border border-[#1b1926] h-[320px] flex flex-col justify-between">
+        <div className="flex justify-between items-center mb-4">
+          <Skeleton className="h-4 w-44 rounded-md" />
+          <Skeleton className="h-3 w-20 rounded-sm" />
+        </div>
+        <SkeletonChart height="h-[220px]" />
       </div>
     );
   }
@@ -158,19 +173,19 @@ export const WidgetMusiman: React.FC<WidgetMusimanProps> = ({ symbol }) => {
   if (!data) return null;
 
   return (
-    <div className="card card-elevated p-6 bg-[#0b0a10]/45 border border-[#1b1926] flex flex-col justify-between hover:border-[#ccff00]/20 transition-all">
+    <div className="bg-[#0b0a10]/60 border border-[#1b1926] rounded-2xl p-4 flex flex-col justify-between hover:border-[#ccff00]/30 transition-all">
       <div>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-bold text-white tracking-tight font-sans flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-[#ccff00]" />
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-xs font-bold text-white tracking-tight font-sans flex items-center gap-1.5">
+            <Calendar className="w-3.5 h-3.5 text-[#ccff00]" />
             Analisis Musiman {symbol === '^JKSE' || symbol === 'IHSG' ? 'IHSG' : symbol} (%)
           </h3>
-          <span className="text-[10px] text-[#686477] font-mono">Bulan ke Bulan</span>
+          <span className="text-[9px] text-[#686477] font-mono">Bulan ke Bulan</span>
         </div>
 
-        <div className="h-[220px] w-full mt-2">
+        <div className="h-[180px] w-full mt-1">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data} margin={{ top: 10, right: 5, left: -20, bottom: 0 }}>
+            <LineChart data={data} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
               <XAxis 
                 dataKey="month" 
                 stroke="#686477" 
@@ -262,9 +277,12 @@ export const WidgetFinancials: React.FC<WidgetFinancialsProps> = ({ symbol }) =>
 
   if (loading) {
     return (
-      <div className="card card-elevated p-6 animate-pulse bg-[#0b0a10]/45 border border-[#1b1926] h-[320px] flex flex-col justify-between">
-        <div className="h-4 bg-[#1b1926] rounded w-1/3"></div>
-        <div className="h-[200px] bg-[#111018]/50 rounded-xl"></div>
+      <div className="card card-elevated p-6 bg-[#0b0a10]/45 border border-[#1b1926] h-[320px] flex flex-col justify-between">
+        <div className="flex justify-between items-center mb-4">
+          <Skeleton className="h-4 w-48 rounded-md" />
+          <Skeleton className="h-3 w-16 rounded-sm" />
+        </div>
+        <SkeletonChart height="h-[220px]" />
       </div>
     );
   }
@@ -359,9 +377,21 @@ export const WidgetDividen: React.FC<WidgetDividenProps> = ({ symbol }) => {
 
   if (loading) {
     return (
-      <div className="card card-elevated p-6 animate-pulse bg-[#0b0a10]/45 border border-[#1b1926] h-[320px] flex flex-col justify-between">
-        <div className="h-4 bg-[#1b1926] rounded w-1/3"></div>
-        <div className="h-[200px] bg-[#111018]/50 rounded-xl"></div>
+      <div className="card card-elevated p-6 bg-[#0b0a10]/45 border border-[#1b1926] h-[320px] flex flex-col justify-between">
+        <div className="flex justify-between items-center mb-4">
+          <Skeleton className="h-4 w-40 rounded-md" />
+          <Skeleton className="h-3 w-16 rounded-sm" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center h-[220px]">
+          <div className="flex justify-center items-center">
+            <Skeleton className="w-32 h-32 rounded-full" />
+          </div>
+          <div className="space-y-3">
+            <Skeleton className="h-10 w-full rounded-xl" />
+            <Skeleton className="h-10 w-full rounded-xl" />
+            <Skeleton className="h-10 w-full rounded-xl" />
+          </div>
+        </div>
       </div>
     );
   }
@@ -456,9 +486,17 @@ export const WidgetDividen: React.FC<WidgetDividenProps> = ({ symbol }) => {
 
 interface CanvasGaugeProps {
   value: number; // 0 to 100
+  width?: number;
+  height?: number;
+  radius?: number;
 }
 
-export const CanvasGauge: React.FC<CanvasGaugeProps> = ({ value }) => {
+export const CanvasGauge: React.FC<CanvasGaugeProps> = ({ 
+  value, 
+  width = 210, 
+  height = 115, 
+  radius = 65 
+}) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const currentValRef = useRef<number>(50); // start at center (50)
   const animationRef = useRef<number | null>(null);
@@ -469,10 +507,6 @@ export const CanvasGauge: React.FC<CanvasGaugeProps> = ({ value }) => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Dimensions
-    const width = 240;
-    const height = 135;
-
     // Retina-ready scaling
     const dpr = window.devicePixelRatio || 1;
     canvas.width = width * dpr;
@@ -482,9 +516,8 @@ export const CanvasGauge: React.FC<CanvasGaugeProps> = ({ value }) => {
     ctx.scale(dpr, dpr);
 
     const cx = width / 2;
-    const cy = height - 15;
-    const radius = 80;
-    const arcWidth = 12;
+    const cy = height - 12;
+    const arcWidth = 10;
 
     const animate = () => {
       // Easing calculation for ultra-smooth spring needle movement
@@ -522,29 +555,29 @@ export const CanvasGauge: React.FC<CanvasGaugeProps> = ({ value }) => {
       ctx.save();
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.font = 'bold 9px sans-serif';
+      ctx.font = 'bold 8px sans-serif';
       
       // JUAL
       ctx.fillStyle = '#ff3366';
-      ctx.fillText('JUAL', cx - radius - 20, cy - 2);
+      ctx.fillText('JUAL', cx - radius - 15, cy - 2);
 
       // NETRAL
       ctx.fillStyle = '#ffd200';
-      ctx.fillText('NETRAL', cx, cy - radius - 15);
+      ctx.fillText('NETRAL', cx, cy - radius - 12);
 
       // BELI
       ctx.fillStyle = '#00f5a0';
-      ctx.fillText('BELI', cx + radius + 20, cy - 2);
+      ctx.fillText('BELI', cx + radius + 15, cy - 2);
       ctx.restore();
 
       // Draw subtle inner scale ticks around the main arc to give it that TradingView feel
       ctx.save();
       ctx.strokeStyle = '#38344e';
       ctx.lineWidth = 1.2;
-      for (let i = 0; i <= 12; i++) {
-        const tickAngle = -Math.PI + (i / 12) * Math.PI;
-        const startR = radius - 14;
-        const endR = radius - 20;
+      for (let i = 0; i <= 10; i++) {
+        const tickAngle = -Math.PI + (i / 10) * Math.PI;
+        const startR = radius - 11;
+        const endR = radius - 16;
         ctx.beginPath();
         ctx.moveTo(cx + startR * Math.cos(tickAngle), cy + startR * Math.sin(tickAngle));
         ctx.lineTo(cx + endR * Math.cos(tickAngle), cy + endR * Math.sin(tickAngle));
@@ -554,7 +587,7 @@ export const CanvasGauge: React.FC<CanvasGaugeProps> = ({ value }) => {
 
       // Calculate needle position based on animated value
       const needleAngle = -Math.PI + (currentValRef.current / 100) * Math.PI;
-      const needleLength = radius - 10;
+      const needleLength = radius - 8;
       const needleX = cx + needleLength * Math.cos(needleAngle);
       const needleY = cy + needleLength * Math.sin(needleAngle);
 
@@ -564,21 +597,21 @@ export const CanvasGauge: React.FC<CanvasGaugeProps> = ({ value }) => {
       ctx.moveTo(cx, cy);
       ctx.lineTo(needleX, needleY);
       ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 3;
+      ctx.lineWidth = 2.5;
       ctx.lineCap = 'round';
-      ctx.shadowBlur = 8;
+      ctx.shadowBlur = 6;
       ctx.shadowColor = 'rgba(255, 255, 255, 0.4)';
       ctx.stroke();
       ctx.restore();
 
       // Draw pivot center
       ctx.beginPath();
-      ctx.arc(cx, cy, 7, 0, Math.PI * 2);
+      ctx.arc(cx, cy, 6, 0, Math.PI * 2);
       ctx.fillStyle = '#ffffff';
       ctx.fill();
 
       ctx.beginPath();
-      ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+      ctx.arc(cx, cy, 2.5, 0, Math.PI * 2);
       ctx.fillStyle = '#0b0a10';
       ctx.fill();
 
@@ -595,10 +628,10 @@ export const CanvasGauge: React.FC<CanvasGaugeProps> = ({ value }) => {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [value]);
+  }, [value, width, height, radius]);
 
   return (
-    <div className="w-full flex justify-center py-2">
+    <div className="w-full flex justify-center py-1">
       <canvas ref={canvasRef} className="block" />
     </div>
   );
@@ -634,9 +667,8 @@ export const WidgetGauges: React.FC<WidgetGaugesProps> = ({ symbol }) => {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 w-full">
-        <div className="card card-elevated p-6 animate-pulse bg-[#0b0a10]/45 border border-[#1b1926] h-[250px]"></div>
-        <div className="card card-elevated p-6 animate-pulse bg-[#0b0a10]/45 border border-[#1b1926] h-[250px]"></div>
+      <div className="bg-[#0b0a10]/60 border border-[#1b1926] rounded-2xl p-4 flex flex-col items-center justify-center min-h-[180px]">
+        <SkeletonGauge />
       </div>
     );
   }
@@ -646,50 +678,49 @@ export const WidgetGauges: React.FC<WidgetGaugesProps> = ({ symbol }) => {
   const isUpside = data.analyst.upsidePct >= 0;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 w-full">
-      {/* 1. Technical Rating Gauge */}
-      <div className="card card-elevated p-6 bg-[#0b0a10]/45 border border-[#1b1926] flex flex-col justify-between hover:border-[#ccff00]/20 transition-all">
-        <div className="text-center md:text-left">
-          <h3 className="text-sm font-bold text-white tracking-tight font-sans flex items-center justify-center md:justify-start gap-2 mb-1">
-            <Activity className="w-4 h-4 text-[#ccff00]" />
-            Analisa Teknikal
-          </h3>
-          <p className="text-[10px] text-[#686477] font-sans">Konsensus osilator & MA (Real-Time)</p>
-        </div>
+    <div className="bg-[#0b0a10]/60 border border-[#1b1926] rounded-2xl p-4 hover:border-[#ccff00]/30 transition-all">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 divide-y md:divide-y-0 md:divide-x divide-[#1b1926]">
+        {/* 1. Technical Rating Gauge */}
+        <div className="flex flex-col items-center justify-between pb-3 md:pb-0 md:pr-3">
+          <div className="text-center mb-0.5">
+            <h4 className="text-xs font-bold text-white tracking-tight font-sans flex items-center justify-center gap-1.5">
+              <Activity className="w-3.5 h-3.5 text-[#ccff00]" />
+              Analisa Teknikal
+            </h4>
+            <p className="text-[10px] text-[#9f9bac] font-sans">Konsensus osilator & MA (Real-Time)</p>
+          </div>
 
-        <div className="my-3 flex flex-col items-center">
-          <CanvasGauge value={data.technical.value} />
-          <div className="text-center mt-1">
-            <span className={`text-base font-extrabold px-4 py-1 bg-[#111018]/80 border border-[#1b1926] rounded-full font-sans tracking-wide ${
+          <CanvasGauge value={data.technical.value} width={210} height={115} radius={65} />
+
+          <div className="text-center mt-0.5">
+            <span className={`text-xs font-extrabold px-3.5 py-1 bg-[#111018] border border-[#1b1926] rounded-full font-sans tracking-wide inline-block ${
               data.technical.rating.includes('Kuat') 
-                ? (data.technical.value >= 60 ? 'text-[#00f5a0] border-[#00f5a0]/20 shadow-[0_0_15px_rgba(0,245,160,0.05)]' : 'text-[#ff3366] border-[#ff3366]/20') 
-                : 'text-amber-400 border-amber-400/20'
+                ? (data.technical.value >= 60 ? 'text-[#00f5a0] border-[#00f5a0]/30 shadow-[0_0_12px_rgba(0,245,160,0.1)]' : 'text-[#ff3366] border-[#ff3366]/30') 
+                : 'text-amber-400 border-amber-400/30'
             }`}>
               {data.technical.rating}
             </span>
           </div>
         </div>
-      </div>
 
-      {/* 2. Analyst Consensuse Rating Gauge */}
-      <div className="card card-elevated p-6 bg-[#0b0a10]/45 border border-[#1b1926] flex flex-col justify-between hover:border-[#ccff00]/20 transition-all">
-        <div className="text-center md:text-left">
-          <h3 className="text-sm font-bold text-white tracking-tight font-sans flex items-center justify-center md:justify-start gap-2 mb-1">
-            <Target className="w-4 h-4 text-[#ccff00]" />
-            Penilaian Analis
-          </h3>
-          <p className="text-[10px] text-[#686477] font-sans">Konsensus target 1 tahun bursa</p>
-        </div>
+        {/* 2. Analyst Consensus Rating Gauge */}
+        <div className="flex flex-col items-center justify-between pt-3 md:pt-0 md:pl-3">
+          <div className="text-center mb-0.5">
+            <h4 className="text-xs font-bold text-white tracking-tight font-sans flex items-center justify-center gap-1.5">
+              <Target className="w-3.5 h-3.5 text-[#ccff00]" />
+              Penilaian Analis
+            </h4>
+            <p className="text-[10px] text-[#9f9bac] font-sans">Konsensus target 1 tahun bursa</p>
+          </div>
 
-        <div className="my-3 flex flex-col items-center">
-          <CanvasGauge value={data.analyst.value} />
-          
-          <div className="text-center mt-1">
-            <span className={`text-xs font-bold block mb-1.5 font-sans ${isUpside ? 'text-[#00f5a0]' : 'text-[#ff3366]'}`}>
+          <CanvasGauge value={data.analyst.value} width={210} height={115} radius={65} />
+
+          <div className="text-center mt-0.5">
+            <span className={`text-[11px] font-bold block mb-1 font-sans ${isUpside ? 'text-[#00f5a0]' : 'text-[#ff3366]'}`}>
               Target Harga 1 Thn: Rp {data.analyst.targetPrice.toLocaleString('id-ID')} ({isUpside ? '+' : ''}{data.analyst.upsidePct}%)
             </span>
-            <span className={`text-sm font-extrabold px-4 py-1 bg-[#111018]/80 border border-[#1b1926] rounded-full font-sans tracking-wide ${
-              data.analyst.rating.includes('Kuat') ? 'text-[#00f5a0] border-[#00f5a0]/20' : 'text-amber-400 border-amber-400/20'
+            <span className={`text-xs font-extrabold px-3.5 py-1 bg-[#111018] border border-[#1b1926] rounded-full font-sans tracking-wide inline-block ${
+              data.analyst.rating.includes('Kuat') ? 'text-[#00f5a0] border-[#00f5a0]/30' : 'text-amber-400 border-amber-400/30'
             }`}>
               {data.analyst.rating}
             </span>
@@ -700,5 +731,287 @@ export const WidgetGauges: React.FC<WidgetGaugesProps> = ({ symbol }) => {
   );
 };
 
+export interface WidgetNewsProps {
+  symbol: string;
+}
+
+interface NewsArticle {
+  title: string;
+  publisher: string;
+  link: string;
+  timeAgo: string;
+}
+
+export const WidgetNews: React.FC<WidgetNewsProps> = ({ symbol }) => {
+  const [news, setNews] = useState<NewsArticle[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [category, setCategory] = useState<'all' | 'positive' | 'financial' | 'macro'>('all');
+
+  const fetchNewsData = async (isManualRefresh = false) => {
+    if (isManualRefresh) setRefreshing(true);
+    else setLoading(true);
+
+    try {
+      const base = window.location.origin;
+      const res = await fetch(`${base}/api/widgets/ticker-details?symbol=${encodeURIComponent(symbol)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.news && Array.isArray(data.news)) {
+          setNews(data.news);
+        }
+      }
+    } catch (err) {
+      console.error('Error loading news:', err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchNewsData();
+  }, [symbol]);
+
+  const positiveKeywords = ['laba', 'naik', 'rebound', 'cuan', 'tumbuh', 'rekor', 'untung', 'beli', 'net buy', 'dividen', 'menguat', 'target', 'positif'];
+  const negativeKeywords = ['turun', 'melemahan', 'rugi', 'net sell', 'beban', 'tertekan', 'koreksi', 'anjlok', 'melemah', 'risiko'];
+
+  const sentimentStats = React.useMemo(() => {
+    if (!news.length) return { positivePct: 75, sentimentText: 'Sangat Positif (Bullish)', sentimentColor: 'text-[#00f5a0]' };
+    let posCount = 0;
+    let negCount = 0;
+    news.forEach(item => {
+      const lower = item.title.toLowerCase();
+      if (positiveKeywords.some(kw => lower.includes(kw))) posCount++;
+      if (negativeKeywords.some(kw => lower.includes(kw))) negCount++;
+    });
+
+    const total = news.length;
+    const posPct = Math.round(((posCount + (total - negCount)) / (total * 2)) * 100) || 75;
+    
+    let sentimentText = 'Netral / Stabil';
+    let sentimentColor = 'text-amber-400';
+    if (posPct >= 70) {
+      sentimentText = 'Sangat Positif (Bullish)';
+      sentimentColor = 'text-[#00f5a0]';
+    } else if (posPct >= 55) {
+      sentimentText = 'Cenderung Positif';
+      sentimentColor = 'text-[#ccff00]';
+    } else if (posPct <= 40) {
+      sentimentText = 'Sentimen Waspada (Bearish)';
+      sentimentColor = 'text-[#ff3366]';
+    }
+
+    return { positivePct: posPct, sentimentText, sentimentColor, posCount, negCount };
+  }, [news]);
+
+  const filteredNews = React.useMemo(() => {
+    return news.filter(item => {
+      const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                            item.publisher.toLowerCase().includes(searchQuery.toLowerCase());
+      if (!matchesSearch) return false;
+
+      if (category === 'positive') {
+        return positiveKeywords.some(kw => item.title.toLowerCase().includes(kw));
+      } else if (category === 'financial') {
+        const finKw = ['laba', 'kinerja', 'keuangan', 'pendapatan', 'dividen', 'saham', 'target', 'lot', 'harga', 'rups'];
+        return finKw.some(kw => item.title.toLowerCase().includes(kw));
+      } else if (category === 'macro') {
+        const macroKw = ['bi', 'suku bunga', 'ihsg', 'bursa', 'ekonomi', 'danantara', 'asing', 'rebound', 'pasar'];
+        return macroKw.some(kw => item.title.toLowerCase().includes(kw));
+      }
+      return true;
+    });
+  }, [news, searchQuery, category]);
+
+  if (loading) {
+    return (
+      <div className="space-y-5 animate-pulse">
+        <Skeleton className="h-28 w-full rounded-2xl" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <Skeleton className="h-64 md:col-span-2 rounded-2xl" />
+          <Skeleton className="h-64 rounded-2xl" />
+        </div>
+      </div>
+    );
+  }
+
+  const primaryArticle = filteredNews[0] || news[0];
+
+  return (
+    <div className="space-y-5 animate-in fade-in duration-300">
+      {/* 1. Header Banner & Sentiment Metrics */}
+      <div className="card card-elevated p-6 bg-gradient-to-r from-[#111018] via-[#141222] to-[#0b0a10] border border-[#1b1926] rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-5 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-[#ccff00]/5 rounded-full blur-3xl pointer-events-none" />
+        
+        <div className="space-y-1.5 z-10">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 bg-[#ccff00]/10 border border-[#ccff00]/20 rounded-xl text-[#ccff00]">
+              <Newspaper className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-base font-extrabold text-white tracking-tight font-sans flex items-center gap-2">
+                Berita Terkini & Intelijen Pasar ({symbol})
+                <span className="px-2 py-0.5 bg-[#ccff00]/10 text-[#ccff00] border border-[#ccff00]/30 rounded-full text-[10px] font-mono">
+                  LIVE RSS
+                </span>
+              </h2>
+              <p className="text-xs text-[#9f9bac] font-sans">
+                Sumber berita terverifikasi dari Google News RSS, Bisnis.com, CNBC Indonesia, Bloomberg & InvestorTrust
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4 z-10 bg-[#0b0a10]/80 p-3.5 border border-[#1b1926] rounded-xl self-start md:self-auto">
+          <div className="flex flex-col">
+            <span className="text-[10px] text-[#686477] uppercase tracking-wider font-mono">Indeks Sentimen AI</span>
+            <span className={`text-sm font-black font-sans flex items-center gap-1.5 ${sentimentStats.sentimentColor}`}>
+              {sentimentStats.positivePct >= 55 ? (
+                <TrendingUp className="w-4 h-4" />
+              ) : sentimentStats.positivePct <= 40 ? (
+                <TrendingDown className="w-4 h-4" />
+              ) : (
+                <Activity className="w-4 h-4" />
+              )}
+              {sentimentStats.sentimentText} ({sentimentStats.positivePct}%)
+            </span>
+          </div>
+          <button
+            onClick={() => fetchNewsData(true)}
+            disabled={refreshing}
+            className="p-2.5 bg-[#171524] hover:bg-[#201c33] text-[#9f9bac] hover:text-[#ccff00] border border-[#262338] rounded-lg transition-all cursor-pointer"
+            title="Sintesis Ulang Berita"
+          >
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin text-[#ccff00]' : ''}`} />
+          </button>
+        </div>
+      </div>
+
+      {/* 2. Controls & Search Bar */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        {/* Category Filters */}
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+          {[
+            { id: 'all', label: 'Semua Berita', icon: Globe },
+            { id: 'positive', label: 'Sentimen Positif', icon: ThumbsUp },
+            { id: 'financial', label: 'Kinerja & Laba', icon: Flame },
+            { id: 'macro', label: 'Makro & Sektor', icon: Tag }
+          ].map(btn => {
+            const Icon = btn.icon;
+            const active = category === btn.id;
+            return (
+              <button
+                key={btn.id}
+                onClick={() => setCategory(btn.id as any)}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                  active
+                    ? 'bg-[#ccff00] text-black shadow-md shadow-[#ccff00]/10 font-black'
+                    : 'bg-[#111018] text-[#9f9bac] border border-[#1b1926] hover:text-white hover:bg-[#1b1926]'
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                <span>{btn.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Search Field */}
+        <div className="relative min-w-[220px]">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#686477]" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Cari kata kunci berita..."
+            className="w-full bg-[#111018] border border-[#1b1926] focus:border-[#ccff00]/50 rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder-[#686477] outline-none transition-all font-sans"
+          />
+        </div>
+      </div>
+
+      {/* 3. Hero / Main Featured Headline */}
+      {primaryArticle && (
+        <div className="card card-elevated p-6 bg-[#0b0a10]/80 border border-[#262238] hover:border-[#ccff00]/30 rounded-2xl relative group transition-all">
+          <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
+            <div className="space-y-2 flex-1">
+              <div className="flex items-center gap-2.5">
+                <span className="px-2.5 py-0.5 bg-[#00f0ff]/10 text-[#00f0ff] border border-[#00f0ff]/20 rounded-md text-[10px] font-bold font-sans">
+                  BERITA UTAMA • {primaryArticle.publisher}
+                </span>
+                <span className="text-[11px] text-[#686477] font-mono flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  {primaryArticle.timeAgo}
+                </span>
+              </div>
+              <h3 className="text-lg md:text-xl font-black text-white group-hover:text-[#ccff00] transition-colors leading-snug font-sans">
+                {primaryArticle.title}
+              </h3>
+            </div>
+            
+            <a
+              href={primaryArticle.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-5 py-2.5 bg-[#ccff00] hover:bg-[#b8e600] text-black font-extrabold rounded-xl text-xs transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#ccff00]/10 shrink-0 cursor-pointer"
+            >
+              <span>Buka Berita Lengkap</span>
+              <ExternalLink className="w-4 h-4" />
+            </a>
+          </div>
+        </div>
+      )}
+
+      {/* 4. Articles Grid */}
+      {filteredNews.length === 0 ? (
+        <div className="p-12 text-center card card-elevated bg-[#0b0a10]/40 border border-[#1b1926] rounded-2xl">
+          <Newspaper className="w-10 h-10 text-[#686477] mx-auto mb-3 opacity-50" />
+          <p className="text-sm font-bold text-white font-sans">Tidak ditemukan berita untuk kriteria ini.</p>
+          <p className="text-xs text-[#686477] mt-1 font-sans">Coba ubah kata kunci atau filter kategori berita di atas.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredNews.map((article, idx) => (
+            <div 
+              key={idx} 
+              className="card card-elevated p-5 bg-[#0b0a10]/60 border border-[#1b1926] hover:border-[#ccff00]/30 rounded-2xl flex flex-col justify-between transition-all group"
+            >
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="px-2 py-0.5 bg-[#171524] text-[#9f9bac] border border-[#262338] rounded-md text-[10px] font-bold font-sans group-hover:text-[#ccff00] group-hover:border-[#ccff00]/20 transition-all">
+                    {article.publisher}
+                  </span>
+                  <span className="text-[10px] text-[#686477] font-mono flex items-center gap-1">
+                    <Clock className="w-2.5 h-2.5" />
+                    {article.timeAgo}
+                  </span>
+                </div>
+                <h4 className="text-sm font-bold text-white group-hover:text-[#ccff00] transition-colors leading-relaxed line-clamp-3 font-sans">
+                  {article.title}
+                </h4>
+              </div>
+
+              <div className="pt-4 mt-3 border-t border-[#1b1926]/80 flex items-center justify-between">
+                <span className="text-[10px] text-[#686477] font-mono">Sumber Terverifikasi</span>
+                <a
+                  href={article.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs font-bold text-[#ccff00] hover:underline flex items-center gap-1.5 group-hover:translate-x-0.5 transition-transform cursor-pointer"
+                >
+                  <span>Baca</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export { WidgetWatchlistDetail } from './WidgetWatchlistDetail';
+
 

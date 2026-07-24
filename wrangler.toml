@@ -1,0 +1,9 @@
+name = "safehaven-idx"
+type = "webpack"
+compatibility_date = "2026-07-24"
+
+[site]
+bucket = "./dist"
+
+[vars]
+NODE_ENV = "production"

@@ -1,14 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../stores';
 import { TickerLogo } from '../components/TickerLogo';
 import { Strategy } from '../types';
-import { Plus, Trash2, Shield, Check, Sliders, ArrowRight } from 'lucide-react';
+import { Plus, Trash2, Shield, Check, Sliders, ArrowRight, TrendingUp, DollarSign } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { toast } from 'sonner';
 
 export const Compare: React.FC = () => {
   const [, setLocation] = useLocation();
   const { strategies, portfolioConfig, updatePortfolioConfig, tickers } = useAppStore();
+
+  const [stocks, setStocks] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch(`${window.location.origin}/api/market/analysis-matrix`)
+      .then(res => res.json())
+      .then(result => {
+        if (result.data) setStocks(result.data);
+        else if (Array.isArray(result)) setStocks(result);
+      })
+      .catch(err => console.error('Failed to load matrix for compare:', err));
+  }, []);
 
   // Active column strategy IDs
   const [selectedStrategyIds, setSelectedStrategyIds] = useState<string[]>(() => {
@@ -20,9 +32,10 @@ export const Compare: React.FC = () => {
     return ['strat-1', 'strat-2'];
   });
 
-  // Calculate top tickers for a strategy based on its factor weights
+  // Calculate top tickers for a strategy based on its factor weights using real matrix data
   const getTopTickersForStrategy = (strat: Strategy) => {
-    if (!tickers || tickers.length === 0) {
+    const list = stocks.length > 0 ? stocks : tickers;
+    if (!list || list.length === 0) {
       return [
         { symbol: 'BBCA', score: 88 },
         { symbol: 'BBRI', score: 85 },
@@ -31,10 +44,10 @@ export const Compare: React.FC = () => {
       ];
     }
 
-    return tickers
-      .map(t => {
+    return list
+      .map((t: any) => {
         const qScore = t.quality || 50;
-        const mScore = t.moment || 50;
+        const mScore = t.moment || t.momentum || 50;
         const vScore = t.value || 50;
         const gScore = t.growth || 50;
         const dScore = t.dividen || 0;
@@ -86,6 +99,30 @@ export const Compare: React.FC = () => {
 
   const capital = portfolioConfig?.capital || 500000000;
 
+  const getSimulatedPerformance = (strat: Strategy) => {
+    const sahamReturn = 0.15 + (strat.weightQuality / 100 * 0.05) + (strat.weightGrowth / 100 * 0.10);
+    const emasReturn = 0.08;
+    const cashReturn = 0.04;
+    const usdReturn = 0.05;
+    
+    const weightedReturn = (
+      (strat.allocationSaham / 100 * sahamReturn) +
+      (strat.allocationEmas / 100 * emasReturn) +
+      (strat.allocationCash / 100 * cashReturn) +
+      (strat.allocationUSD / 100 * usdReturn)
+    );
+    
+    const baseYield = 0.01;
+    const extraYield = (strat.weightDividend / 100) * 0.08;
+    const expectedYield = (strat.allocationSaham / 100) * (baseYield + extraYield);
+    
+    return {
+      returnPct: weightedReturn * 100,
+      returnValue: capital * weightedReturn,
+      dividendValue: capital * expectedYield
+    };
+  };
+
   return (
     <div id="compare-portfolio-view" className="px-6 space-y-6">
       {/* Header */}
@@ -121,99 +158,112 @@ export const Compare: React.FC = () => {
       {/* Grid containing comparison columns */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
         {selectedStrategyIds.map((stratId, idx) => {
-          const strat = strategies.find(s => s.id === stratId) || strategies[0];
+          const strat = strategies.find(s => s.id === stratId);
           if (!strat) return null;
-
+          
           const isActive = portfolioConfig?.strategyTemplate === strat.id;
           const topTickers = getTopTickersForStrategy(strat);
+          const perf = getSimulatedPerformance(strat);
 
           return (
-            <div key={`${strat.id}-${idx}`} className="card card-elevated p-6 flex flex-col justify-between space-y-5 relative bg-[#0b0a10]/45">
+            <div key={`${strat.id}-${idx}`} className="card card-elevated p-0 flex flex-col justify-between overflow-hidden relative bg-[#0b0a10]/45 border-[#1b1926] shadow-xl group">
               {/* Delete / Remove Column Button */}
               {selectedStrategyIds.length > 1 && (
                 <button
                   id={`remove-col-btn-${idx}`}
                   onClick={() => removeColumn(idx)}
-                  className="absolute top-5 right-5 text-[#686477] hover:text-[#ff3366] p-1.5 hover:bg-white/5 rounded-lg transition-colors cursor-pointer z-10"
+                  className="absolute top-4 right-4 text-[#686477] hover:text-[#ff3366] p-1.5 hover:bg-[#111018] rounded-lg transition-colors cursor-pointer z-10"
                   title="Hapus kolom komparasi"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
               )}
 
-              <div className="space-y-4">
-                {/* Column Strategy Selector Dropdown */}
-                <div className="space-y-1 pr-7">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-extrabold text-[#ccff00] uppercase font-mono tracking-wider">
-                      Formula Komparasi #{idx + 1}
+              {/* Header with Selector */}
+              <div className="p-5 border-b border-[#1b1926] bg-[#111018]/40">
+                <div className="flex items-center gap-2 mb-3 pr-8">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#686477] font-sans">Formula Komparasi #{idx + 1}</span>
+                  {isActive && (
+                    <span className="px-2 py-0.5 bg-[#ccff00]/10 border border-[#ccff00]/20 text-[#ccff00] text-[9px] font-bold uppercase rounded-full flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#ccff00]"></span> Aktif
                     </span>
-                    {isActive && (
-                      <span className="px-2 py-0.5 rounded text-[9px] font-extrabold uppercase bg-[#ccff00]/10 text-[#ccff00] border border-[#ccff00]/30 flex items-center gap-1 font-mono">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#ccff00]"></span> Aktif
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Selector dropdown from Strategy Builder */}
+                  )}
+                </div>
+                
+                <div className="relative">
                   <select
-                    value={strat.id}
+                    value={stratId}
                     onChange={(e) => changeColumnStrategy(idx, e.target.value)}
-                    className="w-full bg-[#111018] border border-[#1b1926] text-white text-xs font-bold rounded-xl px-3 py-2 mt-1 focus:outline-none focus:border-[#ccff00]/50 cursor-pointer"
+                    className="w-full bg-[#1b1926] border border-[#2a273b] text-white text-sm font-bold font-sans rounded-xl px-3 py-2.5 appearance-none focus:outline-none focus:border-[#ccff00]/50 transition-colors pr-8 cursor-pointer"
                   >
-                    {strategies.map((s) => (
-                      <option key={s.id} value={s.id} className="bg-[#0c0b12] text-white font-sans">
-                        {s.name} {portfolioConfig?.strategyTemplate === s.id ? '(Aktif)' : ''}
-                      </option>
+                    {strategies.map(s => (
+                      <option key={s.id} value={s.id}>{s.name} {portfolioConfig?.strategyTemplate === s.id ? '(Aktif)' : ''}</option>
                     ))}
                   </select>
+                  <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-[#686477]">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                  </div>
                 </div>
+                <p className="text-[11px] text-[#9f9bac] font-sans mt-2 line-clamp-2">{strat.description}</p>
+              </div>
 
-                {/* Description & Capital */}
-                <div>
-                  <p className="text-xs text-[#9f9bac] font-sans leading-relaxed line-clamp-2">{strat.description}</p>
-                  <div className="mt-2 text-xs text-[#9f9bac] font-sans font-medium flex items-center justify-between bg-[#111018]/50 p-2.5 rounded-xl border border-[#1b1926]">
-                    <span>Modal Acuan:</span>
-                    <span className="font-mono text-white font-bold">{formatIDR(capital)}</span>
+              <div className="p-5 space-y-5 flex-1">
+                {/* Hero Metrics (1Y Proyeksi) */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <div className="flex items-center gap-1.5 text-[#9f9bac] text-[10px] mb-1">
+                      <TrendingUp className="w-3 h-3 text-[#ccff00]" />
+                      <span className="uppercase tracking-wide font-bold">Est. Return</span>
+                    </div>
+                    <span className="font-mono text-[#ccff00] font-extrabold text-xl">+{perf.returnPct.toFixed(2)}%</span>
+                    <span className="font-mono text-white text-[11px] block mt-0.5">+{formatIDR(perf.returnValue)}</span>
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1.5 text-[#9f9bac] text-[10px] mb-1">
+                      <DollarSign className="w-3 h-3 text-[#00f5a0]" />
+                      <span className="uppercase tracking-wide font-bold">Proyeksi Div</span>
+                    </div>
+                    <span className="font-mono text-white font-extrabold text-xl">{formatIDR(perf.dividendValue)}</span>
+                    <span className="font-mono text-[#686477] text-[11px] block mt-0.5">Per Tahun</span>
                   </div>
                 </div>
 
-                {/* Stacked Asset Allocation Horizontal Bar */}
-                <div className="space-y-2">
-                  <div className="flex justify-between text-[11px] font-sans">
-                    <span className="text-[#9f9bac] font-semibold">Alokasi Sasaran Makro</span>
-                    <span className="text-[#686477] font-mono font-bold">100%</span>
+                {/* Stacked Asset Allocation */}
+                <div className="space-y-2 pt-4 border-t border-[#1b1926]">
+                  <div className="flex justify-between items-center text-[10px] font-sans">
+                    <span className="font-bold uppercase tracking-wider text-[#686477]">Alokasi Portofolio</span>
+                    <span className="text-[#686477] font-mono">100%</span>
                   </div>
                   
-                  <div className="w-full h-3.5 rounded-lg overflow-hidden flex border border-[#1b1926] bg-[#111018]">
-                    <div style={{ width: `${strat.allocationSaham}%` }} className="h-full bg-[#ccff00]" title={`Saham: ${strat.allocationSaham}%`}></div>
-                    <div style={{ width: `${strat.allocationEmas}%` }} className="h-full bg-[#00f0ff]" title={`Emas: ${strat.allocationEmas}%`}></div>
-                    <div style={{ width: `${strat.allocationCash}%` }} className="h-full bg-[#a855f7]" title={`Kas IDR: ${strat.allocationCash}%`}></div>
-                    <div style={{ width: `${strat.allocationUSD}%` }} className="h-full bg-[#6366f1]" title={`USD Cash: ${strat.allocationUSD}%`}></div>
+                  <div className="w-full bg-[#111018] h-2 rounded-full overflow-hidden flex border border-[#1b1926]">
+                    <div style={{ width: `${strat.allocationSaham}%` }} className="h-full bg-[#ccff00] transition-all" title={`Saham: ${strat.allocationSaham}%`}></div>
+                    <div style={{ width: `${strat.allocationEmas}%` }} className="h-full bg-[#00f0ff] transition-all" title={`Emas: ${strat.allocationEmas}%`}></div>
+                    <div style={{ width: `${strat.allocationCash}%` }} className="h-full bg-[#a855f7] transition-all" title={`Kas IDR: ${strat.allocationCash}%`}></div>
+                    <div style={{ width: `${strat.allocationUSD}%` }} className="h-full bg-[#6366f1] transition-all" title={`USD Cash: ${strat.allocationUSD}%`}></div>
                   </div>
-
-                  <div className="grid grid-cols-4 gap-1 text-[9px] font-mono text-[#9f9bac] pt-0.5">
+                  
+                  <div className="grid grid-cols-4 gap-1 text-[9px] font-mono text-[#9f9bac] pt-1">
                     <div className="flex items-center gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-[#ccff00]"></span>
-                      <span>Saham:{strat.allocationSaham}%</span>
+                      <span className="truncate">SHM:{strat.allocationSaham}%</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-[#00f0ff]"></span>
-                      <span>Emas:{strat.allocationEmas}%</span>
+                      <span className="truncate">EMS:{strat.allocationEmas}%</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-[#a855f7]"></span>
-                      <span>Kas:{strat.allocationCash}%</span>
+                      <span className="truncate">KAS:{strat.allocationCash}%</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-[#6366f1]"></span>
-                      <span>USD:{strat.allocationUSD}%</span>
+                      <span className="truncate">USD:{strat.allocationUSD}%</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Factor Scoring Weights breakdown */}
-                <div className="space-y-1.5 pt-2 border-t border-[#1b1926]">
+                <div className="space-y-2 pt-4 border-t border-[#1b1926]">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-[#686477] font-sans">Bobot Faktor Scoring</span>
                   <div className="grid grid-cols-5 gap-1.5 text-center font-mono">
                     <div className="bg-[#111018]/80 border border-[#1b1926] p-1.5 rounded-lg">
@@ -240,28 +290,23 @@ export const Compare: React.FC = () => {
                 </div>
 
                 {/* Constituent Stock Picks */}
-                <div className="space-y-2 pt-2 border-t border-[#1b1926]">
+                <div className="space-y-2 pt-4 border-t border-[#1b1926]">
                   <div className="flex justify-between items-center text-[10px] font-sans">
-                    <span className="font-bold uppercase tracking-wider text-[#686477]">Konstituen Unggulan Strategy</span>
-                    <span className="text-[#686477] font-mono">Top 4</span>
+                    <span className="font-bold uppercase tracking-wider text-[#686477]">Top 4 Konstituen</span>
+                    <span className="text-[#686477] font-mono">Skor</span>
                   </div>
                   
-                  <div className="space-y-1.5">
+                  <div className="grid grid-cols-2 gap-2">
                     {topTickers.map((t) => (
                       <div 
                         key={t.symbol} 
-                        className="bg-[#111018]/60 border border-[#1b1926] rounded-xl px-3 py-2 flex items-center justify-between text-xs"
+                        className="bg-[#111018]/60 border border-[#1b1926] rounded-lg px-2 py-1.5 flex items-center justify-between text-xs"
                       >
-                        <div className="flex items-center gap-2">
-                          <TickerLogo symbol={t.symbol} sizeClassName="w-5 h-5" className="!rounded-lg" />
-                          <div>
-                            <span className="font-mono font-extrabold text-white block">{t.symbol}</span>
-                          </div>
+                        <div className="flex items-center gap-1.5">
+                          <TickerLogo symbol={t.symbol} sizeClassName="w-4 h-4" className="!rounded-md" />
+                          <span className="font-mono font-extrabold text-white text-[10px]">{t.symbol}</span>
                         </div>
-                        <div className="flex items-center gap-1.5 font-mono">
-                          <span className="text-[#686477] text-[10px]">Skor:</span>
-                          <span className="text-[#00f5a0] font-extrabold">{typeof t.score === 'number' ? t.score.toFixed(1) : t.score}</span>
-                        </div>
+                        <span className="text-[#00f5a0] font-mono font-extrabold text-[10px]">{typeof t.score === 'number' ? t.score.toFixed(1) : t.score}</span>
                       </div>
                     ))}
                   </div>
@@ -269,7 +314,7 @@ export const Compare: React.FC = () => {
               </div>
 
               {/* Card Footer Action */}
-              <div className="pt-4 border-t border-[#1b1926] flex items-center justify-between gap-2">
+              <div className="px-5 py-4 bg-[#111018]/40 border-t border-[#1b1926] flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 text-[10px] font-mono text-[#686477]">
                   <span>Crash: <strong className="text-[#f59e0b]">{strat.crashThreshold}%</strong></span>
                   <span>|</span>
@@ -278,7 +323,7 @@ export const Compare: React.FC = () => {
 
                 {isActive ? (
                   <span className="text-[11px] text-[#ccff00] font-bold flex items-center gap-1 font-sans">
-                    <Check className="w-3.5 h-3.5" /> Sedang Digunakan
+                    <Check className="w-3.5 h-3.5" /> Aktif
                   </span>
                 ) : (
                   <button
@@ -293,18 +338,17 @@ export const Compare: React.FC = () => {
                         crashThreshold: strat.crashThreshold,
                         stopLoss: strat.stopLoss
                       });
-                      toast.success(`Strategi aktif berhasil diubah ke "${strat.name}"`);
+                      toast.success(`Strategi ${strat.name} diaktifkan`);
                     }}
-                    className="px-3 py-1.5 bg-[#1b1926] hover:bg-[#ccff00] hover:text-black text-[#9f9bac] text-[11px] font-extrabold rounded-xl transition-all cursor-pointer flex items-center gap-1"
+                    className="px-3 py-1.5 bg-[#ccff00]/10 hover:bg-[#ccff00] text-[#ccff00] hover:text-black text-[10px] font-extrabold rounded-lg transition-all cursor-pointer flex items-center gap-1 uppercase tracking-wider"
                   >
-                    Aktifkan Formula <ArrowRight className="w-3 h-3" />
+                    Terapkan
                   </button>
                 )}
               </div>
             </div>
           );
         })}
-
         {/* Big plus placeholder column */}
         <div 
           onClick={addComparisonColumn}

@@ -17,6 +17,7 @@ import { Strategies } from './pages/Strategies';
 import { Analytics } from './pages/Analytics';
 import { UniversePage } from './pages/Universe';
 import { StockAnalysis } from './pages/StockAnalysis';
+import { MarketNews } from './pages/MarketNews';
 import { Risk } from './pages/Risk';
 import { Alerts } from './pages/Alerts';
 import { Admin } from './pages/Admin';
@@ -65,6 +66,9 @@ export default function App() {
         </Route>
         <Route path="/stock-analysis">
           {!user ? <Redirect to="/login" /> : <AppLayout><StockAnalysis /></AppLayout>}
+        </Route>
+        <Route path="/news">
+          {!user ? <Redirect to="/login" /> : <AppLayout><MarketNews /></AppLayout>}
         </Route>
         <Route path="/universe">
           {!user ? <Redirect to="/login" /> : <AppLayout><UniversePage /></AppLayout>}

@@ -19,7 +19,8 @@ import {
   BacktestResult, 
   OptimizerResult,
   NotificationChannelConfig,
-  GlobalSystemConfig
+  GlobalSystemConfig,
+  AiApiConfig
 } from '../types';
 
 interface AppState {
@@ -75,6 +76,7 @@ interface AppState {
   };
   notificationConfig: NotificationChannelConfig;
   globalConfig: GlobalSystemConfig;
+  aiConfig: AiApiConfig;
 
   // API Call Helpers
   fetchInitialData: () => Promise<void>;
@@ -93,6 +95,7 @@ interface AppState {
   saveRebalanceConfig: (config: any) => Promise<void>;
   saveNotificationConfig: (config: NotificationChannelConfig) => Promise<void>;
   saveGlobalConfig: (config: GlobalSystemConfig) => Promise<void>;
+  saveAiConfig: (config: AiApiConfig) => Promise<void>;
   generateApiKey: (name: string) => Promise<void>;
   revokeApiKey: (id: string) => Promise<void>;
   sendChatMessage: (message: string) => Promise<void>;
@@ -251,6 +254,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   ],
   universes: [
+    { id: 'uni-0', name: 'All Saham', description: 'Semua saham yang terdaftar di Bursa Efek Indonesia.', tickers: ['BBCA', 'BBRI', 'BMRI', 'BBNI', 'TLKM', 'ASII', 'GOTO', 'ADRO', 'UNVR', 'KLBF', 'TINS', 'TPIA', 'BUKA', 'HRTA', 'JPFA', 'ESSA', 'AMMN', 'BRPT', 'ADMR', 'EMTK', 'ULTJ', 'WIFI', 'PTBA', 'ITMG', 'ACES', 'MAPI', 'CPIN', 'INDF', 'ICBP', 'PGAS', 'MEDC', 'ANTM', 'MDKA', 'BRIS', 'SMGR', 'BSDE', 'PWON', 'CTRA', 'SMRA', 'EXCL', 'ISAT', 'JSMR', 'UNTR', 'SIDO', 'BREN', 'PGEO'] },
     { id: 'uni-1', name: 'LQ45 Core Universe', description: 'Kumpulan 45 saham paling likuid di Bursa Efek Indonesia.', tickers: ['BBCA', 'BBRI', 'BMRI', 'BBNI', 'TLKM', 'ASII', 'GOTO', 'ADRO', 'UNVR', 'KLBF'] },
     { id: 'uni-2', name: 'Dividend Champion', description: 'Saham dengan histori pembagian dividen konsisten 5 tahun terakhir.', tickers: ['ADRO', 'PTBA', 'ITMG', 'BBCA', 'BMRI', 'ASII'] },
     { id: 'uni-3', name: 'IDX30 Core Universe', description: 'Kumpulan 30 saham paling likuid di Bursa Efek Indonesia.', tickers: ['BBCA', 'BBRI', 'BMRI', 'BBNI', 'TLKM', 'UNVR'] },
@@ -316,6 +320,18 @@ export const useAppStore = create<AppState>((set, get) => ({
     autoStopLoss: 10,
     soundNotifications: true,
     highContrastGlow: true,
+  },
+  aiConfig: {
+    provider: 'gemini',
+    aiModel: 'gemini-3.6-flash',
+    customApiKey: '',
+    customBaseUrl: '',
+    aiTemperature: 0.3,
+    aiAdvisorTone: 'balanced',
+    autoNewsSentiment: true,
+    stockScoringReasoning: true,
+    maxTokens: 2048,
+    enableSearchGrounding: true
   },
 
   // Auth Operations
@@ -670,6 +686,23 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
     } catch {
       set({ globalConfig: config });
+    }
+  },
+
+  saveAiConfig: async (config) => {
+    try {
+      const res = await fetch(getApiUrl('/api/ai/config'), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(config)
+      });
+      if (res.ok) {
+        set({ aiConfig: config });
+      } else {
+        set({ aiConfig: config });
+      }
+    } catch {
+      set({ aiConfig: config });
     }
   },
 

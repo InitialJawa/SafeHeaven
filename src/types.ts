@@ -25,7 +25,7 @@ export interface PortfolioConfig {
   universe: string;
   topN: number;
   strategyTemplate: string;
-  strategyProfile?: 'auto' | 'aggressive_momentum' | 'defensive_value';
+  strategyProfile?: 'auto' | 'aggressive_momentum' | 'defensive_value' | 'custom' | string;
   allocationSaham: number;
   allocationEmas: number;
   allocationCash: number;
@@ -35,6 +35,7 @@ export interface PortfolioConfig {
   activeStressScenario?: string;
   stressImpactPct?: number;
   lastRebalancedAt?: string;
+  projectedAnnualDividend?: number;
 }
 
 export interface StockPick {
@@ -141,6 +142,21 @@ export interface GlobalSystemConfig {
   highContrastGlow: boolean;
 }
 
+export type AiProvider = 'gemini' | 'openai' | 'anthropic' | 'deepseek' | 'groq' | 'custom_openai';
+
+export interface AiApiConfig {
+  provider: AiProvider;
+  aiModel: string;
+  customApiKey?: string;
+  customBaseUrl?: string;
+  aiTemperature: number;
+  aiAdvisorTone: 'balanced' | 'conservative' | 'growth_momentum';
+  autoNewsSentiment: boolean;
+  stockScoringReasoning: boolean;
+  maxTokens: number;
+  enableSearchGrounding: boolean;
+}
+
 export interface ChatMessage {
   id: string;
   sender: 'user' | 'ai';
@@ -156,6 +172,7 @@ export interface BacktestResult {
     maxDrawdown: number;
     sharpeRatio: number;
     volatility: number;
+    totalDividend?: number;
   };
   tradeMarkers: {
     id: string;

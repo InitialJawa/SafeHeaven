@@ -486,7 +486,10 @@ export const Admin: React.FC = () => {
               </div>
 
               <div className="space-y-1">
-                <label className="text-[#9f9bac] font-extrabold uppercase text-[10px]">Isi Pesan Sistem</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-[#9f9bac] font-extrabold uppercase text-[10px]">Isi Pesan Sistem</label>
+                  <span className="text-[10px] text-[#686477]">Template Cepat</span>
+                </div>
                 <textarea
                   rows={3}
                   required
@@ -495,6 +498,24 @@ export const Admin: React.FC = () => {
                   placeholder="Tuliskan berita bursa atau pemicu darurat untuk ditayangkan di notifikasi..."
                   className="w-full bg-[#111018] border border-[#1b1926] rounded-xl p-3 text-white focus:outline-none focus:border-[#ccff00]/40 text-xs"
                 />
+                
+                {/* Broadcast Preset Quick Chips */}
+                <div className="flex items-center gap-1.5 pt-1 flex-wrap">
+                  {[
+                    { label: 'Volatilitas Perbankan', text: 'Peringatan Volatilitas Sektor Perbankan: IHSG tertekan oleh aksi net-foreign sell pada emiten Big Cap.' },
+                    { label: 'Rebalance Bulanan', text: 'Sinyal Rebalancing Bulanan: Disarankan melakukan pemutakhiran portofolio mengikuti skor kuantitatif terbaru.' },
+                    { label: 'Crash Shield Level 1', text: 'Crash Shield Level 1 Dipicu: Portofolio otomatis dialokasikan lebih tinggi ke Kas & Emas untuk perlindungan aset.' }
+                  ].map((tpl) => (
+                    <button
+                      key={tpl.label}
+                      type="button"
+                      onClick={() => setAlertText(tpl.text)}
+                      className="px-2 py-1 text-[10px] font-sans font-medium rounded-lg bg-[#111018] hover:bg-[#1b1926] text-[#9f9bac] hover:text-white border border-[#1b1926] transition-all cursor-pointer"
+                    >
+                      {tpl.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <button
@@ -639,28 +660,52 @@ export const Admin: React.FC = () => {
 
           <div className="p-5 space-y-4">
             {activeTable !== 'custom' ? (
-              <div className="flex flex-col md:flex-row md:items-end gap-3 text-xs">
-                <div className="flex-1 space-y-1">
-                  <label className="text-[#9f9bac] font-extrabold uppercase text-[10px]">Filter Kode Saham (Ticker)</label>
-                  <div className="relative">
-                    <Search className="w-3.5 h-3.5 text-[#686477] absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      value={tickerFilter}
-                      onChange={(e) => setTickerFilter(e.target.value.toUpperCase())}
-                      placeholder="Masukkan kode emiten (misal: RAJA, ADRO, BBRI)..."
-                      className="w-full bg-[#111018] border border-[#1b1926] rounded-xl pl-10 pr-4 py-2.5 text-white placeholder-[#686477] focus:outline-none focus:border-[#ccff00]/40 font-mono font-bold"
-                    />
+              <div className="space-y-3">
+                <div className="flex flex-col md:flex-row md:items-end gap-3 text-xs">
+                  <div className="flex-1 space-y-1">
+                    <label className="text-[#9f9bac] font-extrabold uppercase text-[10px]">Filter Kode Saham (Ticker)</label>
+                    <div className="relative">
+                      <Search className="w-3.5 h-3.5 text-[#686477] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        value={tickerFilter}
+                        onChange={(e) => setTickerFilter(e.target.value.toUpperCase())}
+                        placeholder="Masukkan kode emiten (misal: RAJA, ADRO, BBRI)..."
+                        className="w-full bg-[#111018] border border-[#1b1926] rounded-xl pl-10 pr-4 py-2.5 text-white placeholder-[#686477] focus:outline-none focus:border-[#ccff00]/40 font-mono font-bold"
+                      />
+                    </div>
                   </div>
+
+                  <button
+                    onClick={() => runSqlQuery()}
+                    disabled={dbLoading}
+                    className="px-6 py-2.5 bg-[#ccff00] hover:bg-[#ddff33] text-black font-extrabold rounded-xl flex items-center justify-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer"
+                  >
+                    {dbLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />} Query Records
+                  </button>
                 </div>
 
-                <button
-                  onClick={() => runSqlQuery()}
-                  disabled={dbLoading}
-                  className="px-6 py-2.5 bg-[#ccff00] hover:bg-[#ddff33] text-black font-extrabold rounded-xl flex items-center gap-1.5 transition-all disabled:opacity-50"
-                >
-                  {dbLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />} Query Records
-                </button>
+                {/* Quick Ticker Chips */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[10px] text-[#686477] font-extrabold uppercase">Pilihan Emiten Cepat:</span>
+                  {['RAJA', 'BBRI', 'BMRI', 'ADRO', 'TLKM', 'ASII', 'GOTO', 'ICBP'].map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => {
+                        setTickerFilter(t);
+                        runSqlQuery(`SELECT * FROM ${activeTable === 'price_history' ? 'price_history' : 'fundamentals_historical'} WHERE ticker = '${t}' ORDER BY ${activeTable === 'price_history' ? 'date' : 'report_date'} DESC LIMIT 20;`);
+                      }}
+                      className={`px-2 py-0.5 text-[10px] font-mono font-bold rounded-lg border transition-all cursor-pointer ${
+                        tickerFilter === t 
+                          ? 'bg-[#ccff00]/15 text-[#ccff00] border-[#ccff00]/40' 
+                          : 'bg-[#111018] text-[#9f9bac] border-[#1b1926] hover:text-white'
+                      }`}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
               </div>
             ) : (
               <div className="space-y-3">

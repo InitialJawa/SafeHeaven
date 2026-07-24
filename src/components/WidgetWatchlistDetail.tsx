@@ -11,6 +11,7 @@ import {
   ArrowUpRight
 } from 'lucide-react';
 import { TickerLogo } from './TickerLogo';
+import { Skeleton, SkeletonCard } from './Skeleton';
 
 const POPULAR_TICKERS = [
   { symbol: 'IHSG', name: 'Indeks Harga Saham Gabungan (^JKSE)' },
@@ -117,16 +118,20 @@ export const WidgetWatchlistDetail: React.FC<WidgetWatchlistDetailProps> = ({
 
   if (loading) {
     return (
-      <div className="card card-elevated p-6 animate-pulse bg-[#0b0a10]/80 border border-[#1b1926] rounded-2xl min-h-[480px] flex flex-col justify-between">
+      <div className="card card-elevated p-6 bg-[#0b0a10]/80 border border-[#1b1926] rounded-2xl min-h-[480px] flex flex-col justify-between animate-pulse">
         <div className="flex justify-between items-center mb-4">
-          <div className="h-5 bg-[#1b1926] rounded w-1/3"></div>
-          <div className="h-5 bg-[#1b1926] rounded w-12"></div>
+          <Skeleton className="h-6 w-36 rounded-lg" />
+          <Skeleton className="h-5 w-16 rounded-full" />
         </div>
         <div className="space-y-4">
-          <div className="h-12 bg-[#1b1926] rounded-xl w-full"></div>
-          <div className="h-8 bg-[#1b1926] rounded-xl w-1/2"></div>
-          <div className="h-16 bg-[#1b1926] rounded-xl w-full"></div>
-          <div className="h-24 bg-[#1b1926] rounded-xl w-full"></div>
+          <Skeleton className="h-14 w-full rounded-xl" />
+          <Skeleton className="h-10 w-2/3 rounded-xl" />
+          <Skeleton className="h-20 w-full rounded-xl" />
+          <Skeleton className="h-32 w-full rounded-xl" />
+        </div>
+        <div className="flex justify-between items-center pt-4 border-t border-[#1b1926]">
+          <Skeleton className="h-4 w-28" />
+          <Skeleton className="h-8 w-24 rounded-lg" />
         </div>
       </div>
     );
