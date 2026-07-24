@@ -26,6 +26,9 @@ name = "safehaven"
 compatibility_date = "2026-07-24"
 pages_build_output_dir = "./dist"
 
+[assets]
+directory = "./dist"
+
 [vars]
 NODE_ENV = "production"
 ```
