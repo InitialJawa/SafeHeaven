@@ -4,6 +4,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
+import { useLocation } from 'wouter';
 import { useAppStore } from '../stores';
 import { TickerLogo } from '../components/TickerLogo';
 import { 
@@ -74,6 +75,7 @@ const AVAILABLE_ANALYTICS_WIDGETS: WidgetId[] = [
 ];
 
 export const Analytics: React.FC = () => {
+  const [, setLocation] = useLocation();
   const { universes } = useAppStore();
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [marketIndex, setMarketIndex] = useState(universes[0]?.name || 'LQ45 Core Universe');
@@ -103,7 +105,7 @@ export const Analytics: React.FC = () => {
     const fetchAnalytics = async () => {
       try {
         const base = window.location.origin;
-        const res = await fetch(`${base}/api/analytics/dashboard?index=${marketIndex}`);
+        const res = await fetch(`${base}/api/analytics/dashboard?index=${encodeURIComponent(marketIndex)}`);
         if (res.ok) {
           const json = await res.json();
           setData(json);
@@ -404,16 +406,22 @@ export const Analytics: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-[#1b1926] font-mono">
                 {data.topGainers.map((t) => (
-                  <tr key={t.symbol} className="hover:bg-[#111018]/40 transition-colors">
+                  <tr 
+                    key={t.symbol} 
+                    onClick={() => setLocation(`/ticker/${t.symbol}`)}
+                    className="hover:bg-[#111018] transition-colors cursor-pointer group"
+                  >
                     <td className="py-3.5">
                       <div className="flex items-center gap-2">
                         <TickerLogo symbol={t.symbol} sizeClassName="w-5 h-5" className="!rounded-lg" />
-                        <span className="font-extrabold text-white">{t.symbol}</span>
+                        <span className="font-extrabold text-white group-hover:text-[#ccff00] transition-colors">{t.symbol}</span>
                       </div>
                     </td>
                     <td className="py-3.5 text-center text-[#ccff00] font-extrabold">{typeof t.score === 'number' ? t.score.toFixed(1) : t.score}</td>
                     <td className="py-3.5 text-right text-white">Rp {t.price.toLocaleString('id-ID')}</td>
-                    <td className="py-3.5 text-right text-[#00f5a0] font-extrabold">+{t.changePercent.toFixed(2)}%</td>
+                    <td className="py-3.5 text-right text-[#00f5a0] font-extrabold">
+                      {t.changePercent > 0 ? `+${t.changePercent.toFixed(2)}%` : `${t.changePercent.toFixed(2)}%`}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -443,16 +451,22 @@ export const Analytics: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-[#1b1926] font-mono">
                 {data.topLosers.map((t) => (
-                  <tr key={t.symbol} className="hover:bg-[#111018]/40 transition-colors">
+                  <tr 
+                    key={t.symbol} 
+                    onClick={() => setLocation(`/ticker/${t.symbol}`)}
+                    className="hover:bg-[#111018] transition-colors cursor-pointer group"
+                  >
                     <td className="py-3.5">
                       <div className="flex items-center gap-2">
                         <TickerLogo symbol={t.symbol} sizeClassName="w-5 h-5" className="!rounded-lg" />
-                        <span className="font-extrabold text-white">{t.symbol}</span>
+                        <span className="font-extrabold text-white group-hover:text-[#ff3366] transition-colors">{t.symbol}</span>
                       </div>
                     </td>
                     <td className="py-3.5 text-center text-[#00f0ff] font-extrabold">{typeof t.score === 'number' ? t.score.toFixed(1) : t.score}</td>
                     <td className="py-3.5 text-right text-white">Rp {t.price.toLocaleString('id-ID')}</td>
-                    <td className="py-3.5 text-right text-[#ff3366] font-extrabold">{t.changePercent.toFixed(2)}%</td>
+                    <td className="py-3.5 text-right text-[#ff3366] font-extrabold">
+                      {t.changePercent > 0 ? `+${t.changePercent.toFixed(2)}%` : `${t.changePercent.toFixed(2)}%`}
+                    </td>
                   </tr>
                 ))}
               </tbody>

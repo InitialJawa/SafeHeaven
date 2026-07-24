@@ -34,7 +34,8 @@ import {
   Legend, 
   PieChart, 
   Pie, 
-  Cell 
+  Cell,
+  ReferenceLine
 } from 'recharts';
 import { Skeleton, SkeletonGauge, SkeletonChart } from './Skeleton';
 
@@ -172,6 +173,24 @@ export const WidgetMusiman: React.FC<WidgetMusimanProps> = ({ symbol }) => {
 
   if (!data) return null;
 
+  const formatXAxis = (tickItem: string) => {
+    const w = parseInt(tickItem.replace('W', ''), 10);
+    if (w === 1) return 'Jan';
+    if (w === 5) return 'Feb';
+    if (w === 9) return 'Mar';
+    if (w === 13) return 'Q1';
+    if (w === 18) return 'Apr';
+    if (w === 22) return 'Mei';
+    if (w === 26) return 'Q2';
+    if (w === 31) return 'Jul';
+    if (w === 35) return 'Agst';
+    if (w === 39) return 'Q3';
+    if (w === 44) return 'Nov';
+    if (w === 48) return 'Des';
+    if (w === 52) return 'Q4';
+    return '';
+  };
+
   return (
     <div className="bg-[#0b0a10]/60 border border-[#1b1926] rounded-2xl p-4 flex flex-col justify-between hover:border-[#ccff00]/30 transition-all">
       <div>
@@ -180,22 +199,24 @@ export const WidgetMusiman: React.FC<WidgetMusimanProps> = ({ symbol }) => {
             <Calendar className="w-3.5 h-3.5 text-[#ccff00]" />
             Analisis Musiman {symbol === '^JKSE' || symbol === 'IHSG' ? 'IHSG' : symbol} (%)
           </h3>
-          <span className="text-[9px] text-[#686477] font-mono">Bulan ke Bulan</span>
+          <span className="text-[9px] text-[#686477] font-mono">Mingguan (Weekly) • Garis Quartal</span>
         </div>
 
-        <div className="h-[180px] w-full mt-1">
+        <div className="h-[185px] w-full mt-1">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
+            <LineChart data={data} margin={{ top: 12, right: 10, left: -25, bottom: 0 }}>
               <XAxis 
-                dataKey="month" 
+                dataKey="week" 
                 stroke="#686477" 
-                fontSize={10} 
+                fontSize={9} 
                 tickLine={false} 
                 axisLine={false} 
+                interval={0}
+                tickFormatter={formatXAxis}
               />
               <YAxis 
                 stroke="#686477" 
-                fontSize={10} 
+                fontSize={9} 
                 tickLine={false} 
                 axisLine={false}
                 tickFormatter={(v) => `${v}%`}
@@ -204,21 +225,30 @@ export const WidgetMusiman: React.FC<WidgetMusimanProps> = ({ symbol }) => {
                 contentStyle={{ backgroundColor: '#0b0a10', borderColor: '#1b1926', borderRadius: '12px' }}
                 labelStyle={{ color: '#fff', fontWeight: 'bold', fontSize: '11px' }}
                 itemStyle={{ fontSize: '11px' }}
+                formatter={(value: any) => [value !== null && value !== undefined ? `${value}%` : 'N/A']}
+                labelFormatter={(label) => `Minggu ke-${label.replace('W', '')}`}
               />
               <Legend 
                 verticalAlign="top" 
-                height={36} 
+                height={30} 
                 iconType="circle" 
-                iconSize={8} 
+                iconSize={7} 
                 wrapperStyle={{ fontSize: '10px', color: '#9f9bac' }}
               />
+
+              {/* Quarterly Thin Reference Lines */}
+              <ReferenceLine x="W13" stroke="rgba(204, 255, 0, 0.35)" strokeDasharray="3 3" strokeWidth={1} label={{ value: 'Q1', fill: '#ccff00', fontSize: 9, position: 'top', fontWeight: 'bold' }} />
+              <ReferenceLine x="W26" stroke="rgba(204, 255, 0, 0.35)" strokeDasharray="3 3" strokeWidth={1} label={{ value: 'Q2', fill: '#ccff00', fontSize: 9, position: 'top', fontWeight: 'bold' }} />
+              <ReferenceLine x="W39" stroke="rgba(204, 255, 0, 0.35)" strokeDasharray="3 3" strokeWidth={1} label={{ value: 'Q3', fill: '#ccff00', fontSize: 9, position: 'top', fontWeight: 'bold' }} />
+              <ReferenceLine x="W52" stroke="rgba(204, 255, 0, 0.35)" strokeDasharray="3 3" strokeWidth={1} label={{ value: 'Q4', fill: '#ccff00', fontSize: 9, position: 'top', fontWeight: 'bold' }} />
+
               <Line 
                 name="2024" 
                 type="monotone" 
                 dataKey="2024" 
                 stroke="#a855f7" 
-                strokeWidth={2} 
-                dot={{ r: 2 }} 
+                strokeWidth={1.5} 
+                dot={false} 
                 activeDot={{ r: 4 }} 
               />
               <Line 
@@ -226,8 +256,8 @@ export const WidgetMusiman: React.FC<WidgetMusimanProps> = ({ symbol }) => {
                 type="monotone" 
                 dataKey="2025" 
                 stroke="#00f0ff" 
-                strokeWidth={2} 
-                dot={{ r: 2 }} 
+                strokeWidth={1.5} 
+                dot={false} 
                 activeDot={{ r: 4 }} 
               />
               <Line 
@@ -235,8 +265,8 @@ export const WidgetMusiman: React.FC<WidgetMusimanProps> = ({ symbol }) => {
                 type="monotone" 
                 dataKey="2026" 
                 stroke="#ccff00" 
-                strokeWidth={3} 
-                dot={{ r: 3 }} 
+                strokeWidth={2.5} 
+                dot={{ r: 2 }} 
                 activeDot={{ r: 5 }} 
               />
             </LineChart>
@@ -638,6 +668,23 @@ export const CanvasGauge: React.FC<CanvasGaugeProps> = ({
 };
 
 
+const getRatingBadgeClass = (rating: string) => {
+  const r = (rating || '').toLowerCase();
+  if (r.includes('pembelian kuat') || r.includes('beli kuat') || (r.includes('kuat') && (r.includes('pembelian') || r.includes('beli')))) {
+    return 'text-[#00f5a0] border-[#00f5a0]/40 shadow-[0_0_12px_rgba(0,245,160,0.15)]';
+  }
+  if (r.includes('pembelian') || r.includes('beli') || r.includes('positif')) {
+    return 'text-[#00f5a0] border-[#00f5a0]/30';
+  }
+  if (r.includes('penjualan kuat') || r.includes('jual kuat') || (r.includes('kuat') && (r.includes('penjualan') || r.includes('jual')))) {
+    return 'text-[#ff3366] border-[#ff3366]/40 shadow-[0_0_12px_rgba(255,51,102,0.15)]';
+  }
+  if (r.includes('penjualan') || r.includes('jual') || r.includes('negatif')) {
+    return 'text-[#ff3366] border-[#ff3366]/30';
+  }
+  return 'text-amber-400 border-amber-400/30';
+};
+
 interface WidgetGaugesProps {
   symbol: string;
 }
@@ -693,11 +740,10 @@ export const WidgetGauges: React.FC<WidgetGaugesProps> = ({ symbol }) => {
           <CanvasGauge value={data.technical.value} width={210} height={115} radius={65} />
 
           <div className="text-center mt-0.5">
-            <span className={`text-xs font-extrabold px-3.5 py-1 bg-[#111018] border border-[#1b1926] rounded-full font-sans tracking-wide inline-block ${
-              data.technical.rating.includes('Kuat') 
-                ? (data.technical.value >= 60 ? 'text-[#00f5a0] border-[#00f5a0]/30 shadow-[0_0_12px_rgba(0,245,160,0.1)]' : 'text-[#ff3366] border-[#ff3366]/30') 
-                : 'text-amber-400 border-amber-400/30'
-            }`}>
+            <span className="text-[11px] font-bold block mb-1 font-sans text-[#9f9bac]">
+              RSI (14): {data.technical.rsi || 50} • {data.technical.maSignal || 'MA Bullish'}
+            </span>
+            <span className={`text-xs font-extrabold px-3.5 py-1 bg-[#111018] border rounded-full font-sans tracking-wide inline-block ${getRatingBadgeClass(data.technical.rating)}`}>
               {data.technical.rating}
             </span>
           </div>
@@ -719,9 +765,7 @@ export const WidgetGauges: React.FC<WidgetGaugesProps> = ({ symbol }) => {
             <span className={`text-[11px] font-bold block mb-1 font-sans ${isUpside ? 'text-[#00f5a0]' : 'text-[#ff3366]'}`}>
               Target Harga 1 Thn: Rp {data.analyst.targetPrice.toLocaleString('id-ID')} ({isUpside ? '+' : ''}{data.analyst.upsidePct}%)
             </span>
-            <span className={`text-xs font-extrabold px-3.5 py-1 bg-[#111018] border border-[#1b1926] rounded-full font-sans tracking-wide inline-block ${
-              data.analyst.rating.includes('Kuat') ? 'text-[#00f5a0] border-[#00f5a0]/30' : 'text-amber-400 border-amber-400/30'
-            }`}>
+            <span className={`text-xs font-extrabold px-3.5 py-1 bg-[#111018] border rounded-full font-sans tracking-wide inline-block ${getRatingBadgeClass(data.analyst.rating)}`}>
               {data.analyst.rating}
             </span>
           </div>

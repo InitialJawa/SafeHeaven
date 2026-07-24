@@ -22,7 +22,7 @@ SafeHaven dapat dideploy ke **Cloudflare Pages** menggunakan konfigurasi modern 
 ## Konfigurasi `wrangler.toml`
 Pastikan `wrangler.toml` menggunakan `pages_build_output_dir = "./dist"` tanpa konfigurasi legacy `[site]` yang mencari `workers-site/index.js`:
 ```toml
-name = "safehaven-idx"
+name = "safehaven"
 compatibility_date = "2026-07-24"
 pages_build_output_dir = "./dist"
 

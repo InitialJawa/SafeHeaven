@@ -1194,8 +1194,34 @@ app.get('/api/analytics/dashboard', async (req, res) => {
   const index = req.query.index as string || 'LQ45 Core Universe';
   
   // Find the selected universe
-  const selectedUniverse = universes.find(u => u.name === index);
+  const selectedUniverse = universes.find(u => u.name === index || u.id === index);
   const tickerList = selectedUniverse ? selectedUniverse.tickers : universes[0]?.tickers || [];
+
+  // Try to sync live quotes for top symbols in this universe
+  try {
+    const fetchSymbols = tickerList.slice(0, 35).map(s => s.endsWith('.JK') || s.startsWith('^') ? s : `${s}.JK`);
+    if (fetchSymbols.length > 0) {
+      const liveQuotes = await yf.quote(fetchSymbols).catch(() => []);
+      if (Array.isArray(liveQuotes)) {
+        liveQuotes.forEach((q: any) => {
+          if (!q || !q.symbol) return;
+          const cleanSym = q.symbol.replace('.JK', '');
+          const existing = ANALYSIS_MATRIX_CACHE.find(t => t.symbol === cleanSym);
+          if (existing) {
+            const newScores = computeRealStockScores(existing, q);
+            Object.assign(existing, {
+              ...newScores,
+              price: q.regularMarketPrice ? Math.round(q.regularMarketPrice) : existing.price,
+              changePercent: q.regularMarketChangePercent !== undefined ? parseFloat(q.regularMarketChangePercent.toFixed(2)) : existing.changePercent,
+              name: q.longName || q.shortName || existing.name
+            });
+          }
+        });
+      }
+    }
+  } catch (err) {
+    console.warn('Dashboard live quotes sync warning:', err);
+  }
 
   // Generate dynamic data for all tickers in the universe
   const universeStocks = tickerList.map((symbol, i) => {
@@ -1206,8 +1232,8 @@ app.get('/api/analytics/dashboard', async (req, res) => {
     return {
       symbol,
       name: item.name,
-      price: item.price || 1000,
-      changePercent: item.changePercent || 0,
+      price: item.price || (1000 + (i * 350) % 7500),
+      changePercent: item.changePercent !== undefined ? item.changePercent : 0,
       score,
       signal: signal as any
     };
@@ -3293,6 +3319,8 @@ function computeRealStockScores(t: any, quote: any) {
   const delta = Math.round(changePct * 10);
 
   return {
+    price: Math.round(price),
+    changePercent: parseFloat(changePct.toFixed(2)),
     quality: parseFloat(quality.toFixed(1)),
     growth: parseFloat(growth.toFixed(1)),
     value: parseFloat(value.toFixed(1)),
@@ -4210,65 +4238,82 @@ app.get('/api/widgets/musiman', async (req, res) => {
     
     const chartResult = await yf.chart(symbol, {
       period1: period1.toISOString(),
-      interval: '1mo'
+      interval: '1wk'
     });
     
-    const quotes = chartResult.quotes || [];
-    const years = [2024, 2025, 2026];
-    const monthsName = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agst', 'Sep', 'Okt', 'Nov', 'Des'];
+    const quotes = (chartResult.quotes || []).filter(q => q.close !== null && q.close !== undefined);
     
-    const data = monthsName.map((month, mIdx) => {
-      const row: any = { month };
-      
-      years.forEach(year => {
-        const q = quotes.find(quote => {
-          const d = new Date(quote.date);
-          return d.getFullYear() === year && d.getMonth() === mIdx;
-        });
-        
-        if (q && q.close !== null && q.close !== undefined) {
-          const firstQuoteOfYear = quotes.find(quote => {
-            const d = new Date(quote.date);
-            return d.getFullYear() === year && quote.close !== null;
-          });
-          
-          if (firstQuoteOfYear && firstQuoteOfYear.close) {
-            row[String(year)] = parseFloat((((q.close - firstQuoteOfYear.close) / firstQuoteOfYear.close) * 100).toFixed(2));
+    const quotesByYear: Record<number, any[]> = { 2024: [], 2025: [], 2026: [] };
+    quotes.forEach(q => {
+      const year = new Date(q.date).getFullYear();
+      if (quotesByYear[year]) {
+        quotesByYear[year].push(q);
+      }
+    });
+
+    [2024, 2025, 2026].forEach(yr => {
+      quotesByYear[yr].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    });
+
+    const totalWeeks = 52;
+    const data = [];
+
+    for (let w = 0; w < totalWeeks; w++) {
+      const weekLabel = `W${w + 1}`;
+      const row: any = { 
+        week: weekLabel,
+        weekNum: w + 1
+      };
+
+      [2024, 2025, 2026].forEach(year => {
+        const yrQuotes = quotesByYear[year];
+        if (yrQuotes.length > 0) {
+          const firstClose = yrQuotes[0].close;
+          if (w < yrQuotes.length) {
+            const currentClose = yrQuotes[w].close;
+            row[String(year)] = parseFloat((((currentClose - firstClose) / firstClose) * 100).toFixed(2));
           } else {
-            row[String(year)] = 0;
+            if (year === 2026) {
+              row[String(year)] = null;
+            } else {
+              const lastClose = yrQuotes[yrQuotes.length - 1].close;
+              row[String(year)] = parseFloat((((lastClose - firstClose) / firstClose) * 100).toFixed(2));
+            }
           }
         } else {
-          if (year === 2026 && mIdx > now.getMonth()) {
-            row[String(year)] = null;
-          } else {
-            row[String(year)] = 0;
-          }
+          row[String(year)] = year === 2026 && w > 0 ? null : 0;
         }
       });
-      
-      return row;
-    });
+
+      data.push(row);
+    }
     
     return res.json(data);
   } catch (err: any) {
     console.error("Musiman widget error:", err);
-    const monthsName = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agst', 'Sep', 'Okt', 'Nov', 'Des'];
     let running24 = 0;
     let running25 = 0;
     let running26 = 0;
-    
-    const fallback = monthsName.map((month, idx) => {
-      running24 += (Math.random() * 6 - 2.5);
-      running25 += (Math.random() * 6 - 2.5);
-      running26 += (idx <= new Date().getMonth()) ? (Math.random() * 5 - 2.2) : 0;
-      
+    const now = new Date();
+    const currentWeekNum = Math.min(52, Math.floor((now.getTime() - new Date(2026, 0, 1).getTime()) / (7 * 24 * 60 * 60 * 1000)));
+
+    const fallback = Array.from({ length: 52 }, (_, idx) => {
+      const wNum = idx + 1;
+      running24 += (Math.random() * 2.4 - 1.1);
+      running25 += (Math.random() * 2.4 - 1.1);
+      if (idx <= currentWeekNum) {
+        running26 += (Math.random() * 2.2 - 1.0);
+      }
+
       return {
-        month,
+        week: `W${wNum}`,
+        weekNum: wNum,
         '2024': parseFloat(running24.toFixed(2)),
         '2025': parseFloat(running25.toFixed(2)),
-        '2026': idx <= new Date().getMonth() ? parseFloat(running26.toFixed(2)) : null
+        '2026': idx <= currentWeekNum ? parseFloat(running26.toFixed(2)) : null
       };
     });
+
     return res.json(fallback);
   }
 });
@@ -4471,6 +4516,8 @@ app.get('/api/widgets/gauges', async (req, res) => {
     const quotes = (chartData?.quotes || []).filter(q => q.close !== null && q.close !== undefined);
     let techValue = 50;
     let techRating = 'Netral';
+    let rsiVal = 50;
+    let maSignalText = 'MA Bullish';
     
     if (quotes.length >= 20) {
       const closes = quotes.map(q => q.close!);
@@ -4478,6 +4525,7 @@ app.get('/api/widgets/gauges', async (req, res) => {
       
       const sma20 = closes.slice(-20).reduce((a, b) => a + b, 0) / 20;
       const sma5 = closes.slice(-5).reduce((a, b) => a + b, 0) / 5;
+      maSignalText = sma5 > sma20 ? 'MA Golden Cross' : 'MA Crossover Bearish';
       
       const rsiPeriod = 14;
       let rsi = 50;
@@ -4492,6 +4540,7 @@ app.get('/api/widgets/gauges', async (req, res) => {
         const rs = gains / (losses || 1);
         rsi = 100 - (100 / (1 + rs));
       }
+      rsiVal = Math.round(rsi);
       
       let score = 50;
       if (current > sma20) score += 15;
@@ -4520,7 +4569,9 @@ app.get('/api/widgets/gauges', async (req, res) => {
       symbol,
       technical: {
         value: techValue,
-        rating: techRating
+        rating: techRating,
+        rsi: rsiVal,
+        maSignal: maSignalText
       },
       analyst: {
         value: analystValue,
@@ -4535,7 +4586,9 @@ app.get('/api/widgets/gauges', async (req, res) => {
       symbol,
       technical: {
         value: 72,
-        rating: 'Pembelian'
+        rating: 'Pembelian',
+        rsi: 58,
+        maSignal: 'MA Bullish'
       },
       analyst: {
         value: 88,

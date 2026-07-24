@@ -1,223 +1,37 @@
-import React from 'react';
-import { motion } from 'motion/react';
-import { Layers, Activity, TrendingUp, TrendingDown, RefreshCw } from 'lucide-react';
+import React, { useRef, useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Layers, Activity, TrendingUp, TrendingDown, RefreshCw, Sparkles } from 'lucide-react';
 
-interface RegimeItem {
+export interface RegimeItem {
   name: string;
   value: number;
 }
 
-interface RegimeTreemapProps {
+export interface RegimeTreemapProps {
   distribution?: RegimeItem[];
   showHeader?: boolean;
 }
 
-interface RegimeCardProps {
+interface RegimeBlock {
+  id: string;
   name: string;
   percentage: number;
-  bgColor: string;
+  color: string;
   textColor: string;
-  glowColor: string;
-  icon: React.ReactNode;
-  badgeBg?: string;
-  badgeText?: string;
-  isDominant?: boolean;
+  subtitle: string;
+  isDominant: boolean;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
 }
 
-const RegimeCard: React.FC<RegimeCardProps> = ({
-  name,
-  percentage,
-  bgColor,
-  textColor,
-  glowColor,
-  icon,
-  badgeBg = 'bg-black/10',
-  badgeText = 'text-black/80',
-  isDominant = false
-}) => {
-  const isLarge = percentage >= 35;
-  const isMedium = percentage >= 15 && percentage < 35;
-  const isSmall = percentage > 0 && percentage < 15;
-  const isZero = percentage === 0;
-
-  const iconBg = textColor.includes('text-black') ? 'bg-black/10' : 'bg-white/10';
-
-  if (isZero) {
-    return (
-      <motion.div
-        whileHover={{ scale: 1.02, y: -1 }}
-        transition={{ type: "spring", stiffness: 300, damping: 20 }}
-        style={{ 
-          boxShadow: `0 4px 10px ${glowColor}` 
-        }}
-        className={`w-full h-full ${bgColor} ${textColor} p-1.5 px-2 rounded-xl flex items-center justify-between cursor-pointer relative overflow-hidden min-h-0`}
-      >
-        <div className="absolute top-0 right-0 left-0 bottom-0 pointer-events-none" style={{background: 'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0) 50%, rgba(0,0,0,0.08) 100%)'}}></div>
-        
-        {/* Left: Icon & Name */}
-        <div className="flex items-center gap-1 min-w-0 z-10">
-          <div className={`w-4 h-4 rounded bg-black/10 flex items-center justify-center shrink-0 [&_svg]:w-2.5 [&_svg]:h-2.5 text-[8px]`}>
-            {icon}
-          </div>
-          <span className="text-[8px] font-extrabold tracking-wider uppercase font-sans truncate">{name}</span>
-        </div>
-
-        {/* Right: Percentage */}
-        <div className="flex items-center gap-1 z-10 shrink-0">
-          <span className="text-xs font-black tracking-tight leading-none font-sans">
-            0%
-          </span>
-        </div>
-      </motion.div>
-    );
-  }
-
-  if (isSmall) {
-    return (
-      <motion.div
-        whileHover={{ scale: 1.02, y: -1 }}
-        transition={{ type: "spring", stiffness: 300, damping: 20 }}
-        style={{ 
-          boxShadow: `0 6px 12px ${glowColor}` 
-        }}
-        className={`w-full h-full ${bgColor} ${textColor} p-1.5 px-2 rounded-xl flex items-center justify-between cursor-pointer relative overflow-hidden min-h-0`}
-      >
-        <div className="absolute top-0 right-0 left-0 bottom-0 pointer-events-none" style={{background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%, rgba(0,0,0,0.1) 100%)'}}></div>
-        
-        {/* Left: Icon & Name */}
-        <div className="flex items-center gap-1 min-w-0 z-10">
-          <div className={`w-4 h-4 rounded bg-white/10 flex items-center justify-center shrink-0 [&_svg]:w-2.5 [&_svg]:h-2.5 text-[8px]`}>
-            {icon}
-          </div>
-          <span className="text-[8px] font-extrabold tracking-widest uppercase font-sans truncate leading-none">{name}</span>
-        </div>
-
-        {/* Right: Percentage */}
-        <div className="flex items-center gap-1 z-10 shrink-0">
-          <span className="text-xs font-black tracking-tighter leading-none font-sans">
-            {percentage}%
-          </span>
-        </div>
-      </motion.div>
-    );
-  }
-
-  if (isMedium) {
-    return (
-      <motion.div
-        whileHover={{ scale: 1.02, y: -2 }}
-        transition={{ type: "spring", stiffness: 300, damping: 20 }}
-        style={{ 
-          boxShadow: `0 8px 16px ${glowColor}` 
-        }}
-        className={`w-full h-full ${bgColor} ${textColor} p-3 rounded-2xl flex flex-col justify-between cursor-pointer relative overflow-hidden min-h-0`}
-      >
-        <div className="absolute top-0 right-0 left-0 bottom-0 pointer-events-none" style={{background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%, rgba(0,0,0,0.1) 100%)'}}></div>
-        
-        {/* Top: Header */}
-        <div className="flex justify-between items-start relative z-10 gap-1.5 shrink-0 w-full">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <div className={`w-5 h-5 rounded-md ${iconBg} flex items-center justify-center shrink-0 [&_svg]:w-3 [&_svg]:h-3 text-[10px] font-bold`}>
-              {icon}
-            </div>
-            <span className="text-[9px] font-bold tracking-widest uppercase font-sans truncate">{name}</span>
-          </div>
-        </div>
-
-        {/* Bottom: Value */}
-        <div className="mt-auto relative z-10">
-          <div className="text-lg md:text-xl font-black tracking-tighter leading-none font-sans">
-            {percentage}%
-          </div>
-          {isDominant && (
-            <span className="inline-block px-1 py-0.2 text-[7px] font-bold rounded bg-black/15 text-current mt-1">
-              DOMINAN
-            </span>
-          )}
-        </div>
-      </motion.div>
-    );
-  }
-
-  // Large Layout (percentage >= 35)
-  return (
-    <motion.div 
-      style={{ 
-        boxShadow: `0 10px 20px ${glowColor}` 
-      }} 
-      whileHover={{ scale: 1.02, y: -2 }} 
-      transition={{ type: "spring", stiffness: 300, damping: 20 }} 
-      className={`w-full h-full ${bgColor} ${textColor} p-4 rounded-3xl flex flex-col justify-between cursor-pointer min-w-0 relative overflow-hidden`}
-    >
-      <div className="absolute top-0 right-0 left-0 bottom-0 pointer-events-none" style={{background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%, rgba(0,0,0,0.1) 100%)'}}></div>
-      
-      <div className="flex items-center justify-between w-full opacity-90 shrink-0 relative z-10">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className={`w-6 h-6 rounded-lg ${iconBg} flex items-center justify-center shrink-0 [&_svg]:w-3.5 [&_svg]:h-3.5 text-xs font-bold`}>
-            {icon}
-          </div>
-          <span className="text-[10px] font-bold tracking-widest uppercase font-sans truncate">{name}</span>
-        </div>
-      </div>
-      
-      <div className="space-y-0.5 mt-auto relative z-10">
-        <div className="text-3xl md:text-4xl font-black tracking-tighter leading-none font-sans">
-          {percentage}%
-        </div>
-        {isDominant && (
-          <span className={`inline-block px-1.5 py-0.5 text-[8px] font-bold rounded-lg ${badgeBg} ${badgeText} border border-black/5 mt-1`}>
-            DOMINAN
-          </span>
-        )}
-      </div>
-    </motion.div>
-  );
-};
-
 export const RegimeTreemap: React.FC<RegimeTreemapProps> = ({ distribution = [], showHeader = false }) => {
-  // Map design color schemes to names
-  const getRegimeStyle = (name: string) => {
-    const norm = name.toLowerCase();
-    if (norm.includes('normal') || norm.includes('sideways')) {
-      return {
-        bgColor: 'bg-[#1ae88e]', // Neon Green
-        textColor: 'text-black',
-        icon: <Activity />,
-        glowColor: 'rgba(26, 232, 142, 0.15)',
-        badgeBg: 'bg-black/10',
-        badgeText: 'text-black/80',
-      };
-    } else if (norm.includes('bull')) {
-      return {
-        bgColor: 'bg-[#00f0ff]', // Cyan
-        textColor: 'text-black',
-        icon: <TrendingUp />,
-        glowColor: 'rgba(0, 240, 255, 0.15)',
-        badgeBg: 'bg-black/10',
-        badgeText: 'text-black/80',
-      };
-    } else if (norm.includes('volatile')) {
-      return {
-        bgColor: 'bg-[#ff5e3a]', // Sunset Orange
-        textColor: 'text-black',
-        icon: <RefreshCw />,
-        glowColor: 'rgba(255, 94, 58, 0.15)',
-        badgeBg: 'bg-black/10',
-        badgeText: 'text-black/80',
-      };
-    } else { // Bear
-      return {
-        bgColor: 'bg-[#a100ff]', // Electric Violet
-        textColor: 'text-white',
-        icon: <TrendingDown />,
-        glowColor: 'rgba(161, 0, 255, 0.15)',
-        badgeBg: 'bg-white/20',
-        badgeText: 'text-white/90',
-      };
-    }
-  };
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [hoveredBlock, setHoveredBlock] = useState<RegimeBlock | null>(null);
 
-  const defaultDist = [
+  const defaultDist: RegimeItem[] = [
     { name: 'Normal', value: 40 },
     { name: 'Bull', value: 30 },
     { name: 'Volatile', value: 20 },
@@ -226,96 +40,389 @@ export const RegimeTreemap: React.FC<RegimeTreemapProps> = ({ distribution = [],
 
   const activeDist = (distribution && distribution.length > 0) ? distribution : defaultDist;
 
-  // Sort distribution descending so the highest is always the prominent one on the left
-  const sortedDistribution = [...activeDist].sort((a, b) => b.value - a.value);
+  // Color & Subtitle helper
+  const getRegimeDetails = (name: string) => {
+    const norm = name.toLowerCase();
+    if (norm.includes('normal') || norm.includes('sideways')) {
+      return {
+        color: '#1ae88e', // Neon Green
+        textColor: '#0b0a10',
+        subtitle: 'Normal / Sideways Market',
+      };
+    } else if (norm.includes('bull')) {
+      return {
+        color: '#00f0ff', // Cyan
+        textColor: '#0b0a10',
+        subtitle: 'Bullish / Uptrend Agresif',
+      };
+    } else if (norm.includes('volatile')) {
+      return {
+        color: '#ff5e3a', // Sunset Orange
+        textColor: '#0b0a10',
+        subtitle: 'High Volatility / Fluktuatif',
+      };
+    } else { // Bear
+      return {
+        color: '#a100ff', // Electric Violet
+        textColor: '#ffffff',
+        subtitle: 'Bearish / Risk-Off Market',
+      };
+    }
+  };
 
-  // Split into left (largest item) and right (remaining items)
-  const leftItem = sortedDistribution[0];
-  const rightItems = sortedDistribution.slice(1);
+  const adjustColorBrightness = (hex: string, percent: number) => {
+    let num = parseInt(hex.replace('#', ''), 16);
+    let r = (num >> 16) + percent;
+    let g = ((num >> 8) & 0x00ff) + percent;
+    let b = (num & 0x0000ff) + percent;
+    r = Math.min(255, Math.max(0, r));
+    g = Math.min(255, Math.max(0, g));
+    b = Math.min(255, Math.max(0, b));
+    return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+  };
 
-  // Calculate dynamic flex factors based on values
-  const leftColFlex = Math.max(leftItem?.value || 40, 35);
-  const rightColFlex = Math.max(100 - leftColFlex, 35);
+  const drawRoundRectPath = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) => {
+    const radius = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    if (typeof ctx.roundRect === 'function') {
+      ctx.roundRect(x, y, w, h, radius);
+    } else {
+      ctx.moveTo(x + radius, y);
+      ctx.arcTo(x + w, y, x + w, y + h, radius);
+      ctx.arcTo(x + w, y + h, x, y + h, radius);
+      ctx.arcTo(x, y + h, x, y, radius);
+      ctx.arcTo(x, y, x + w, y, radius);
+      ctx.closePath();
+    }
+  };
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const updateSize = () => {
+      const parent = canvas.parentElement;
+      if (parent) {
+        const rect = parent.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0) {
+          canvas.width = rect.width;
+          canvas.height = rect.height;
+        }
+      }
+    };
+
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
+  }, []);
+
+  useEffect(() => {
+    let animationFrameId: number;
+
+    const render = () => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      const width = canvas.width;
+      const height = canvas.height;
+
+      ctx.clearRect(0, 0, width, height);
+
+      // Background grid pattern (TradingView style dark financial canvas)
+      ctx.fillStyle = '#111018';
+      ctx.fillRect(0, 0, width, height);
+
+      // Subtle grid lines
+      ctx.strokeStyle = 'rgba(27, 25, 38, 0.8)';
+      ctx.lineWidth = 1;
+      const gridSize = 24;
+      for (let x = 0; x < width; x += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+        ctx.stroke();
+      }
+      for (let y = 0; y < height; y += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+      }
+
+      const padding = 12;
+      const gap = 10;
+      const innerW = width - padding * 2;
+      const innerH = height - padding * 2;
+
+      // Sort descending by value so highest value is prominent
+      const sorted = [...activeDist].sort((a, b) => b.value - a.value);
+      const dominantName = sorted[0]?.name;
+
+      const layoutBlocks: RegimeBlock[] = [];
+
+      if (sorted.length >= 2) {
+        const topItem = sorted[0];
+        const rightItems = sorted.slice(1);
+
+        // Left column width proportional to top item value (min 40%, max 60%)
+        const leftRatio = Math.min(0.6, Math.max(0.4, topItem.value / 100));
+        const leftW = Math.round((innerW - gap) * leftRatio);
+        const rightW = innerW - leftW - gap;
+
+        // Left Dominant Block
+        const detailsTop = getRegimeDetails(topItem.name);
+        layoutBlocks.push({
+          id: topItem.name.toLowerCase(),
+          name: topItem.name.toUpperCase(),
+          percentage: topItem.value,
+          color: detailsTop.color,
+          textColor: detailsTop.textColor,
+          subtitle: detailsTop.subtitle,
+          isDominant: true,
+          x: padding,
+          y: padding,
+          w: leftW,
+          h: innerH
+        });
+
+        // Right column stacked blocks
+        const totalRightVal = rightItems.reduce((sum, item) => sum + item.value, 0) || 1;
+        let currentY = padding;
+        const availableH = innerH - gap * (rightItems.length - 1);
+
+        rightItems.forEach((item, idx) => {
+          const itemH = idx === rightItems.length - 1 
+            ? (padding + innerH - currentY) 
+            : Math.round(availableH * (item.value / totalRightVal));
+          
+          const details = getRegimeDetails(item.name);
+          layoutBlocks.push({
+            id: item.name.toLowerCase(),
+            name: item.name.toUpperCase(),
+            percentage: item.value,
+            color: details.color,
+            textColor: details.textColor,
+            subtitle: details.subtitle,
+            isDominant: false,
+            x: padding + leftW + gap,
+            y: currentY,
+            w: rightW,
+            h: itemH
+          });
+
+          currentY += itemH + gap;
+        });
+      } else {
+        // Fallback for 1 item
+        sorted.forEach((item) => {
+          const details = getRegimeDetails(item.name);
+          layoutBlocks.push({
+            id: item.name.toLowerCase(),
+            name: item.name.toUpperCase(),
+            percentage: item.value,
+            color: details.color,
+            textColor: details.textColor,
+            subtitle: details.subtitle,
+            isDominant: true,
+            x: padding,
+            y: padding,
+            w: innerW,
+            h: innerH
+          });
+        });
+      }
+
+      // Render each block
+      layoutBlocks.forEach((block) => {
+        ctx.save();
+        const isHovered = hoveredBlock && hoveredBlock.id === block.id;
+
+        if (isHovered) {
+          ctx.shadowColor = block.color;
+          ctx.shadowBlur = 18;
+        } else {
+          ctx.shadowColor = 'rgba(0,0,0,0.3)';
+          ctx.shadowBlur = 8;
+          ctx.shadowOffsetY = 3;
+        }
+
+        const borderRadius = 14;
+        drawRoundRectPath(ctx, block.x, block.y, block.w, block.h, borderRadius);
+
+        const grad = ctx.createLinearGradient(block.x, block.y, block.x + block.w, block.y + block.h);
+        grad.addColorStop(0, block.color);
+        grad.addColorStop(1, adjustColorBrightness(block.color, -25));
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.lineWidth = isHovered ? 2 : 1;
+        ctx.stroke();
+
+        // Text rendering
+        ctx.fillStyle = block.textColor;
+        ctx.font = 'bold 12px Inter, system-ui, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+
+        if (block.w > 65 && block.h > 50) {
+          ctx.fillText(block.name, block.x + 14, block.y + 14);
+
+          if (block.isDominant) {
+            const badgeText = 'DOMINAN';
+            ctx.font = 'extrabold 9px JetBrains Mono, monospace';
+            const badgeW = ctx.measureText(badgeText).width + 10;
+            const badgeH = 18;
+            const badgeX = block.x + block.w - badgeW - 12;
+            const badgeY = block.y + 12;
+
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+            drawRoundRectPath(ctx, badgeX, badgeY, badgeW, badgeH, 6);
+            ctx.fill();
+
+            ctx.fillStyle = block.textColor;
+            ctx.fillText(badgeText, badgeX + 5, badgeY + 4);
+          }
+
+          if (block.h > 100) {
+            ctx.font = '900 32px Inter, system-ui, sans-serif';
+            ctx.fillText(`${block.percentage}%`, block.x + 14, block.y + block.h - 52);
+
+            ctx.font = '700 10px JetBrains Mono, monospace';
+            ctx.fillStyle = block.textColor === '#ffffff' ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.8)';
+            ctx.fillText(block.subtitle, block.x + 14, block.y + block.h - 22);
+          } else {
+            ctx.font = '900 22px Inter, system-ui, sans-serif';
+            ctx.fillText(`${block.percentage}%`, block.x + 14, block.y + block.h - 32);
+
+            ctx.font = '700 9px JetBrains Mono, monospace';
+            ctx.fillStyle = block.textColor === '#ffffff' ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.8)';
+            ctx.fillText(block.subtitle, block.x + 14, block.y + block.h - 16);
+          }
+        } else if (block.w > 45 && block.h > 35) {
+          ctx.font = 'bold 10px Inter, system-ui, sans-serif';
+          ctx.fillText(block.name, block.x + 8, block.y + 8);
+          ctx.font = 'bold 14px Inter, system-ui, sans-serif';
+          ctx.fillText(`${block.percentage}%`, block.x + 8, block.y + block.h - 20);
+        }
+
+        ctx.restore();
+      });
+
+      // Save blocks in ref
+      (canvas as any).__layoutBlocks = layoutBlocks;
+
+      animationFrameId = requestAnimationFrame(render);
+    };
+
+    animationFrameId = requestAnimationFrame(render);
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [hoveredBlock, activeDist]);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    const layoutBlocks = (canvas as any).__layoutBlocks || [];
+    const found = layoutBlocks.find((b: RegimeBlock) => x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h);
+    setHoveredBlock(found || null);
+  };
+
+  const handleMouseLeave = () => {
+    setHoveredBlock(null);
+  };
 
   return (
-    <div id="regime-treemap-card" className={`w-full flex flex-col justify-between ${showHeader ? 'card card-elevated p-6 bg-[#0b0a10]/45 border border-[#1b1926] rounded-2xl min-h-[380px]' : 'space-y-3'}`}>
-      
+    <div 
+      ref={containerRef}
+      id="regime-treemap-card" 
+      className={`card card-elevated p-6 w-full flex flex-col justify-between bg-[#0b0a10]/45 border border-[#1b1926] rounded-2xl min-h-[400px] relative overflow-hidden group`}
+    >
+      <div className="absolute -top-24 -right-24 w-48 h-48 bg-[#1ae88e]/5 rounded-full blur-3xl pointer-events-none"></div>
+
       {/* Header Info */}
-      {showHeader && (
-        <div className="flex justify-between items-start mb-4">
-          <div className="space-y-0.5">
-            <span className="text-[10px] font-bold text-[#686477] tracking-widest uppercase font-sans">
-              Sebaran Durasi
+      <div className="flex justify-between items-start mb-4 z-10">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-bold text-[#ccff00] bg-[#ccff00]/10 px-2 py-0.5 rounded border border-[#ccff00]/20 font-mono">
+              IHSG
             </span>
-            <h2 className="text-2xl font-bold text-white tracking-tight leading-none font-mono text-shadow-glow">
-              Regime Pasar
-            </h2>
+            <span className="text-[10px] font-bold text-[#686477] tracking-widest uppercase font-sans">
+              Sebaran Durasi Regime Pasar
+            </span>
+            <span className="text-[9px] font-mono bg-[#1ae88e]/10 text-[#1ae88e] px-1.5 py-0.2 rounded border border-[#1ae88e]/20 flex items-center gap-1">
+              <Sparkles className="w-2.5 h-2.5" /> 60 FPS
+            </span>
           </div>
-          <div className="w-8 h-8 rounded-full bg-[#111018] border border-[#1b1926] flex items-center justify-center text-[#686477]">
-            <Layers className="w-4 h-4" />
-          </div>
+          <p className="text-xs text-[#9f9bac]">
+            Peta distribusi durasi regime pasar (Normal, Bull, Bear, Volatile).
+          </p>
         </div>
-      )}
-
-      {/* Grid Layout */}
-      <div className="flex flex-col gap-3 min-h-[200px]">
         
-        {/* Left Column (Main/Dominant Regime) and Right Column */}
-        <div className="flex flex-col md:flex-row gap-3 min-h-[180px] w-full">
-          {/* Left Column (Main/Dominant Regime) */}
-          {leftItem && (
-            <div style={{ flex: `${leftColFlex} ${leftColFlex} 0%` }} className="min-w-0 min-h-[130px] md:min-h-0 w-full">
-              {(() => {
-                const style = getRegimeStyle(leftItem.name);
-                return (
-                  <RegimeCard
-                    name={leftItem.name}
-                    percentage={leftItem.value}
-                    bgColor={style.bgColor}
-                    textColor={style.textColor}
-                    glowColor={style.glowColor}
-                    icon={style.icon}
-                    badgeBg={style.badgeBg}
-                    badgeText={style.badgeText}
-                    isDominant={true}
-                  />
-                );
-              })()}
-            </div>
-          )}
-
-          {/* Right Column (Stacked smaller regimes) */}
-          <div style={{ flex: `${rightColFlex} ${rightColFlex} 0%` }} className="flex flex-col gap-2.5 min-w-0 w-full">
-            {rightItems.map((item) => {
-              const style = getRegimeStyle(item.name);
-              return (
-                <div key={item.name} className="min-w-0 w-full flex-1 min-h-[48px]">
-                  <RegimeCard
-                    name={item.name}
-                    percentage={item.value}
-                    bgColor={style.bgColor}
-                    textColor={style.textColor}
-                    glowColor={style.glowColor}
-                    icon={style.icon}
-                    badgeBg={style.badgeBg}
-                    badgeText={style.badgeText}
-                    isDominant={false}
-                  />
-                </div>
-              );
-            })}
-          </div>
+        <div className="w-9 h-9 rounded-xl bg-[#111018] border border-[#1b1926] flex items-center justify-center text-[#686477] shadow-inner group-hover:border-[#1ae88e]/40 transition-colors">
+          <Layers className="w-4 h-4 text-[#1ae88e]" />
         </div>
       </div>
 
-      <div className="pt-2.5 border-t border-[#1b1926]/40 flex items-center justify-between text-[9px] text-[#686477] font-mono">
+      {/* Canvas Area */}
+      <div className="relative w-full h-[280px] rounded-2xl overflow-hidden border border-[#1b1926] bg-[#0b0a10]">
+        <canvas
+          ref={canvasRef}
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
+          className="w-full h-full cursor-pointer block"
+        />
+
+        <AnimatePresence>
+          {hoveredBlock && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 5 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 5 }}
+              transition={{ duration: 0.15 }}
+              className="absolute bottom-3 left-3 right-3 bg-[#111018]/95 backdrop-blur-md border border-[#1ae88e]/30 p-3 rounded-xl shadow-2xl z-20 pointer-events-none flex items-center justify-between"
+            >
+              <div className="flex items-center gap-3">
+                <div 
+                  className="w-3.5 h-3.5 rounded-full shrink-0 shadow-lg"
+                  style={{ backgroundColor: hoveredBlock.color }}
+                />
+                <div>
+                  <div className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2">
+                    {hoveredBlock.name} REGIME
+                    <span className="text-[10px] font-mono font-bold text-[#1ae88e]">
+                      {hoveredBlock.percentage}% Durasi
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-[#9f9bac] font-mono mt-0.5">
+                    {hoveredBlock.subtitle}
+                  </div>
+                </div>
+              </div>
+              <div className="text-right">
+                <span className="text-[9px] font-mono uppercase px-2 py-1 rounded bg-[#1b1926] text-[#1ae88e] border border-[#1ae88e]/20 font-bold">
+                  {hoveredBlock.isDominant ? 'Dominan Market State' : 'Secondary State'}
+                </span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Footer */}
+      <div className="mt-3 pt-2.5 border-t border-[#1b1926]/40 flex items-center justify-between text-[9px] text-[#686477] font-mono">
         <span className="uppercase tracking-widest">SafeHaven Regime Engine Active</span>
         <span className="flex items-center gap-1 text-[#1ae88e] font-bold">
           <span className="relative flex h-1.5 w-1.5">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#1ae88e] opacity-75"></span>
             <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#1ae88e]"></span>
           </span>
-          Live data update
+          Live Data • 60 FPS Canvas Active
         </span>
       </div>
 
