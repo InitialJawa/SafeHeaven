@@ -1,40 +1,32 @@
 # Panduan Deploy SafeHaven ke Cloudflare
 
-SafeHaven dapat dideploy ke **Cloudflare Pages** (untuk frontend SPA) atau **Cloudflare Workers** (full-stack dengan Express/Node adapter).
+SafeHaven dapat dideploy ke **Cloudflare Pages** menggunakan konfigurasi modern `pages_build_output_dir`.
 
-## Opsi 1: Cloudflare Pages (Frontend SPA + API Client)
+## Cara Deploy ke Cloudflare Pages
 
-Jika Anda ingin mendeploy SafeHaven sebagai Static Single Page Application (SPA) yang terhubung ke server eksternal atau mode client-side:
+1. **Pastikan Login ke Wrangler**:
+   ```bash
+   npx wrangler login
+   ```
 
-1. **Build Command**:
+2. **Build dan Deploy**:
+   ```bash
+   npm run deploy
+   ```
+   Atau manual:
    ```bash
    npm run build
+   npx wrangler pages deploy dist
    ```
-2. **Output Directory**: 
-   `dist`
-3. **Pengaturan di Cloudflare Dashboard**:
-   - Hubungkan repository GitHub Anda ke Cloudflare Pages.
-   - Framework preset: `Vite`
-   - Build command: `npm run build`
-   - Build output directory: `dist`
-   - Tambahkan Environment Variables (misal: `GEMINI_API_KEY`) di menu Settings > Environment Variables.
 
----
+## Konfigurasi `wrangler.toml`
+Pastikan `wrangler.toml` menggunakan `pages_build_output_dir = "./dist"` tanpa konfigurasi legacy `[site]` yang mencari `workers-site/index.js`:
+```toml
+name = "safehaven-idx"
+compatibility_date = "2026-07-24"
+pages_build_output_dir = "./dist"
 
-## Opsi 2: Cloudflare Workers / Pages Functions (Full-Stack Express)
+[vars]
+NODE_ENV = "production"
+```
 
-Jika Anda ingin menjalankan backend Express dan API Yahoo Finance & Gemini secara native di Cloudflare Workers:
-
-1. Install Wrangler CLI:
-   ```bash
-   npm install -g wrangler
-   ```
-2. Login ke Cloudflare:
-   ```bash
-   wrangler login
-   ```
-3. Deploy menggunakan Wrangler:
-   ```bash
-   npm run build
-   wrangler deploy
-   ```
