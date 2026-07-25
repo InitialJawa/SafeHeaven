@@ -405,89 +405,67 @@ export const useAppStore = create<AppState>((set, get) => ({
   fetchInitialData: async () => {
     set({ isLoadingData: true });
     try {
-      const snapRes = await fetch(getApiUrl('/api/market/snapshot'));
-      if (snapRes.ok) {
-        const data = await snapRes.json();
-        set({ tickers: data });
-      }
+      const fetchJson = async (endpoint: string) => {
+        try {
+          const res = await fetch(getApiUrl(endpoint));
+          return res.ok ? await res.json() : null;
+        } catch {
+          return null;
+        }
+      };
 
-      const portRes = await fetch(getApiUrl('/api/portfolio/config'));
-      if (portRes.ok) {
-        const data = await portRes.json();
-        set({ portfolioConfig: data });
-      }
+      const [
+        snapData,
+        portData,
+        regimeData,
+        tierData,
+        pickData,
+        rulesData,
+        alertsData,
+        stratData,
+        uniData,
+        rebData,
+        notifData,
+        keysData,
+        usersData,
+        clientData,
+      ] = await Promise.all([
+        fetchJson('/api/market/snapshot'),
+        fetchJson('/api/portfolio/config'),
+        fetchJson('/api/market/regime'),
+        fetchJson('/api/portfolio/tier'),
+        fetchJson('/api/portfolio/stock-picks'),
+        fetchJson('/api/alert-rules'),
+        fetchJson('/api/alerts'),
+        fetchJson('/api/strategies'),
+        fetchJson('/api/universes'),
+        fetchJson('/api/rebalance/config'),
+        fetchJson('/api/notif/config'),
+        fetchJson('/api/keys'),
+        fetchJson('/api/admin/users'),
+        fetchJson('/api/admin/clients'),
+      ]);
 
-      const regimeRes = await fetch(getApiUrl('/api/market/regime'));
-      if (regimeRes.ok) {
-        const data = await regimeRes.json();
-        set({ marketRegime: data.regime });
+      const stateUpdates: Record<string, any> = {};
+      if (snapData) stateUpdates.tickers = snapData;
+      if (portData) stateUpdates.portfolioConfig = portData;
+      if (regimeData?.regime) stateUpdates.marketRegime = regimeData.regime;
+      if (tierData) {
+        stateUpdates.tier = tierData.tier;
+        stateUpdates.tierProgress = tierData.progress;
       }
+      if (pickData) stateUpdates.stockPicks = pickData;
+      if (rulesData) stateUpdates.alertRules = rulesData;
+      if (alertsData) stateUpdates.alerts = alertsData;
+      if (stratData) stateUpdates.strategies = stratData;
+      if (uniData) stateUpdates.universes = uniData;
+      if (rebData) stateUpdates.rebalanceConfig = rebData;
+      if (notifData) stateUpdates.notificationConfig = notifData;
+      if (keysData) stateUpdates.apiKeys = keysData;
+      if (usersData) stateUpdates.users = usersData;
+      if (clientData) stateUpdates.clients = clientData;
 
-      const tierRes = await fetch(getApiUrl('/api/portfolio/tier'));
-      if (tierRes.ok) {
-        const data = await tierRes.json();
-        set({ tier: data.tier, tierProgress: data.progress });
-      }
-
-      const pickRes = await fetch(getApiUrl('/api/portfolio/stock-picks'));
-      if (pickRes.ok) {
-        const data = await pickRes.json();
-        set({ stockPicks: data });
-      }
-
-      const rulesRes = await fetch(getApiUrl('/api/alert-rules'));
-      if (rulesRes.ok) {
-        const data = await rulesRes.json();
-        set({ alertRules: data });
-      }
-
-      const alertsRes = await fetch(getApiUrl('/api/alerts'));
-      if (alertsRes.ok) {
-        const data = await alertsRes.json();
-        set({ alerts: data });
-      }
-
-      const stratRes = await fetch(getApiUrl('/api/strategies'));
-      if (stratRes.ok) {
-        const data = await stratRes.json();
-        set({ strategies: data });
-      }
-
-      const uniRes = await fetch(getApiUrl('/api/universes'));
-      if (uniRes.ok) {
-        const data = await uniRes.json();
-        set({ universes: data });
-      }
-
-      const rebRes = await fetch(getApiUrl('/api/rebalance/config'));
-      if (rebRes.ok) {
-        const data = await rebRes.json();
-        set({ rebalanceConfig: data });
-      }
-
-      const notifRes = await fetch(getApiUrl('/api/notif/config'));
-      if (notifRes.ok) {
-        const data = await notifRes.json();
-        set({ notificationConfig: data });
-      }
-
-      const keysRes = await fetch(getApiUrl('/api/keys'));
-      if (keysRes.ok) {
-        const data = await keysRes.json();
-        set({ apiKeys: data });
-      }
-
-      const usersRes = await fetch(getApiUrl('/api/admin/users'));
-      if (usersRes.ok) {
-        const data = await usersRes.json();
-        set({ users: data });
-      }
-
-      const clientRes = await fetch(getApiUrl('/api/admin/clients'));
-      if (clientRes.ok) {
-        const data = await clientRes.json();
-        set({ clients: data });
-      }
+      set(stateUpdates);
 
       await get().fetchBacktestHistory();
     } catch (err) {
@@ -853,31 +831,40 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   fetchBacktestHistory: async () => {
-    const userId = get().user?.id || 'usr-1';
-    try {
-      const colRef = collection(db, 'users', userId, 'backtests');
-      const snapshot = await getDocs(colRef);
-      const items: BacktestHistoryItem[] = [];
-      snapshot.forEach(docSnap => {
-        items.push(docSnap.data() as BacktestHistoryItem);
-      });
-      // Sort newest first
-      items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      set({ backtestHistory: items });
-      localStorage.setItem(`safehaven_backtests_${userId}`, JSON.stringify(items));
-    } catch (err) {
-      console.warn('Firestore fetch backtests failed, reading local cache:', err);
-      const local = localStorage.getItem(`safehaven_backtests_${userId}`);
-      if (local) {
-        try {
-          set({ backtestHistory: JSON.parse(local) });
-        } catch {}
+    const firebaseUid = auth.currentUser?.uid;
+    const userId = firebaseUid || get().user?.id || 'usr-1';
+
+    // Only attempt Firestore read if Firebase Auth user is logged in and matches the userId
+    if (firebaseUid && firebaseUid === userId) {
+      try {
+        const colRef = collection(db, 'users', userId, 'backtests');
+        const snapshot = await getDocs(colRef);
+        const items: BacktestHistoryItem[] = [];
+        snapshot.forEach(docSnap => {
+          items.push(docSnap.data() as BacktestHistoryItem);
+        });
+        // Sort newest first
+        items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        set({ backtestHistory: items });
+        localStorage.setItem(`safehaven_backtests_${userId}`, JSON.stringify(items));
+        return;
+      } catch (err) {
+        // Fallthrough to local storage if Firestore fails
       }
+    }
+
+    // Read from local storage for offline / unauthenticated state
+    const local = localStorage.getItem(`safehaven_backtests_${userId}`);
+    if (local) {
+      try {
+        set({ backtestHistory: JSON.parse(local) });
+      } catch {}
     }
   },
 
   saveBacktestHistory: async (itemData) => {
-    const userId = get().user?.id || 'usr-1';
+    const firebaseUid = auth.currentUser?.uid;
+    const userId = firebaseUid || get().user?.id || 'usr-1';
     const backtestId = `bt-${Date.now()}`;
     const newItem: BacktestHistoryItem = {
       ...itemData,
@@ -889,26 +876,31 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ backtestHistory: updated });
     localStorage.setItem(`safehaven_backtests_${userId}`, JSON.stringify(updated));
 
-    try {
-      const docRef = doc(db, 'users', userId, 'backtests', backtestId);
-      await setDoc(docRef, newItem);
-    } catch (err) {
-      handleFirestoreError(err, OperationType.WRITE, `users/${userId}/backtests/${backtestId}`);
+    if (firebaseUid && firebaseUid === userId) {
+      try {
+        const docRef = doc(db, 'users', userId, 'backtests', backtestId);
+        await setDoc(docRef, newItem);
+      } catch (err) {
+        handleFirestoreError(err, OperationType.WRITE, `users/${userId}/backtests/${backtestId}`);
+      }
     }
     return backtestId;
   },
 
   deleteBacktestHistory: async (id) => {
-    const userId = get().user?.id || 'usr-1';
+    const firebaseUid = auth.currentUser?.uid;
+    const userId = firebaseUid || get().user?.id || 'usr-1';
     const updated = get().backtestHistory.filter(item => item.id !== id);
     set({ backtestHistory: updated });
     localStorage.setItem(`safehaven_backtests_${userId}`, JSON.stringify(updated));
 
-    try {
-      const docRef = doc(db, 'users', userId, 'backtests', id);
-      await deleteDoc(docRef);
-    } catch (err) {
-      handleFirestoreError(err, OperationType.DELETE, `users/${userId}/backtests/${id}`);
+    if (firebaseUid && firebaseUid === userId) {
+      try {
+        const docRef = doc(db, 'users', userId, 'backtests', id);
+        await deleteDoc(docRef);
+      } catch (err) {
+        handleFirestoreError(err, OperationType.DELETE, `users/${userId}/backtests/${id}`);
+      }
     }
   }
 }));
