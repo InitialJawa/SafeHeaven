@@ -726,6 +726,13 @@ export const WidgetGauges: React.FC<WidgetGaugesProps> = ({ symbol }) => {
 
   return (
     <div className="bg-[#0b0a10]/60 border border-[#1b1926] rounded-2xl p-4 hover:border-[#ccff00]/30 transition-all">
+      <div className="flex items-center justify-between mb-3 pb-2 border-b border-[#1b1926]">
+        <h3 className="text-xs font-bold text-white tracking-tight font-sans flex items-center gap-2">
+          <Activity className="w-3.5 h-3.5 text-[#ccff00]" />
+          Analisa Gauges (Teknikal & Analis) - {symbol === '^JKSE' || symbol === 'IHSG' ? 'IHSG' : symbol}
+        </h3>
+        <span className="text-[9px] text-[#686477] font-mono">Indikator Real-Time</span>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 divide-y md:divide-y-0 md:divide-x divide-[#1b1926]">
         {/* 1. Technical Rating Gauge */}
         <div className="flex flex-col items-center justify-between pb-3 md:pb-0 md:pr-3">

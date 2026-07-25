@@ -32,7 +32,8 @@ import {
   PieChart as PieChartIcon,
   BarChart2,
   Gauge,
-  LayoutList
+  LayoutList,
+  ChevronRight
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -156,31 +157,35 @@ export const Dashboard: React.FC = () => {
       {/* Live ticker tape across the top */}
       <LiveTicker />
 
-      <div className="px-6 space-y-6">
+      <div className="px-3 sm:px-6 space-y-4 sm:space-y-6">
         {/* Header Title with premium design */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-start sm:items-center justify-between gap-2 sm:gap-4">
           <div>
             <div className="flex items-center gap-2">
-              <span className="w-1.5 h-6 bg-[#ccff00] rounded-full animate-pulse"></span>
-              <h1 className="text-2xl font-extrabold tracking-tight text-white font-sans">Market Cockpit</h1>
+              <span className="w-1.5 h-5 sm:h-6 bg-[#ccff00] rounded-full animate-pulse"></span>
+              <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-white font-sans">Market Cockpit</h1>
             </div>
-            <p className="text-xs text-[#9f9bac] mt-1 font-sans">Pusat komando finansial dan intelijen kuantitatif cerdas Anda.</p>
+            <p className="text-[11px] sm:text-xs text-[#9f9bac] mt-0.5 sm:mt-1 font-sans">Pusat komando finansial dan intelijen kuantitatif cerdas Anda.</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
             <div className="text-xs text-[#686477] font-mono bg-[#111018] border border-[#1b1926] px-3.5 py-1.5 rounded-xl hidden sm:block">
               Hari ini: {new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </div>
             <button
               onClick={() => setIsWidgetModalOpen(true)}
-              className="px-3.5 py-1.5 rounded-xl bg-[#ccff00] hover:bg-[#ddff33] text-black text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all active:scale-95 shadow-[0_0_15px_rgba(204,255,0,0.15)]"
+              title="Tambah Widget"
+              className="px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg sm:rounded-xl bg-[#ccff00] hover:bg-[#ddff33] text-black text-[10px] sm:text-xs font-extrabold flex items-center gap-1 cursor-pointer transition-all active:scale-95 shadow-[0_0_15px_rgba(204,255,0,0.15)]"
             >
-              <Plus className="w-3.5 h-3.5" /> Tambah Widget
+              <Plus className="w-3.5 h-3.5" />
+              <span>+ Widget</span>
             </button>
             <button
               onClick={() => setIsWidgetModalOpen(true)}
-              className="px-3.5 py-1.5 rounded-xl bg-[#1b1926] hover:bg-[#252233] border border-[#2a273b] text-[#9f9bac] hover:text-white text-xs font-bold flex items-center gap-2 cursor-pointer transition-colors"
+              title="Susun Widget"
+              className="p-1.5 sm:px-3 sm:py-1.5 rounded-lg sm:rounded-xl bg-[#1b1926] hover:bg-[#252233] border border-[#2a273b] text-[#9f9bac] hover:text-white text-[10px] sm:text-xs font-extrabold flex items-center gap-1 cursor-pointer transition-colors"
             >
-              <Sliders className="w-3.5 h-3.5" /> Susun Widget
+              <Sliders className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Susun</span>
             </button>
           </div>
         </div>
@@ -238,7 +243,7 @@ export const Dashboard: React.FC = () => {
 
               {/* Wallet & Quick Actions */}
               {widgetOrder.includes('wallet') && (
-                <div style={{ order: widgetOrder.indexOf('wallet') }} className="card card-elevated p-6 lg:col-span-8 flex flex-col justify-between bg-[#0b0a10]/45 border border-[#1b1926] space-y-4">
+                <div style={{ order: widgetOrder.indexOf('wallet') }} className="card card-elevated p-3.5 sm:p-5 lg:p-6 lg:col-span-8 flex flex-col justify-between bg-[#0b0a10]/45 border border-[#1b1926] space-y-3 sm:space-y-4">
                   <div className="flex flex-row justify-between items-start">
                     <div>
                       <h4 className="text-xs font-bold uppercase text-[#9f9bac] tracking-wider font-sans">Kartu Manajemen Dana & Quick Actions</h4>
@@ -250,8 +255,8 @@ export const Dashboard: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center my-auto">
-                    <div className="select-none flex justify-center lg:col-span-7">
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-4 lg:gap-6 items-center my-auto">
+                    <div className="select-none flex justify-center md:col-span-7 lg:col-span-8">
                       <PhysicalWallet 
                         capital={capital}
                         strategyName={portfolioConfig?.strategyName || 'IMAM NASRULLOH'}
@@ -266,27 +271,43 @@ export const Dashboard: React.FC = () => {
                       />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3 lg:col-span-5">
+                    <div className="grid grid-cols-2 md:grid-cols-1 gap-2.5 md:col-span-5 lg:col-span-4 w-full">
                       <button
                         id="action-quick-transfer"
                         onClick={() => {
                           toast.success('Modul Transfer Instan (IDR/USD) dibuka.');
                           setLocation('/portfolio');
                         }}
-                        className="flex flex-col items-center justify-center p-4 rounded-xl bg-[#111018] border border-[#1b1926] hover:border-[#ccff00]/40 text-[#9f9bac] hover:text-white transition-all text-center cursor-pointer group"
+                        className="flex items-center justify-between p-2.5 rounded-xl bg-[#111018] border border-[#1b1926] hover:border-[#ccff00]/40 text-[#9f9bac] hover:text-white transition-all cursor-pointer group w-full"
                       >
-                        <Send className="w-5 h-5 text-[#00f5a0] mb-2 group-hover:-translate-y-1 transition-transform" />
-                        <span className="text-[11px] font-bold">Kirim Dana</span>
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-8 h-8 rounded-lg bg-[#00f5a0]/10 border border-[#00f5a0]/20 flex items-center justify-center shrink-0">
+                            <Send className="w-4 h-4 text-[#00f5a0] group-hover:-translate-y-0.5 transition-transform" />
+                          </div>
+                          <div className="text-left min-w-0">
+                            <span className="text-xs font-bold text-white block truncate">Kirim Dana</span>
+                            <span className="text-[10px] text-[#686477] block truncate">Transfer & top-up RDN</span>
+                          </div>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-[#686477] group-hover:text-[#ccff00] group-hover:translate-x-0.5 transition-all shrink-0 ml-1 hidden sm:block" />
                       </button>
 
                       <button
                         id="action-quick-rebalance"
                         onClick={handleQuickRebalance}
                         disabled={rebalancing}
-                        className="flex flex-col items-center justify-center p-4 rounded-xl bg-[#111018] border border-[#1b1926] hover:border-[#ccff00]/40 text-[#9f9bac] hover:text-white transition-all text-center cursor-pointer group disabled:opacity-55"
+                        className="flex items-center justify-between p-2.5 rounded-xl bg-[#111018] border border-[#1b1926] hover:border-[#ccff00]/40 text-[#9f9bac] hover:text-white transition-all cursor-pointer group disabled:opacity-55 w-full"
                       >
-                        <RefreshCw className={`w-5 h-5 text-[#00f0ff] mb-2 group-hover:rotate-180 transition-all ${rebalancing ? 'animate-spin' : ''}`} />
-                        <span className="text-[11px] font-bold">Rebalance</span>
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-8 h-8 rounded-lg bg-[#00f0ff]/10 border border-[#00f0ff]/20 flex items-center justify-center shrink-0">
+                            <RefreshCw className={`w-4 h-4 text-[#00f0ff] group-hover:rotate-180 transition-all ${rebalancing ? 'animate-spin' : ''}`} />
+                          </div>
+                          <div className="text-left min-w-0">
+                            <span className="text-xs font-bold text-white block truncate">Rebalance</span>
+                            <span className="text-[10px] text-[#686477] block truncate">Optimalisasi alokasi</span>
+                          </div>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-[#686477] group-hover:text-[#ccff00] group-hover:translate-x-0.5 transition-all shrink-0 ml-1 hidden sm:block" />
                       </button>
 
                       <button
@@ -294,19 +315,35 @@ export const Dashboard: React.FC = () => {
                         onClick={() => {
                           setLocation('/alerts');
                         }}
-                        className="flex flex-col items-center justify-center p-4 rounded-xl bg-[#111018] border border-[#1b1926] hover:border-[#ccff00]/40 text-[#9f9bac] hover:text-white transition-all text-center cursor-pointer group"
+                        className="flex items-center justify-between p-2.5 rounded-xl bg-[#111018] border border-[#1b1926] hover:border-[#ccff00]/40 text-[#9f9bac] hover:text-white transition-all cursor-pointer group w-full"
                       >
-                        <Bell className="w-5 h-5 text-pink-400 mb-2 group-hover:scale-110 transition-transform" />
-                        <span className="text-[11px] font-bold">Alerts</span>
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-8 h-8 rounded-lg bg-pink-500/10 border border-pink-500/20 flex items-center justify-center shrink-0">
+                            <Bell className="w-4 h-4 text-pink-400 group-hover:scale-110 transition-transform" />
+                          </div>
+                          <div className="text-left min-w-0">
+                            <span className="text-xs font-bold text-white block truncate">Alerts</span>
+                            <span className="text-[10px] text-[#686477] block truncate">Sinyal & notifikasi</span>
+                          </div>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-[#686477] group-hover:text-[#ccff00] group-hover:translate-x-0.5 transition-all shrink-0 ml-1 hidden sm:block" />
                       </button>
 
                       <button
                         id="action-card-compare"
                         onClick={() => setLocation('/compare')}
-                        className="flex flex-col items-center justify-center p-4 rounded-xl bg-[#111018] border border-[#1b1926] hover:border-[#ccff00]/40 text-[#9f9bac] hover:text-white transition-all text-center cursor-pointer group"
+                        className="flex items-center justify-between p-2.5 rounded-xl bg-[#111018] border border-[#1b1926] hover:border-[#ccff00]/40 text-[#9f9bac] hover:text-white transition-all cursor-pointer group w-full"
                       >
-                        <Sliders className="w-5 h-5 text-orange-400 mb-2 group-hover:scale-110 transition-transform" />
-                        <span className="text-[11px] font-bold">Bandingkan</span>
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-8 h-8 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center shrink-0">
+                            <Sliders className="w-4 h-4 text-orange-400 group-hover:scale-110 transition-transform" />
+                          </div>
+                          <div className="text-left min-w-0">
+                            <span className="text-xs font-bold text-white block truncate">Bandingkan</span>
+                            <span className="text-[10px] text-[#686477] block truncate">Komparasi kinerja</span>
+                          </div>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-[#686477] group-hover:text-[#ccff00] group-hover:translate-x-0.5 transition-all shrink-0 ml-1 hidden sm:block" />
                       </button>
                     </div>
                   </div>
@@ -315,7 +352,7 @@ export const Dashboard: React.FC = () => {
 
               {/* Historic Capital Performance Chart */}
               {widgetOrder.includes('performance') && (
-                <div style={{ order: widgetOrder.indexOf('performance') }} className="card card-elevated p-6 lg:col-span-8 flex flex-col h-full">
+                <div style={{ order: widgetOrder.indexOf('performance') }} className="card card-elevated p-3.5 sm:p-5 lg:p-6 lg:col-span-8 flex flex-col h-full">
                   <PortfolioGrowthChart initialCapital={capital} />
                 </div>
               )}
@@ -327,7 +364,7 @@ export const Dashboard: React.FC = () => {
 
               {/* Multi-Tier Rotation */}
               {widgetOrder.includes('rotation') && (
-                <div style={{ order: widgetOrder.indexOf('rotation') }} className="card card-elevated p-6 lg:col-span-4 flex flex-col justify-between space-y-4 bg-[#0b0a10]/45 border border-[#1b1926]">
+                <div style={{ order: widgetOrder.indexOf('rotation') }} className="card card-elevated p-3.5 sm:p-5 lg:p-6 lg:col-span-4 flex flex-col justify-between space-y-3 sm:space-y-4 bg-[#0b0a10]/45 border border-[#1b1926]">
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="flex items-center gap-2">

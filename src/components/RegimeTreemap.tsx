@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Layers, Activity, TrendingUp, TrendingDown, RefreshCw, Sparkles } from 'lucide-react';
+import { Layers, Activity, TrendingUp, TrendingDown, RefreshCw } from 'lucide-react';
 
 export interface RegimeItem {
   name: string;
@@ -385,14 +385,11 @@ export const RegimeTreemap: React.FC<RegimeTreemapProps> = ({ distribution = [],
       <div className="flex justify-between items-start mb-4 z-10">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold text-[#ccff00] bg-[#ccff00]/10 px-2 py-0.5 rounded border border-[#ccff00]/20 font-mono">
-              IHSG
-            </span>
-            <span className="text-[10px] font-bold text-[#686477] tracking-widest uppercase font-sans">
-              Sebaran Durasi Regime Pasar
-            </span>
-            <span className="text-[9px] font-mono bg-[#1ae88e]/10 text-[#1ae88e] px-1.5 py-0.2 rounded border border-[#1ae88e]/20 flex items-center gap-1">
-              <Sparkles className="w-2.5 h-2.5" /> 60 FPS
+            <h3 className="text-sm font-bold text-white font-sans flex items-center gap-2">
+              Sebaran Durasi Regime Pasar (IHSG)
+            </h3>
+            <span className="text-[9px] font-mono bg-[#1ae88e]/10 text-[#1ae88e] px-2 py-0.5 rounded-full border border-[#1ae88e]/20 flex items-center gap-1">
+              Live Engine
             </span>
           </div>
           <p className="text-xs text-[#9f9bac]">

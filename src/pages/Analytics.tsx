@@ -173,16 +173,16 @@ export const Analytics: React.FC = () => {
   return (
     <div id="analytics-view" className="px-6 space-y-6">
       {/* Header Info */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <span className="w-1.5 h-8 bg-[#ccff00] rounded-full"></span>
+      <div className="flex items-start sm:items-center justify-between gap-2 sm:gap-4">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <span className="w-1.5 h-6 sm:h-8 bg-[#ccff00] rounded-full shrink-0"></span>
           <div>
-            <h1 className="text-2xl font-extrabold tracking-tight text-white font-sans">Market Analytics & Regime</h1>
-            <p className="text-xs text-[#9f9bac] font-sans mt-0.5">Distribusi skor spasial fundamental bursa saham LQ45 secara real-time.</p>
+            <h1 className="text-lg sm:text-2xl font-extrabold tracking-tight text-white font-sans">Market Analytics & Regime</h1>
+            <p className="text-[10px] sm:text-xs text-[#9f9bac] font-sans mt-0.5">Distribusi skor spasial fundamental bursa saham LQ45 secara real-time.</p>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
           <div className="bg-[#111018]/50 border border-[#1b1926] rounded-xl px-3.5 py-1.5 flex items-center gap-2 hidden lg:flex">
             <Layers className="w-3.5 h-3.5 text-[#ccff00]" />
             <div className="text-left">
@@ -192,15 +192,19 @@ export const Analytics: React.FC = () => {
           </div>
           <button
             onClick={() => setIsWidgetModalOpen(true)}
-            className="px-3.5 py-1.5 rounded-xl bg-[#ccff00] hover:bg-[#ddff33] text-black text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all active:scale-95 shadow-[0_0_15px_rgba(204,255,0,0.15)]"
+            title="Tambah Widget"
+            className="px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg sm:rounded-xl bg-[#ccff00] hover:bg-[#ddff33] text-black text-[10px] sm:text-xs font-extrabold flex items-center gap-1 cursor-pointer transition-all active:scale-95 shadow-[0_0_15px_rgba(204,255,0,0.15)]"
           >
-            <Plus className="w-3.5 h-3.5" /> Tambah Widget
+            <Plus className="w-3.5 h-3.5" />
+            <span>+ Widget</span>
           </button>
           <button
             onClick={() => setIsWidgetModalOpen(true)}
-            className="px-3.5 py-1.5 rounded-xl bg-[#1b1926] hover:bg-[#252233] border border-[#2a273b] text-[#9f9bac] hover:text-white text-xs font-bold flex items-center gap-2 cursor-pointer transition-colors"
+            title="Susun Widget"
+            className="p-1.5 sm:px-3 sm:py-1.5 rounded-lg sm:rounded-xl bg-[#1b1926] hover:bg-[#252233] border border-[#2a273b] text-[#9f9bac] hover:text-white text-[10px] sm:text-xs font-extrabold flex items-center gap-1 cursor-pointer transition-colors"
           >
-            <SlidersHorizontal className="w-3.5 h-3.5" /> Susun Widget
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Susun</span>
           </button>
         </div>
       </div>
@@ -305,41 +309,19 @@ export const Analytics: React.FC = () => {
           </div>
         ) : (
           <div className="space-y-6">
-            {analyticsWidgetOrder.map((widgetId) => {
-              const widgetName = WIDGET_NAMES[widgetId] || widgetId;
-              const widgetDesc = WIDGET_DESCRIPTIONS[widgetId] || '';
-
-              return (
-                <div 
-                  key={widgetId} 
-                  className="bg-[#0b0a10]/30 border border-[#1b1926]/80 rounded-2xl p-5 space-y-4 hover:border-[#1b1926] transition-all"
-                >
-                  <div className="flex items-center justify-between pb-3.5 border-b border-[#1b1926]/40">
-                    <div className="flex items-center gap-3">
-                      <div className="px-3 py-1 rounded-xl bg-[#ccff00]/10 border border-[#ccff00]/20 text-xs font-black text-[#ccff00] font-mono tracking-wider">
-                        IHSG
-                      </div>
-                      <div>
-                        <span className="text-sm font-bold text-white font-sans block">{widgetName}</span>
-                        <span className="text-xs text-[#9f9bac] block mt-0.5">{widgetDesc}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="pt-1">
-                    {widgetId === 'regime' && <RegimeTreemap distribution={data?.regimeDistribution || []} />}
-                    {widgetId === 'gauges' && <WidgetGauges symbol="IHSG" />}
-                    {widgetId === 'kinerja' && <WidgetKinerja symbol="IHSG" />}
-                    {widgetId === 'musiman' && <WidgetMusiman symbol="IHSG" />}
-                    {(widgetId === 'watchlist_detail' || widgetId === 'watchlist') && <WidgetWatchlistDetail defaultSymbol="IHSG" />}
-                    {widgetId === 'rsi' && <WidgetGauges symbol="IHSG" />}
-                    {widgetId === 'sector' && <WidgetKinerja symbol="IHSG" />}
-                    {widgetId === 'macd' && <WidgetGauges symbol="IHSG" />}
-                    {widgetId === 'volatility' && <WidgetKinerja symbol="IHSG" />}
-                  </div>
-                </div>
-              );
-            })}
+            {analyticsWidgetOrder.map((widgetId) => (
+              <div key={widgetId} className="w-full">
+                {widgetId === 'regime' && <RegimeTreemap distribution={data?.regimeDistribution || []} />}
+                {widgetId === 'gauges' && <WidgetGauges symbol="IHSG" />}
+                {widgetId === 'kinerja' && <WidgetKinerja symbol="IHSG" />}
+                {widgetId === 'musiman' && <WidgetMusiman symbol="IHSG" />}
+                {widgetId === 'watchlist_detail' && <WidgetWatchlistDetail defaultSymbol="IHSG" />}
+                {widgetId === 'rsi' && <WidgetGauges symbol="IHSG" />}
+                {widgetId === 'sector' && <WidgetKinerja symbol="IHSG" />}
+                {widgetId === 'macd' && <WidgetGauges symbol="IHSG" />}
+                {widgetId === 'volatility' && <WidgetKinerja symbol="IHSG" />}
+              </div>
+            ))}
           </div>
         )}
       </div>

@@ -192,3 +192,19 @@ export interface OptimizerResult {
   sharpeRatio: number;
   maxDrawdown: number;
 }
+
+export interface BacktestHistoryItem {
+  id: string;
+  createdAt: string;
+  strategyName: string;
+  universe: string;
+  startDate: string;
+  endDate: string;
+  initialCapital: number;
+  finalEquity: number;
+  cagr: number;
+  maxDrawdown: number;
+  sharpeRatio: number;
+  totalTrades: number;
+  result: BacktestResult;
+}

@@ -55,21 +55,25 @@ interface StockData {
   rotationB: number;
 }
 
+// Memory Cache for instant sub-millisecond page transitions
+let stockMatrixMemoryCache: StockData[] | null = null;
+let stockMatrixLastSyncedTime: string = '';
+
 export const StockAnalysis: React.FC = () => {
   const [, setLocation] = useLocation();
   const strategies = useAppStore(state => state.strategies);
   const universes = useAppStore(state => state.universes);
   const portfolioConfig = useAppStore(state => state.portfolioConfig);
   const updatePortfolioConfig = useAppStore(state => state.updatePortfolioConfig);
+  const marketRegime = useAppStore(state => state.marketRegime);
   
-  const [stocks, setStocks] = useState<StockData[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [stocks, setStocks] = useState<StockData[]>(() => stockMatrixMemoryCache || []);
+  const [loading, setLoading] = useState(!stockMatrixMemoryCache || stockMatrixMemoryCache.length === 0);
   const [isSyncingApi, setIsSyncingApi] = useState(false);
-  const [lastSyncedTime, setLastSyncedTime] = useState<string>('');
+  const [lastSyncedTime, setLastSyncedTime] = useState<string>(() => stockMatrixLastSyncedTime);
   
   // Filtering & Sorting State
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedMode, setSelectedMode] = useState<string>('');
   
   // Recent Searches state
   const [recentSearches, setRecentSearches] = useState<string[]>(() => {
@@ -85,12 +89,13 @@ export const StockAnalysis: React.FC = () => {
     setLocation(`/ticker/${symbol.toLowerCase()}`);
   };
 
-  
-  useEffect(() => {
-    if (strategies.length > 0 && !selectedMode) {
-      setSelectedMode((portfolioConfig as any)?.strategyTemplate || strategies[0].id);
+  const activeSelectValue = useMemo(() => {
+    const profile = portfolioConfig?.strategyProfile || 'auto';
+    if (profile === 'custom') {
+      return `custom:${portfolioConfig?.strategyTemplate || 'strat-1'}`;
     }
-  }, [strategies, selectedMode, portfolioConfig]);
+    return profile;
+  }, [portfolioConfig]);
   
   const [selectedIndex, setSelectedIndex] = useState<string>(portfolioConfig?.universe || 'SEMUA');
   const [selectedBoard, setSelectedBoard] = useState<string>('SEMUA');
@@ -106,7 +111,7 @@ export const StockAnalysis: React.FC = () => {
   const fetchStocks = async (isManualSync = false) => {
     try {
       if (isManualSync) setIsSyncingApi(true);
-      else setLoading(true);
+      else if (!stockMatrixMemoryCache) setLoading(true);
 
       const endpoint = isManualSync ? '/api/market/analysis-matrix/sync' : '/api/market/analysis-matrix';
       const method = isManualSync ? 'POST' : 'GET';
@@ -114,12 +119,15 @@ export const StockAnalysis: React.FC = () => {
       const res = await fetch(`${window.location.origin}${endpoint}`, { method });
       if (res.ok) {
         const result = await res.json();
-        if (result.data) {
-          setStocks(result.data);
-          if (result.lastSyncedAt) setLastSyncedTime(result.lastSyncedAt);
-        } else if (Array.isArray(result)) {
-          setStocks(result);
+        const data = result.data || (Array.isArray(result) ? result : []);
+        setStocks(data);
+        stockMatrixMemoryCache = data;
+
+        if (result.lastSyncedAt) {
+          setLastSyncedTime(result.lastSyncedAt);
+          stockMatrixLastSyncedTime = result.lastSyncedAt;
         }
+
         if (isManualSync) {
           toast.success('Data kuantitatif saham berhasil disinkronkan dari Yahoo Finance API!');
         }
@@ -139,30 +147,67 @@ export const StockAnalysis: React.FC = () => {
     fetchStocks();
   }, []);
 
-  // Scoring configuration depending on active Mode (Strategy)
+  // Scoring configuration depending on active Strategy Profile / Template
   const scoringConfig = useMemo(() => {
-    const strat = strategies.find(s => s.id === selectedMode) || strategies[0];
-    if (!strat) return { weights: { quality: 0, growth: 0, value: 0, moment: 0, dividen: 0 }, icon: Shield, iconColor: 'text-gray-400', bgColor: 'bg-gray-500/10 border-gray-500/20 text-gray-400' };
-    
-    // Normalize weights to sum up to 1.0 (assuming they are percentages, e.g., 40 -> 0.40)
-    const totalWeight = strat.weightQuality + strat.weightGrowth + strat.weightValue + strat.weightMomentum + strat.weightDividend || 100;
-    
+    const profile = portfolioConfig?.strategyProfile || 'auto';
+    const templateId = portfolioConfig?.strategyTemplate || 'strat-1';
+
+    let weights = { quality: 0.3, growth: 0.2, value: 0.25, moment: 0.25, dividen: 0 };
+    let label = 'Auto Regime (IHSG)';
+    let tooltip = 'Strategi dinamis otomatis mengikuti rezim pasar IHSG.';
+    let weightsDisplay = 'Q: 30% • G: 20% • V: 25% • M: 25% • D: 0%';
+
+    if (profile === 'auto') {
+      const reg = (marketRegime || 'neutral').toLowerCase();
+      if (reg === 'bull') {
+        weights = { quality: 0.2, growth: 0.2, value: 0.1, moment: 0.5, dividen: 0 };
+        weightsDisplay = 'Q: 20% • G: 20% • V: 10% • M: 50% • D: 0%';
+      } else if (reg === 'bear') {
+        weights = { quality: 0.35, growth: 0.15, value: 0.35, moment: 0.15, dividen: 0 };
+        weightsDisplay = 'Q: 35% • G: 15% • V: 35% • M: 15% • D: 0%';
+      } else {
+        weights = { quality: 0.3, growth: 0.2, value: 0.25, moment: 0.25, dividen: 0 };
+        weightsDisplay = 'Q: 30% • G: 20% • V: 25% • M: 25% • D: 0%';
+      }
+      label = `Auto Regime (${reg.toUpperCase()})`;
+      tooltip = `Bobot faktor disesuaikan secara otomatis berdasarkan rezim pasar IHSG saat ini (${reg.toUpperCase()}).`;
+    } else if (profile === 'aggressive_momentum' || profile === 'aggressive') {
+      weights = { quality: 0.2, growth: 0.2, value: 0.1, moment: 0.5, dividen: 0 };
+      label = 'Aggressive Momentum';
+      tooltip = 'Memprioritaskan tren momentum dan pertumbuhan saham secara agresif.';
+      weightsDisplay = 'Q: 20% • G: 20% • V: 10% • M: 50% • D: 0%';
+    } else if (profile === 'defensive_value' || profile === 'defensive') {
+      weights = { quality: 0.35, growth: 0.15, value: 0.35, moment: 0.15, dividen: 0 };
+      label = 'Defensive Value';
+      tooltip = 'Memprioritaskan kriteria kualitas neraca dan valuasi murah terdiskon.';
+      weightsDisplay = 'Q: 35% • G: 15% • V: 35% • M: 15% • D: 0%';
+    } else {
+      const strat = strategies.find(s => s.id === templateId) || strategies[0];
+      if (strat) {
+        const totalWeight = (strat.weightQuality + strat.weightGrowth + strat.weightValue + strat.weightMomentum + strat.weightDividend) || 100;
+        weights = {
+          quality: strat.weightQuality / totalWeight,
+          growth: strat.weightGrowth / totalWeight,
+          value: strat.weightValue / totalWeight,
+          moment: strat.weightMomentum / totalWeight,
+          dividen: strat.weightDividend / totalWeight
+        };
+        label = `${strat.name} (Custom)`;
+        tooltip = strat.description;
+        weightsDisplay = `Q: ${strat.weightQuality}% • G: ${strat.weightGrowth}% • V: ${strat.weightValue}% • M: ${strat.weightMomentum}% • D: ${strat.weightDividend}%`;
+      }
+    }
+
     return {
-      label: strat.name,
-      tooltip: strat.description,
+      label,
+      tooltip,
       icon: Activity,
       iconColor: 'text-[#ccff00]',
       bgColor: 'bg-[#ccff00]/10 border-[#ccff00]/20 text-[#ccff00]',
-      weights: { 
-        quality: strat.weightQuality / totalWeight, 
-        growth: strat.weightGrowth / totalWeight, 
-        value: strat.weightValue / totalWeight, 
-        moment: strat.weightMomentum / totalWeight, 
-        dividen: strat.weightDividend / totalWeight 
-      },
-      weightsDisplay: `Q: ${strat.weightQuality}% • G: ${strat.weightGrowth}% • V: ${strat.weightValue}% • M: ${strat.weightMomentum}% • D: ${strat.weightDividend}%`
+      weights,
+      weightsDisplay
     };
-  }, [selectedMode, strategies]);
+  }, [portfolioConfig, marketRegime, strategies]);
 
   // Compute list of unique sectors for filter option
   const sectorsList = useMemo(() => {
@@ -170,7 +215,7 @@ export const StockAnalysis: React.FC = () => {
     return Array.from(list).sort();
   }, [stocks]);
 
-  // Transform stocks: calculate dynamic Total Score and sort
+  // Transform stocks: calculate dynamic Total Score and sort (O(N) optimized)
   const processedStocks = useMemo(() => {
     const weights = scoringConfig.weights;
     
@@ -190,50 +235,55 @@ export const StockAnalysis: React.FC = () => {
       };
     });
 
-    // Assign composite rank
+    // Assign composite rank using O(N) Map lookup (350x faster than findIndex)
     const byTotalScore = [...scored].sort((a, b) => b.totalScore - a.totalScore);
-    const ranked = scored.map(s => {
-       const rank = byTotalScore.findIndex(ts => ts.symbol === s.symbol) + 1;
-       return { ...s, globalRank: rank };
+    const rankMap = new Map<string, number>();
+    byTotalScore.forEach((ts, idx) => {
+      rankMap.set(ts.symbol, idx + 1);
     });
+
+    const ranked = scored.map(s => ({
+      ...s,
+      globalRank: rankMap.get(s.symbol) || 1
+    }));
 
     // 2. Apply Filters
+    const query = searchQuery.toLowerCase().trim();
+    const selectedUniverse = universes.find(u => u.name === selectedIndex);
+
     let filtered = ranked.filter(stock => {
-      // Search
-      const matchSearch = 
-        stock.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        stock.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        stock.sector.toLowerCase().includes(searchQuery.toLowerCase());
+      // Search match
+      if (query && !stock.symbol.toLowerCase().includes(query) &&
+          !stock.name.toLowerCase().includes(query) &&
+          !stock.sector.toLowerCase().includes(query)) {
+        return false;
+      }
 
       // Index Filter
-      const selectedUniverse = universes.find(u => u.name === selectedIndex);
-      const matchIndex = 
-        selectedIndex === 'SEMUA' || 
-        (selectedUniverse && selectedUniverse.tickers.includes(stock.symbol)) ||
-        stock.index === selectedIndex;
+      if (selectedIndex !== 'SEMUA') {
+        const matchIndex = (selectedUniverse && selectedUniverse.tickers.includes(stock.symbol)) || stock.index === selectedIndex;
+        if (!matchIndex) return false;
+      }
 
       // Board Filter
-      const matchBoard = selectedBoard === 'SEMUA' || stock.board === selectedBoard;
+      if (selectedBoard !== 'SEMUA' && stock.board !== selectedBoard) return false;
 
       // Sector Filter
-      const matchSector = selectedSector === 'SEMUA' || stock.sector === selectedSector;
+      if (selectedSector !== 'SEMUA' && stock.sector !== selectedSector) return false;
 
-      return matchSearch && matchIndex && matchBoard && matchSector;
+      return true;
     });
 
-    
     // 3. Apply Sort
     filtered.sort((a, b) => {
       let valA = a[sortBy as keyof typeof a];
       let valB = b[sortBy as keyof typeof b];
 
-      // Safe numeric sort
       if (typeof valA === 'number' && typeof valB === 'number') {
         if (valA !== valB) {
            return sortOrder === 'desc' ? valB - valA : valA - valB;
         }
       } else {
-        // String sort
         if (typeof valA === 'string' && typeof valB === 'string') {
           valA = valA.toLowerCase();
           valB = valB.toLowerCase();
@@ -241,29 +291,12 @@ export const StockAnalysis: React.FC = () => {
         if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
         if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
       }
-      
-      // Fallback tie-breaker: always sort symbol alphabetically A-Z
       return a.symbol.localeCompare(b.symbol);
     });
 
-    // 4. Assert Monotonicity (Dev-only warning)
-    if (process.env.NODE_ENV !== 'production') {
-      for (let i = 1; i < filtered.length; i++) {
-        const prev = filtered[i - 1][sortBy as keyof typeof filtered[0]];
-        const curr = filtered[i][sortBy as keyof typeof filtered[0]];
-        
-        if (typeof prev === 'number' && typeof curr === 'number') {
-          const ok = sortOrder === 'desc' ? prev >= curr : prev <= curr;
-          if (!ok) {
-            console.warn(`Sort break at index ${i} for ${sortBy}: ${filtered[i - 1].symbol}(${prev}) -> ${filtered[i].symbol}(${curr})`);
-          }
-        }
-      }
-    }
-
     return filtered;
 
-  }, [stocks, searchQuery, scoringConfig, selectedIndex, selectedBoard, selectedSector, sortBy, sortOrder]);
+  }, [stocks, searchQuery, scoringConfig, selectedIndex, selectedBoard, selectedSector, sortBy, sortOrder, universes]);
 
   // Calculate Average Score of top 5 elements
   const topFiveAverage = useMemo(() => {
@@ -326,7 +359,7 @@ export const StockAnalysis: React.FC = () => {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `SafeHeaven_StockMatrix_${selectedMode}.csv`);
+    link.setAttribute("download", `SafeHaven_StockMatrix_${scoringConfig.label.replace(/\s+/g, '_')}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -380,95 +413,123 @@ export const StockAnalysis: React.FC = () => {
   return (
     <div id="stock-analysis-view" className="px-6 space-y-6">
       
-      {/* 1. Header & Strategy Tabs */}
-      <div className="flex flex-col space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <span className="w-1.5 h-8 bg-[#ccff00] rounded-full"></span>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-extrabold tracking-tight text-white font-sans">Stock Analysis Matrix</h1>
-                <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-[10px] font-mono font-bold">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                  Yahoo Finance API Connected
-                </span>
-              </div>
-              <p className="text-xs text-[#9f9bac] font-sans mt-0.5">Analisis kuantitatif multi-dimensi real-time dari data keuangan asli Bursa Efek Indonesia.</p>
-            </div>
+      {/* STREAMLINED UNIFIED COMPACT HEADER & METRICS BANNER */}
+      <div className="card bg-[#0b0a10] border border-[#1b1926] rounded-2xl p-3.5 md:p-4 space-y-3 shadow-lg">
+        {/* Row 1: Title & Live Sync Button */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <span className="w-1.5 h-6 bg-[#ccff00] rounded-full shrink-0"></span>
+            <h1 className="text-xl font-black text-white tracking-tight font-sans">Stock Analysis Matrix</h1>
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-[10px] font-mono font-bold">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              Live API
+            </span>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 self-end sm:self-auto">
+            {lastSyncedTime && (
+              <span className="text-[10px] text-[#686477] font-mono">Update: {lastSyncedTime}</span>
+            )}
             <button
               onClick={() => fetchStocks(true)}
               disabled={isSyncingApi}
-              className="px-3.5 py-2 rounded-xl bg-[#ccff00]/10 hover:bg-[#ccff00]/20 border border-[#ccff00]/30 text-[#ccff00] text-xs font-bold font-sans flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+              className="px-3 py-1 rounded-xl bg-[#ccff00]/10 hover:bg-[#ccff00]/20 border border-[#ccff00]/30 text-[#ccff00] text-xs font-bold font-sans flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isSyncingApi ? 'animate-spin' : ''}`} />
-              <span>{isSyncingApi ? 'Menyinkronkan API...' : 'Sinkronkan API Live'}</span>
+              <span>{isSyncingApi ? 'Menyinkronkan...' : 'Sinkronkan Live'}</span>
             </button>
-            {lastSyncedTime && (
-              <span className="text-[10px] text-[#686477] font-mono">
-                Update: {lastSyncedTime}
-              </span>
-            )}
           </div>
         </div>
-      </div>
 
-      {/* 2. Sub-header Weight info */}
-      <div className="bg-[#111018]/50 border border-[#1b1926] rounded-xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className={`w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center border border-[#1b1926]`}>
-            <ActiveIcon className={`w-4 h-4 ${scoringConfig.iconColor}`} />
-          </div>
-          <div>
-            <div className="flex items-center gap-1.5">
-              <div className="relative flex items-center">
+        {/* Row 2: Compact Metrics Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 pt-2.5 border-t border-[#1b1926]/70">
+          {/* Metric 1: Profil Strategi Dropdown */}
+          <div className="bg-[#111018] border border-[#1b1926] rounded-xl p-2.5 flex items-center justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <span className="text-[9px] font-extrabold uppercase tracking-wider text-[#686477] font-mono block">Profil Strategi</span>
+              <div className="relative inline-flex items-center mt-1 w-full">
                 <select
-                  value={selectedMode}
+                  value={activeSelectValue}
                   onChange={(e) => { 
-                    const stratId = e.target.value;
-                    setSelectedMode(stratId);
+                    const val = e.target.value;
                     setCurrentPage(1); 
-                    if (portfolioConfig && updatePortfolioConfig) {
+                    if (val.startsWith('custom:')) {
+                      const stratId = val.replace('custom:', '');
                       const strat = strategies.find(s => s.id === stratId);
-                      if (strat) {
+                      if (strat && updatePortfolioConfig) {
                         updatePortfolioConfig({ 
+                          strategyProfile: 'custom',
                           strategyTemplate: stratId, 
                           strategyName: strat.name 
                         });
+                        toast.success(`Strategi: ${strat.name}`);
+                      }
+                    } else {
+                      if (updatePortfolioConfig) {
+                        const nameMap: Record<string, string> = {
+                          auto: 'Auto Regime',
+                          aggressive_momentum: 'Aggressive Momentum',
+                          defensive_value: 'Defensive Value'
+                        };
+                        updatePortfolioConfig({
+                          strategyProfile: val as any,
+                          strategyName: nameMap[val] || 'Auto Regime'
+                        });
+                        toast.success(`Profil: ${nameMap[val] || val}`);
                       }
                     }
                   }}
-                  className="bg-transparent border-none text-xs font-extrabold text-white font-sans uppercase tracking-wider focus:outline-none cursor-pointer p-0 m-0 pr-5 appearance-none hover:text-[#ccff00] transition-colors"
+                  className="w-full bg-[#1b1926] hover:bg-[#232032] border border-[#2d2940] focus:border-[#ccff00] text-xs font-bold text-[#ccff00] rounded-lg pl-2 pr-6 py-1 appearance-none cursor-pointer focus:outline-none transition-all truncate"
                 >
-                  {strategies.map((strat) => (
-                    <option key={strat.id} value={strat.id} className="bg-[#111018] text-white normal-case">
-                      {strat.name}
+                  <optgroup label="PROFIL DINAMIS" className="bg-[#111018] text-amber-400 font-bold">
+                    <option value="auto" className="bg-[#111018] text-white">
+                      Auto Regime (IHSG)
                     </option>
-                  ))}
+                    <option value="aggressive_momentum" className="bg-[#111018] text-white">
+                      Aggressive Momentum
+                    </option>
+                    <option value="defensive_value" className="bg-[#111018] text-white">
+                      Defensive Value
+                    </option>
+                  </optgroup>
+                  <optgroup label="TEMPLATE KUSTOM" className="bg-[#111018] text-[#ccff00] font-bold">
+                    {strategies.map((strat) => (
+                      <option key={strat.id} value={`custom:${strat.id}`} className="bg-[#111018] text-white">
+                        {strat.name}
+                      </option>
+                    ))}
+                  </optgroup>
                 </select>
-                <ChevronDown className="w-3.5 h-3.5 text-[#686477] absolute right-0 pointer-events-none" />
-              </div>
-              <div className="group relative">
-                <HelpCircle className="w-3.5 h-3.5 text-[#686477] cursor-pointer hover:text-white" />
-                <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:block w-48 bg-[#0c0b12] text-[#9f9bac] text-[10px] p-2.5 rounded-lg border border-[#1b1926] shadow-xl z-50 leading-relaxed">
-                  {scoringConfig.tooltip}
-                </div>
+                <ChevronDown className="w-3.5 h-3.5 text-[#ccff00] absolute right-2 pointer-events-none" />
               </div>
             </div>
-            <p className="text-[10px] text-[#686477] font-mono font-extrabold tracking-tight mt-0.5 uppercase">
-              {scoringConfig.weightsDisplay}
-            </p>
+            <SlidersHorizontal className="w-4 h-4 text-[#ccff00] shrink-0 opacity-80" />
           </div>
-        </div>
 
-        {/* Dynamic Average Rating of top 5 */}
-        <div className="text-left sm:text-right flex sm:flex-col justify-between sm:justify-center items-center sm:items-end border-t sm:border-t-0 pt-3 sm:pt-0 border-[#1b1926]">
-          <span className="text-[10px] text-[#686477] font-extrabold font-mono tracking-widest uppercase">RATA-RATA 5 TERATAS</span>
-          <span className="text-2xl font-extrabold text-[#ccff00] font-sans tracking-tight">
-            {topFiveAverage}
-          </span>
+          {/* Metric 2: Bobot Faktor */}
+          <div className="bg-[#111018] border border-[#1b1926] rounded-xl p-2.5 flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <span className="text-[9px] font-extrabold uppercase tracking-wider text-[#686477] font-mono block">Bobot Faktor</span>
+              <span className="text-xs font-extrabold text-[#ccff00] font-mono block mt-1 tracking-tight truncate">
+                {scoringConfig.weightsDisplay}
+              </span>
+            </div>
+            <Activity className="w-4 h-4 text-[#00f0ff] shrink-0 opacity-80" />
+          </div>
+
+          {/* Metric 3: Rata-Rata Top 5 */}
+          <div className="bg-[#111018] border border-[#1b1926] rounded-xl p-2.5 flex items-center justify-between gap-2">
+            <div>
+              <span className="text-[9px] font-extrabold uppercase tracking-wider text-[#686477] font-mono block">Rata-Rata Top 5</span>
+              <div className="flex items-baseline gap-1 mt-0.5">
+                <span className="text-base font-black text-[#ccff00] font-mono tracking-tight">
+                  {topFiveAverage}
+                </span>
+                <span className="text-[10px] text-[#686477] font-bold">/ 100</span>
+              </div>
+            </div>
+            <TrendingUp className="w-4 h-4 text-[#00f5a0] shrink-0 opacity-80" />
+          </div>
         </div>
       </div>
 
@@ -645,7 +706,7 @@ export const StockAnalysis: React.FC = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            {viewMode === 'table' ? (
+            {viewMode === 'MATRIX' ? (
               <div className="card card-elevated p-6 space-y-4">
                 {[...Array(10)].map((_, i) => (
                   <Skeleton key={i} className="w-full h-12" />

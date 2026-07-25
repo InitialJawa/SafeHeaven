@@ -294,7 +294,7 @@ export const AnimatedTierCard: React.FC<AnimatedTierCardProps> = ({ compact = fa
       id="tier-interactive-card-styled"
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, cubicBezier: [0.16, 1, 0.3, 1] }}
+      transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
       className="px-3"
     >
       <div className="text-[10px] font-extrabold text-[#686477] tracking-widest font-mono uppercase mb-2 px-1 flex items-center justify-between">

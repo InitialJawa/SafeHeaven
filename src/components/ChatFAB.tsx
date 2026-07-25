@@ -5,6 +5,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageSquare, X, Send, Bot } from 'lucide-react';
+import Markdown from 'react-markdown';
 import { useAppStore } from '../stores';
 
 export const ChatFAB: React.FC = () => {
@@ -94,7 +95,13 @@ export const ChatFAB: React.FC = () => {
                         ? 'bg-[#ccff00] text-black font-semibold rounded-tr-none' 
                         : 'bg-[#111111] text-white border border-[#1f1f1f] rounded-tl-none leading-relaxed'
                     }`}>
-                      <p className="whitespace-pre-wrap">{msg.text}</p>
+                      {isUser ? (
+                        <p className="whitespace-pre-wrap">{msg.text}</p>
+                      ) : (
+                        <div className="prose prose-invert prose-xs text-xs space-y-1.5 [&>p]:m-0 [&>ul]:my-1 [&>ul]:pl-4 [&>ul]:list-disc [&>ol]:my-1 [&>ol]:pl-4 [&>ol]:list-decimal [&>strong]:text-[#ccff00] [&>strong]:font-extrabold">
+                          <Markdown>{msg.text}</Markdown>
+                        </div>
+                      )}
                       <span className={`block text-[9px] mt-1 text-right ${isUser ? 'text-black/70' : 'text-[#6b7280]'}`}>
                         {msg.timestamp}
                       </span>

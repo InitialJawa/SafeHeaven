@@ -7,6 +7,7 @@ import React, { useEffect } from 'react';
 import { Route, Switch, Redirect } from 'wouter';
 import { useAppStore } from './stores';
 import { AppLayout } from './AppLayout';
+import { testConnection, auth, onAuthStateChanged } from './lib/firebase';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { Portfolio } from './pages/Portfolio';
@@ -27,7 +28,23 @@ import { NotFound } from './pages/NotFound';
 import { Toaster } from 'sonner';
 
 export default function App() {
-  const { user, fetchInitialData } = useAppStore();
+  const { user, fetchInitialData, loginWithGoogle } = useAppStore();
+
+  useEffect(() => {
+    testConnection();
+
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser && (!user || user.id !== firebaseUser.uid)) {
+        loginWithGoogle(
+          firebaseUser.email || 'user@gmail.com',
+          firebaseUser.displayName || 'Google User',
+          firebaseUser.uid
+        );
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     if (user) {

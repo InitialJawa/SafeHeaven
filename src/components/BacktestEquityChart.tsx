@@ -13,9 +13,18 @@ import {
 interface BacktestEquityChartProps {
   data: any[];
   height?: number;
+  showIhsg?: boolean;
+  showGold?: boolean;
+  showTaktis?: boolean;
 }
 
-export const BacktestEquityChart: React.FC<BacktestEquityChartProps> = ({ data, height = 320 }) => {
+export const BacktestEquityChart: React.FC<BacktestEquityChartProps> = ({ 
+  data, 
+  height = 480,
+  showIhsg = true,
+  showGold = true,
+  showTaktis = true
+}) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const areaSeriesRef = useRef<ISeriesApi<"Area"> | null>(null);
@@ -30,6 +39,7 @@ export const BacktestEquityChart: React.FC<BacktestEquityChartProps> = ({ data, 
   } | null>(null);
 
   const formatShortIDR = (val: number) => {
+    if (!val) return 'Rp 0';
     if (Math.abs(val) >= 1000000000) {
       return `Rp ${(val / 1000000000).toFixed(2)}B`;
     }
@@ -47,8 +57,8 @@ export const BacktestEquityChart: React.FC<BacktestEquityChartProps> = ({ data, 
           fontFamily: 'Plus Jakarta Sans',
         },
         grid: {
-          vertLines: { color: 'rgba(27, 25, 38, 0.5)' },
-          horzLines: { color: 'rgba(27, 25, 38, 0.5)' },
+          vertLines: { color: 'rgba(27, 25, 38, 0.4)' },
+          horzLines: { color: 'rgba(27, 25, 38, 0.4)' },
         },
         crosshair: {
           mode: CrosshairMode.Normal,
@@ -69,8 +79,8 @@ export const BacktestEquityChart: React.FC<BacktestEquityChartProps> = ({ data, 
           borderColor: '#1b1926',
           visible: true,
           scaleMargins: {
-            top: 0.15,
-            bottom: 0.1,
+            top: 0.12,
+            bottom: 0.08,
           },
         },
         timeScale: {
@@ -91,8 +101,8 @@ export const BacktestEquityChart: React.FC<BacktestEquityChartProps> = ({ data, 
         AreaSeries, 
         {
           lineColor: '#ccff00',
-          topColor: 'rgba(204, 255, 0, 0.32)',
-          bottomColor: 'rgba(204, 255, 0, 0.00)',
+          topColor: 'rgba(204, 255, 0, 0.35)',
+          bottomColor: 'rgba(204, 255, 0, 0.02)',
           lineWidth: 2,
           priceFormat: {
             type: 'custom',
@@ -102,6 +112,7 @@ export const BacktestEquityChart: React.FC<BacktestEquityChartProps> = ({ data, 
           crosshairMarkerRadius: 5,
           crosshairMarkerBorderColor: '#ccff00',
           crosshairMarkerBackgroundColor: '#060509',
+          visible: showTaktis,
         }
       );
       areaSeriesRef.current = areaSeries;
@@ -117,6 +128,7 @@ export const BacktestEquityChart: React.FC<BacktestEquityChartProps> = ({ data, 
             formatter: (price: number) => formatShortIDR(price),
           },
           crosshairMarkerVisible: true,
+          visible: showIhsg,
         }
       );
       ihsgSeriesRef.current = ihsgSeries;
@@ -132,6 +144,7 @@ export const BacktestEquityChart: React.FC<BacktestEquityChartProps> = ({ data, 
             formatter: (price: number) => formatShortIDR(price),
           },
           crosshairMarkerVisible: true,
+          visible: showGold,
         }
       );
       goldSeriesRef.current = goldSeries;
@@ -142,10 +155,10 @@ export const BacktestEquityChart: React.FC<BacktestEquityChartProps> = ({ data, 
           const ihsgPoint = param.seriesData.get(ihsgSeries) as { value: number };
           const goldPoint = param.seriesData.get(goldSeries) as { value: number };
           
-          if (areaPoint) {
+          if (areaPoint || ihsgPoint || goldPoint) {
             setHoverData({
               time: param.time as string,
-              value: areaPoint.value,
+              value: areaPoint?.value || 0,
               ihsg: ihsgPoint?.value || 0,
               gold: goldPoint?.value || 0,
             });
@@ -168,19 +181,35 @@ export const BacktestEquityChart: React.FC<BacktestEquityChartProps> = ({ data, 
       chartRef.current?.timeScale().fitContent();
     }
 
-  }, [data, height]);
+  }, [data]);
+
+  // Handle height / options changes
+  useEffect(() => {
+    if (chartRef.current) {
+      chartRef.current.applyOptions({ height });
+    }
+  }, [height]);
 
   useEffect(() => {
-    const handleResize = () => {
-      if (chartContainerRef.current && chartRef.current) {
-        chartRef.current.applyOptions({
-          width: chartContainerRef.current.clientWidth,
-        });
-      }
-    };
+    if (areaSeriesRef.current) areaSeriesRef.current.applyOptions({ visible: showTaktis });
+    if (ihsgSeriesRef.current) ihsgSeriesRef.current.applyOptions({ visible: showIhsg });
+    if (goldSeriesRef.current) goldSeriesRef.current.applyOptions({ visible: showGold });
+  }, [showTaktis, showIhsg, showGold]);
 
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+  useEffect(() => {
+    if (!chartContainerRef.current) return;
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.target === chartContainerRef.current && chartRef.current) {
+          chartRef.current.applyOptions({
+            width: entry.contentRect.width,
+          });
+        }
+      }
+    });
+
+    resizeObserver.observe(chartContainerRef.current);
+    return () => resizeObserver.disconnect();
   }, []);
 
   const formatIDR = (val: number) => {
@@ -197,40 +226,52 @@ export const BacktestEquityChart: React.FC<BacktestEquityChartProps> = ({ data, 
             <span className="text-white">{hoverData.time}</span>
           </div>
           <div className="space-y-1.5">
-            <div className="flex justify-between items-center">
-              <span className="text-[#ccff00] font-sans font-bold flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-[#ccff00]"></span>
-                SafeHeaven Taktis
-              </span>
-              <span className="text-white font-extrabold">{formatIDR(hoverData.value)}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-[#00f0ff] font-sans font-bold flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-[#00f0ff]"></span>
-                IHSG
-              </span>
-              <span className="text-white font-extrabold">{formatIDR(hoverData.ihsg)}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-[#ffcc00] font-sans font-bold flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-[#ffcc00]"></span>
-                Emas
-              </span>
-              <span className="text-white font-extrabold">{formatIDR(hoverData.gold)}</span>
-            </div>
+            {showTaktis && (
+              <div className="flex justify-between items-center gap-4">
+                <span className="text-[#ccff00] font-sans font-bold flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-[#ccff00]"></span>
+                  SafeHeaven Taktis
+                </span>
+                <span className="text-white font-extrabold">{formatIDR(hoverData.value)}</span>
+              </div>
+            )}
+            {showIhsg && (
+              <div className="flex justify-between items-center gap-4">
+                <span className="text-[#00f0ff] font-sans font-bold flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-[#00f0ff]"></span>
+                  IHSG
+                </span>
+                <span className="text-white font-extrabold">{formatIDR(hoverData.ihsg)}</span>
+              </div>
+            )}
+            {showGold && (
+              <div className="flex justify-between items-center gap-4">
+                <span className="text-[#ffcc00] font-sans font-bold flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-[#ffcc00]"></span>
+                  Emas
+                </span>
+                <span className="text-white font-extrabold">{formatIDR(hoverData.gold)}</span>
+              </div>
+            )}
           </div>
         </div>
       ) : (
         <div className="absolute top-2 left-2 z-10 bg-[#0c0b12]/70 border border-[#1b1926] p-2 px-3 rounded-lg pointer-events-none flex gap-4 text-[10px] font-sans font-bold">
-          <div className="flex items-center gap-1.5 text-[#ccff00]">
-            <span className="w-2 h-2 rounded-full bg-[#ccff00]"></span> SafeHeaven Taktis
-          </div>
-          <div className="flex items-center gap-1.5 text-[#00f0ff]">
-            <span className="w-2 h-2 rounded-full bg-[#00f0ff]"></span> IHSG
-          </div>
-          <div className="flex items-center gap-1.5 text-[#ffcc00]">
-            <span className="w-2 h-2 rounded-full bg-[#ffcc00]"></span> Emas
-          </div>
+          {showTaktis && (
+            <div className="flex items-center gap-1.5 text-[#ccff00]">
+              <span className="w-2 h-2 rounded-full bg-[#ccff00]"></span> SafeHaven Taktis
+            </div>
+          )}
+          {showIhsg && (
+            <div className="flex items-center gap-1.5 text-[#00f0ff]">
+              <span className="w-2 h-2 rounded-full bg-[#00f0ff]"></span> IHSG
+            </div>
+          )}
+          {showGold && (
+            <div className="flex items-center gap-1.5 text-[#ffcc00]">
+              <span className="w-2 h-2 rounded-full bg-[#ffcc00]"></span> Emas
+            </div>
+          )}
         </div>
       )}
       

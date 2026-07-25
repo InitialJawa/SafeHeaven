@@ -1,0 +1,123 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User account information",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 256 },
+        "name": { "type": "string", "maxLength": 128 },
+        "role": { "type": "string", "enum": ["user", "advisor", "admin"] },
+        "registeredAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "email", "name", "role"]
+    },
+    "PortfolioConfig": {
+      "title": "Portfolio Configuration",
+      "description": "User portfolio preferences and asset allocation settings",
+      "type": "object",
+      "properties": {
+        "capital": { "type": "number" },
+        "strategyName": { "type": "string", "maxLength": 128 },
+        "universe": { "type": "string", "maxLength": 128 },
+        "topN": { "type": "number" },
+        "strategyTemplate": { "type": "string", "maxLength": 128 },
+        "allocationSaham": { "type": "number" },
+        "allocationEmas": { "type": "number" },
+        "allocationCash": { "type": "number" },
+        "allocationUSD": { "type": "number" },
+        "crashThreshold": { "type": "number" },
+        "stopLoss": { "type": "number" },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["capital", "strategyName"]
+    },
+    "AlertRule": {
+      "title": "Alert Rule",
+      "description": "Trigger rule for stock or market alerts",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 256 },
+        "type": { "type": "string", "maxLength": 64 },
+        "condition": { "type": "string", "maxLength": 32 },
+        "threshold": { "type": "number" },
+        "ticker": { "type": "string", "maxLength": 32 },
+        "status": { "type": "string", "enum": ["ON", "OFF"] }
+      },
+      "required": ["id", "name", "type", "condition", "threshold", "status"]
+    },
+    "AlertHistory": {
+      "title": "Alert History Item",
+      "description": "Historical alert notification",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "time": { "type": "string", "maxLength": 64 },
+        "type": { "type": "string", "maxLength": 64 },
+        "message": { "type": "string", "maxLength": 512 },
+        "status": { "type": "string", "enum": ["read", "unread"] }
+      },
+      "required": ["id", "time", "type", "message", "status"]
+    },
+    "Watchlist": {
+      "title": "Watchlist Item",
+      "description": "Saved stock ticker in user watchlist",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "symbol": { "type": "string", "maxLength": 32 },
+        "name": { "type": "string", "maxLength": 128 },
+        "addedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "symbol"]
+    },
+    "BacktestHistory": {
+      "title": "Backtest History Record",
+      "description": "Historical backtest simulation run result",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "strategyName": { "type": "string", "maxLength": 128 },
+        "universe": { "type": "string", "maxLength": 128 },
+        "startDate": { "type": "string", "maxLength": 32 },
+        "endDate": { "type": "string", "maxLength": 32 },
+        "initialCapital": { "type": "number" },
+        "finalEquity": { "type": "number" },
+        "cagr": { "type": "number" },
+        "maxDrawdown": { "type": "number" },
+        "sharpeRatio": { "type": "number" },
+        "totalTrades": { "type": "number" }
+      },
+      "required": ["id", "createdAt", "strategyName", "finalEquity"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "User document storing basic profile information"
+    },
+    "/users/{userId}/configs/portfolio": {
+      "schema": { "$ref": "#/entities/PortfolioConfig" },
+      "description": "User portfolio configuration settings"
+    },
+    "/users/{userId}/alertRules/{ruleId}": {
+      "schema": { "$ref": "#/entities/AlertRule" },
+      "description": "User alert rule entries"
+    },
+    "/users/{userId}/alerts/{alertId}": {
+      "schema": { "$ref": "#/entities/AlertHistory" },
+      "description": "User alert notifications history"
+    },
+    "/users/{userId}/watchlists/{watchlistId}": {
+      "schema": { "$ref": "#/entities/Watchlist" },
+      "description": "User watchlist items"
+    },
+    "/users/{userId}/backtests/{backtestId}": {
+      "schema": { "$ref": "#/entities/BacktestHistory" },
+      "description": "User saved backtest simulation records"
+    }
+  }
+}

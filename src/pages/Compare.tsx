@@ -329,6 +329,7 @@ export const Compare: React.FC = () => {
                   <button
                     onClick={() => {
                       updatePortfolioConfig({
+                        strategyProfile: 'custom',
                         strategyTemplate: strat.id,
                         strategyName: strat.name,
                         allocationSaham: strat.allocationSaham,

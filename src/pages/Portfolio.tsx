@@ -14,6 +14,7 @@ export const Portfolio: React.FC = () => {
   const { 
     portfolioConfig, 
     stockPicks, 
+    strategies,
     tier, 
     tierProgress, 
     fetchInitialData,
@@ -82,6 +83,16 @@ export const Portfolio: React.FC = () => {
     { name: 'USD Currency', pct: portfolioConfig.allocationUSD, color: 'bg-[#6366f1]', text: 'text-[#6366f1]', icon: DollarSign }
   ];
 
+  const getActiveStrategyTitle = () => {
+    if (!portfolioConfig) return 'Auto Regime (IHSG)';
+    const profile = portfolioConfig.strategyProfile || 'auto';
+    if (profile === 'auto') return 'Auto Regime (Ikut Regime IHSG)';
+    if (profile === 'aggressive_momentum' || profile === 'aggressive') return 'Aggressive Momentum (Otoriter)';
+    if (profile === 'defensive_value' || profile === 'defensive') return 'Defensive Value (Konservatif)';
+    const matchedStrat = strategies.find(s => s.id === portfolioConfig.strategyTemplate);
+    return matchedStrat ? `${matchedStrat.name} (Custom)` : (portfolioConfig.strategyName || 'Custom Strategy');
+  };
+
   return (
     <div id="portfolio-view" className="px-6 space-y-6">
       {/* Header Info */}
@@ -89,7 +100,12 @@ export const Portfolio: React.FC = () => {
         <div className="flex items-center gap-3">
           <span className="w-1.5 h-8 bg-[#ccff00] rounded-full"></span>
           <div>
-            <h1 className="text-2xl font-extrabold tracking-tight text-white font-sans">{portfolioConfig.strategyName}</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-extrabold tracking-tight text-white font-sans">{getActiveStrategyTitle()}</h1>
+              <span className="text-[10px] font-mono text-[#ccff00] bg-[#ccff00]/10 border border-[#ccff00]/20 px-2.5 py-0.5 rounded-full uppercase tracking-wider font-bold">
+                PROFIL: {portfolioConfig?.strategyProfile?.toUpperCase() || 'AUTO'}
+              </span>
+            </div>
             <p className="text-xs text-[#9f9bac] font-sans mt-0.5">
               Universe: <span className="text-[#ccff00] font-bold">{portfolioConfig.universe}</span> • Top N Target: <span className="text-white font-bold">{portfolioConfig.topN} Saham Utama</span>
             </p>

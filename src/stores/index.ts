@@ -4,6 +4,8 @@
  */
 
 import { create } from 'zustand';
+import { db, auth, handleFirestoreError, OperationType, firebaseSignOut } from '../lib/firebase';
+import { doc, setDoc, getDoc, collection, getDocs, deleteDoc } from 'firebase/firestore';
 import { 
   TickerInfo, 
   PortfolioConfig, 
@@ -18,6 +20,7 @@ import {
   ChatMessage, 
   BacktestResult, 
   OptimizerResult,
+  BacktestHistoryItem,
   NotificationChannelConfig,
   GlobalSystemConfig,
   AiApiConfig
@@ -29,6 +32,7 @@ interface AppState {
   isAuthenticated: boolean;
   isLoadingData: boolean;
   login: (email: string, name: string) => void;
+  loginWithGoogle: (email: string, name: string, uid: string) => Promise<void>;
   logout: () => void;
   register: (email: string, password: string, name: string) => Promise<void>;
   
@@ -55,6 +59,12 @@ interface AppState {
   alerts: AlertHistory[];
   alertRules: AlertRule[];
   
+  // Backtest History
+  backtestHistory: BacktestHistoryItem[];
+  fetchBacktestHistory: () => Promise<void>;
+  saveBacktestHistory: (item: Omit<BacktestHistoryItem, 'id' | 'createdAt'>) => Promise<string>;
+  deleteBacktestHistory: (id: string) => Promise<void>;
+
   // Admin & Clients
   users: UserInfo[];
   clients: ClientInfo[];
@@ -123,6 +133,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   tickers: [],
   marketRegime: 'neutral',
+  backtestHistory: [],
   portfolioConfig: {
     capital: 500000000, // Rp 500.000.000
     strategyName: 'Warren Buffett',
@@ -347,7 +358,26 @@ export const useAppStore = create<AppState>((set, get) => ({
       isAuthenticated: true
     });
   },
+  loginWithGoogle: async (email, name, uid) => {
+    const userRole = email.includes('admin') ? 'admin' : email.includes('advisor') ? 'advisor' : 'user';
+    const userInfo: UserInfo = {
+      id: uid,
+      email,
+      name,
+      role: userRole,
+      registeredAt: new Date().toISOString().split('T')[0]
+    };
+    set({ user: userInfo, isAuthenticated: true });
+
+    // Sync user record with Firestore
+    try {
+      await setDoc(doc(db, 'users', uid), userInfo, { merge: true });
+    } catch (err) {
+      handleFirestoreError(err, OperationType.WRITE, `users/${uid}`);
+    }
+  },
   logout: () => {
+    firebaseSignOut(auth).catch(() => {});
     set({ user: null, isAuthenticated: false });
   },
   register: async (email, password, name) => {
@@ -458,6 +488,8 @@ export const useAppStore = create<AppState>((set, get) => ({
         const data = await clientRes.json();
         set({ clients: data });
       }
+
+      await get().fetchBacktestHistory();
     } catch (err) {
       console.warn('API sync failed, continuing with responsive in-memory state.', err);
     } finally {
@@ -818,5 +850,65 @@ export const useAppStore = create<AppState>((set, get) => ({
         body: JSON.stringify(newClient)
       });
     } catch {}
+  },
+
+  fetchBacktestHistory: async () => {
+    const userId = get().user?.id || 'usr-1';
+    try {
+      const colRef = collection(db, 'users', userId, 'backtests');
+      const snapshot = await getDocs(colRef);
+      const items: BacktestHistoryItem[] = [];
+      snapshot.forEach(docSnap => {
+        items.push(docSnap.data() as BacktestHistoryItem);
+      });
+      // Sort newest first
+      items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      set({ backtestHistory: items });
+      localStorage.setItem(`safehaven_backtests_${userId}`, JSON.stringify(items));
+    } catch (err) {
+      console.warn('Firestore fetch backtests failed, reading local cache:', err);
+      const local = localStorage.getItem(`safehaven_backtests_${userId}`);
+      if (local) {
+        try {
+          set({ backtestHistory: JSON.parse(local) });
+        } catch {}
+      }
+    }
+  },
+
+  saveBacktestHistory: async (itemData) => {
+    const userId = get().user?.id || 'usr-1';
+    const backtestId = `bt-${Date.now()}`;
+    const newItem: BacktestHistoryItem = {
+      ...itemData,
+      id: backtestId,
+      createdAt: new Date().toISOString()
+    };
+
+    const updated = [newItem, ...get().backtestHistory];
+    set({ backtestHistory: updated });
+    localStorage.setItem(`safehaven_backtests_${userId}`, JSON.stringify(updated));
+
+    try {
+      const docRef = doc(db, 'users', userId, 'backtests', backtestId);
+      await setDoc(docRef, newItem);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.WRITE, `users/${userId}/backtests/${backtestId}`);
+    }
+    return backtestId;
+  },
+
+  deleteBacktestHistory: async (id) => {
+    const userId = get().user?.id || 'usr-1';
+    const updated = get().backtestHistory.filter(item => item.id !== id);
+    set({ backtestHistory: updated });
+    localStorage.setItem(`safehaven_backtests_${userId}`, JSON.stringify(updated));
+
+    try {
+      const docRef = doc(db, 'users', userId, 'backtests', id);
+      await deleteDoc(docRef);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.DELETE, `users/${userId}/backtests/${id}`);
+    }
   }
 }));

@@ -20,12 +20,10 @@ import {
   Lock,
   Layers,
   Bot,
-  Sparkles,
   Cpu,
   Key,
   RefreshCw,
   BrainCircuit,
-  Wand2,
   Eye,
   EyeOff,
   Server,
@@ -201,13 +199,25 @@ export const Settings: React.FC = () => {
   const handleSaveAll = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    let calculatedStrategyName = 'Auto Regime (IHSG)';
+    if (strategyProfile === 'custom') {
+      calculatedStrategyName = strategies.find(s => s.id === strategyTemplate)?.name || 'Custom Strategy';
+    } else {
+      const nameMap: Record<string, string> = {
+        auto: 'Auto Regime (IHSG)',
+        aggressive_momentum: 'Aggressive Momentum',
+        defensive_value: 'Defensive Value'
+      };
+      calculatedStrategyName = nameMap[strategyProfile] || 'Auto Regime (IHSG)';
+    }
+
     const portfolioPayload = {
       capital,
       universe,
       topN,
       strategyTemplate,
       strategyProfile: strategyProfile as any,
-      strategyName: strategies.find(s => s.id === strategyTemplate)?.name || 'Custom Strategy'
+      strategyName: calculatedStrategyName
     };
 
     try {
@@ -506,8 +516,8 @@ export const Settings: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Top N, Strategy Profile & Strategy Preset */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-5 text-xs font-sans">
+                {/* Top N & Strategy Select */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs font-sans">
                   <div className="space-y-2">
                     <label className="text-[#9f9bac] font-extrabold uppercase tracking-wide text-[10px] flex items-center gap-1.5">
                       <Zap className="w-3.5 h-3.5 text-amber-400" /> Konstituen Unggulan (Top N Saham)
@@ -527,59 +537,47 @@ export const Settings: React.FC = () => {
 
                   <div className="space-y-2">
                     <label className="text-[#9f9bac] font-extrabold uppercase tracking-wide text-[10px] flex items-center gap-1.5">
-                      <Shield className="w-3.5 h-3.5 text-blue-400" /> Profil Strategi (Otoriter/Auto/Defensif)
+                      <Shield className="w-3.5 h-3.5 text-blue-400" /> Profil Strategi Kuantitatif
                     </label>
                     <select
                       id="settings-strategy-profile-select"
-                      value={strategyProfile}
+                      value={strategyProfile === 'custom' ? `custom:${strategyTemplate}` : strategyProfile}
                       onChange={(e) => {
                         const val = e.target.value;
-                        setStrategyProfile(val);
-                        if (val !== 'custom') {
-                          toast.info(`Profil Strategi (${val}) diaktifkan. Template Kuantitatif manual dikunci dan diganti otomatis oleh sistem.`);
+                        if (val.startsWith('custom:')) {
+                          const stratId = val.replace('custom:', '');
+                          const strat = strategies.find(s => s.id === stratId);
+                          if (strat) {
+                            setStrategyProfile('custom');
+                            setStrategyTemplate(stratId);
+                            toast.info(`Strategi diubah ke template kustom: ${strat.name}`);
+                          }
                         } else {
-                          toast.info('Profil Custom diaktifkan. Anda dapat memilih Template Kuantitatif manual.');
+                          const nameMap: Record<string, string> = {
+                            auto: 'Auto Regime (IHSG)',
+                            aggressive_momentum: 'Aggressive Momentum',
+                            defensive_value: 'Defensive Value'
+                          };
+                          setStrategyProfile(val);
+                          toast.info(`Profil dinamis diaktifkan: ${nameMap[val] || val}`);
                         }
                       }}
                       className="w-full bg-[#111018]/60 border border-[#1b1926] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#ccff00]/40 font-bold"
                     >
-                      <option value="auto" className="bg-[#12111f]">Auto (Ikut Regime IHSG)</option>
-                      <option value="aggressive_momentum" className="bg-[#12111f]">Aggressive Momentum (Otoriter)</option>
-                      <option value="defensive_value" className="bg-[#12111f]">Defensive Value (Konservatif)</option>
-                      <option value="custom" className="bg-[#12111f]">Custom (Gunakan Template Manual)</option>
+                      <optgroup label="PROFIL DINAMIS (REGIME-BASED)" className="bg-[#12111f] text-amber-400 font-bold">
+                        <option value="auto" className="bg-[#12111f] text-white">Auto (Ikut Regime IHSG)</option>
+                        <option value="aggressive_momentum" className="bg-[#12111f] text-white">Aggressive Momentum (Otoriter)</option>
+                        <option value="defensive_value" className="bg-[#12111f] text-white">Defensive Value (Konservatif)</option>
+                      </optgroup>
+                      <optgroup label="TEMPLATE KUSTOM MANUAL" className="bg-[#12111f] text-[#ccff00] font-bold">
+                        {strategies.map((s) => (
+                          <option key={s.id} value={`custom:${s.id}`} className="bg-[#12111f] text-white">
+                            {s.name}
+                          </option>
+                        ))}
+                      </optgroup>
                     </select>
-                    <p className="text-[10px] text-[#686477]">Mengatur skoring otomatis berbasis rezim pasar.</p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-[#9f9bac] font-extrabold uppercase tracking-wide text-[10px] flex items-center gap-1.5">
-                        <Shield className="w-3.5 h-3.5 text-purple-400" /> Template Strategi Kuantitatif
-                      </label>
-                      {strategyProfile !== 'custom' && (
-                        <span className="text-[9px] font-mono text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
-                          DIKUNCI OLEH PROFIL
-                        </span>
-                      )}
-                    </div>
-                    <select
-                      id="settings-strategy-select"
-                      value={strategyTemplate}
-                      disabled={strategyProfile !== 'custom'}
-                      onChange={(e) => handleStrategyChange(e.target.value)}
-                      className={`w-full bg-[#111018]/60 border border-[#1b1926] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#ccff00]/40 font-bold ${
-                        strategyProfile !== 'custom' ? 'opacity-40 cursor-not-allowed bg-black/40' : ''
-                      }`}
-                    >
-                      {strategies.map((s) => (
-                        <option key={s.id} value={s.id} className="bg-[#12111f]">{s.name}</option>
-                      ))}
-                    </select>
-                    <p className="text-[10px] text-[#686477]">
-                      {strategyProfile !== 'custom' 
-                        ? 'Terkunci karena Profil Aktif. Ubah Profil ke Custom untuk mengaktifkan.' 
-                        : 'Mengatur pembobotan manual (Quality, Value, Growth, Momentum, Dividen).'}
-                    </p>
+                    <p className="text-[10px] text-[#686477]">Pilih profil otomasi AI berbasis regime pasar, atau gunakan template manual.</p>
                   </div>
                   
                 </div>
@@ -1009,7 +1007,7 @@ export const Settings: React.FC = () => {
                     {isTestingAi ? (
                       <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                     ) : (
-                      <Sparkles className="w-3.5 h-3.5" />
+                      <Zap className="w-3.5 h-3.5" />
                     )}
                     {isTestingAi ? 'Menguji API...' : 'Tes Koneksi AI Engine'}
                   </button>
@@ -1289,7 +1287,7 @@ export const Settings: React.FC = () => {
                     <div className="space-y-2 p-3 bg-[#111018]/40 border border-[#1b1926] rounded-xl">
                       <div className="flex items-center justify-between text-xs">
                         <label className="font-bold text-white flex items-center gap-1.5">
-                          <Wand2 className="w-3.5 h-3.5 text-[#ccff00]" /> Temperature: <span className="text-[#ccff00] font-mono">{aiState.aiTemperature}</span>
+                          <SlidersHorizontal className="w-3.5 h-3.5 text-[#ccff00]" /> Temperature: <span className="text-[#ccff00] font-mono">{aiState.aiTemperature}</span>
                         </label>
                         <span className="text-[10px] font-mono text-[#9f9bac]">
                           {aiState.aiTemperature <= 0.2 ? 'Presisi Ketat' : aiState.aiTemperature <= 0.5 ? 'Seimbang' : 'Kreatif'}

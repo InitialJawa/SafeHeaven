@@ -138,6 +138,23 @@ export const Strategies: React.FC = () => {
         </button>
       </div>
 
+      {/* Profile Active Banner */}
+      {portfolioConfig?.strategyProfile !== 'custom' && (
+        <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-amber-300 text-xs font-sans">
+          <div className="flex items-center gap-2.5">
+            <Shield className="w-5 h-5 text-amber-400 shrink-0" />
+            <div>
+              <p className="font-bold text-white">
+                Profil Strategi Aktif: <span className="text-[#ccff00] font-mono">{portfolioConfig?.strategyProfile === 'auto' ? 'Auto (Ikut Regime IHSG)' : portfolioConfig?.strategyProfile?.includes('aggressive') ? 'Aggressive Momentum (Otoriter)' : 'Defensive Value (Konservatif)'}</span>
+              </p>
+              <p className="text-[11px] text-[#9f9bac] mt-0.5">
+                Sistem saat ini mengendalikan skoring berbasis profil dinamis. Memilih template manual di bawah ini akan mengaktifkan profil <span className="text-white font-bold">Custom</span>.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Grid Cards of Strategies */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {strategies.map((strat) => (
@@ -146,14 +163,15 @@ export const Strategies: React.FC = () => {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
                 <div className="flex items-center gap-3">
                   <h3 className="text-sm font-bold text-white font-sans">{strat.name}</h3>
-                  {portfolioConfig?.strategyTemplate === strat.id ? (
+                  {portfolioConfig?.strategyTemplate === strat.id && portfolioConfig?.strategyProfile === 'custom' ? (
                     <span className="px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider bg-[#ccff00]/10 text-[#ccff00] border border-[#ccff00]/20 flex items-center gap-1.5">
-                      <div className="w-1.5 h-1.5 rounded-full bg-[#ccff00] animate-[pulse_2s_ease-in-out_infinite]"></div> Aktif
+                      <div className="w-1.5 h-1.5 rounded-full bg-[#ccff00] animate-[pulse_2s_ease-in-out_infinite]"></div> Aktif (Custom)
                     </span>
                   ) : (
                     <button
                       onClick={() => {
                         updatePortfolioConfig({
+                          strategyProfile: 'custom',
                           strategyTemplate: strat.id,
                           strategyName: strat.name,
                           allocationSaham: strat.allocationSaham,
@@ -161,12 +179,12 @@ export const Strategies: React.FC = () => {
                           allocationCash: strat.allocationCash,
                           allocationUSD: strat.allocationUSD
                         });
-                        toast.success(`Strategi aktif diubah ke ${strat.name}`);
+                        toast.success(`Mode Custom diaktifkan dengan template ${strat.name}`);
                       }}
                       className="px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider bg-[#1b1926]/50 text-[#686477] border border-[#1b1926] hover:text-white hover:border-[#686477]/50 cursor-pointer transition-colors"
                       title="Gunakan strategi ini"
                     >
-                      Tidak Aktif
+                      Pilih StrategiIni
                     </button>
                   )}
                 </div>

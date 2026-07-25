@@ -40,10 +40,10 @@ export const PhysicalWallet: React.FC<PhysicalWalletProps> = ({
   };
 
   return (
-    <div className="relative w-full h-[260px] flex items-end justify-center select-none group/wallet pb-2">
+    <div className="relative w-full max-w-md mx-auto h-[210px] sm:h-[240px] flex items-end justify-center select-none group/wallet pb-1 sm:pb-2">
       {/* 1. Behind Card Stack (Peeking out of the pocket) */}
       <motion.div
-        className="absolute top-2 left-6 right-6 h-36 rounded-2xl bg-gradient-to-tr from-[#c084fc] via-[#a855f7] to-[#7c3aed] border border-white/20 p-5 shadow-lg flex flex-col justify-between z-0 transition-transform duration-500 ease-out group-hover/wallet:-translate-y-8"
+        className="absolute top-1 sm:top-2 left-4 sm:left-6 right-4 sm:right-6 h-30 sm:h-36 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-[#c084fc] via-[#a855f7] to-[#7c3aed] border border-white/20 p-3.5 sm:p-5 shadow-lg flex flex-col justify-between z-0 transition-transform duration-500 ease-out group-hover/wallet:-translate-y-8"
         initial={{ y: 0 }}
       >
         {/* Visa and card decor */}
@@ -52,12 +52,12 @@ export const PhysicalWallet: React.FC<PhysicalWalletProps> = ({
             <p className="text-[9px] text-purple-200/90 uppercase tracking-wider font-mono font-bold max-w-[170px] truncate">
               {getActiveProfileLabel()}
             </p>
-            <h4 className="text-sm font-extrabold text-white tracking-wide truncate max-w-[180px] uppercase">
+            <h4 className="text-xs sm:text-sm font-extrabold text-white tracking-wide truncate max-w-[180px] uppercase">
               {user?.name || 'IMAM NASRULLOH'}
             </h4>
           </div>
           <div className="text-right">
-            <span className="text-[11px] font-extrabold italic text-white tracking-wider">VISA</span>
+            <span className="text-[10px] sm:text-[11px] font-extrabold italic text-white tracking-wider">VISA</span>
             <p className="text-[7px] text-white/60 font-mono">INFINITE</p>
           </div>
         </div>
@@ -65,35 +65,35 @@ export const PhysicalWallet: React.FC<PhysicalWalletProps> = ({
         {/* Card Number & Expiry */}
         <div className="flex justify-between items-end">
           <div className="space-y-1">
-            <div className="w-6 h-4 bg-yellow-400/80 rounded-sm border border-yellow-500/20 relative overflow-hidden">
+            <div className="w-5 h-3.5 sm:w-6 sm:h-4 bg-yellow-400/80 rounded-sm border border-yellow-500/20 relative overflow-hidden">
               <span className="absolute top-1/2 left-0 right-0 h-[1px] bg-yellow-600/30"></span>
               <span className="absolute left-1/2 top-0 bottom-0 w-[1px] bg-yellow-600/30"></span>
             </div>
-            <p className="text-xs text-white/90 font-mono tracking-widest font-semibold">•••• •••• •••• 8888</p>
+            <p className="text-[10px] sm:text-xs text-white/90 font-mono tracking-widest font-semibold">•••• •••• •••• 8888</p>
           </div>
-          <p className="text-[9px] text-white/80 font-mono leading-none">
+          <p className="text-[8px] sm:text-[9px] text-white/80 font-mono leading-none">
             VALID: <span className="font-bold">05/29</span>
           </p>
         </div>
       </motion.div>
 
       {/* 2. Middle Layer Shadow/Aura */}
-      <div className="absolute top-12 left-4 right-4 h-36 bg-purple-900/40 rounded-2xl blur-md -z-10 transition-transform duration-500 group-hover/wallet:scale-105"></div>
+      <div className="absolute top-10 sm:top-12 left-3 sm:left-4 right-3 sm:right-4 h-30 sm:h-36 bg-purple-900/40 rounded-xl sm:rounded-2xl blur-md -z-10 transition-transform duration-500 group-hover/wallet:scale-105"></div>
 
       {/* 3. Main Leather Wallet Pocket */}
       <div 
-        className="relative w-full h-[180px] rounded-3xl bg-gradient-to-b from-[#3a1d5a] via-[#24113a] to-[#140822] border-2 border-[#542d80] p-5 shadow-[0_15px_30px_rgba(0,0,0,0.5),_inset_0_2px_4px_rgba(255,255,255,0.1)] flex flex-col justify-between overflow-hidden z-10"
+        className="relative w-full h-[155px] sm:h-[180px] rounded-2xl sm:rounded-3xl bg-gradient-to-b from-[#3a1d5a] via-[#24113a] to-[#140822] border-2 border-[#542d80] p-3.5 sm:p-5 shadow-[0_15px_30px_rgba(0,0,0,0.5),_inset_0_2px_4px_rgba(255,255,255,0.1)] flex flex-col justify-between overflow-hidden z-10"
       >
         {/* Leather Stitching Line Decoration */}
-        <div className="absolute inset-2 border border-dashed border-purple-500/20 rounded-[20px] pointer-events-none"></div>
+        <div className="absolute inset-2 border border-dashed border-purple-500/20 rounded-[16px] sm:rounded-[20px] pointer-events-none"></div>
 
         {/* Pocket Shimmer Light Effect */}
         <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/[0.02] to-transparent -translate-x-full group-hover/wallet:translate-x-full transition-transform duration-1000 ease-out pointer-events-none"></div>
 
         {/* Wallet Content */}
-        <div className="space-y-1.5 z-10 mt-1">
+        <div className="space-y-1 sm:space-y-1.5 z-10 mt-0.5 sm:mt-1">
           <div className="flex items-center gap-1.5">
-            <span className="text-[9px] text-purple-300 font-extrabold uppercase tracking-widest font-sans">Total Active Capital</span>
+            <span className="text-[8px] sm:text-[9px] text-purple-300 font-extrabold uppercase tracking-widest font-sans">Total Active Capital</span>
             <span className="w-1.5 h-1.5 rounded-full bg-[#00f5a0] animate-pulse"></span>
           </div>
           
@@ -104,7 +104,7 @@ export const PhysicalWallet: React.FC<PhysicalWalletProps> = ({
                 initial={{ opacity: 0, y: 5 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -5 }}
-                className="text-2xl font-extrabold font-mono text-white tracking-widest leading-none py-1 h-8"
+                className="text-lg sm:text-2xl font-extrabold font-mono text-white tracking-widest leading-none py-1 h-6 sm:h-8"
               >
                 •••••••••••
               </motion.p>
@@ -114,7 +114,7 @@ export const PhysicalWallet: React.FC<PhysicalWalletProps> = ({
                 initial={{ opacity: 0, y: 5 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -5 }}
-                className="text-2xl font-extrabold font-mono text-white tracking-tight leading-none h-8 drop-shadow-[0_2px_10px_rgba(255,255,255,0.1)]"
+                className="text-lg sm:text-2xl font-extrabold font-mono text-white tracking-tight leading-none h-6 sm:h-8 drop-shadow-[0_2px_10px_rgba(255,255,255,0.1)]"
               >
                 {formatIDR(capital)}
               </motion.p>
@@ -123,7 +123,7 @@ export const PhysicalWallet: React.FC<PhysicalWalletProps> = ({
 
           {/* Monthly change percentage */}
           <div className="flex items-center gap-1">
-            <span className="text-[10px] text-[#00f5a0] font-sans font-bold bg-[#00f5a0]/10 border border-[#00f5a0]/20 px-2 py-0.5 rounded-full">
+            <span className="text-[9px] sm:text-[10px] text-[#00f5a0] font-sans font-bold bg-[#00f5a0]/10 border border-[#00f5a0]/20 px-2 py-0.5 rounded-full">
               +4.82% bulan ini
             </span>
             <span className="text-[8px] text-purple-400 font-mono">Secured</span>
@@ -136,9 +136,9 @@ export const PhysicalWallet: React.FC<PhysicalWalletProps> = ({
           <button
             id="wallet-add-balance"
             onClick={onTopUp}
-            className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 border border-white/10 hover:border-white/20 text-white font-sans text-xs font-bold transition-all shadow-inner cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 border border-white/10 hover:border-white/20 text-white font-sans text-[11px] sm:text-xs font-bold transition-all shadow-inner cursor-pointer"
           >
-            <Plus className="w-3.5 h-3.5 text-purple-300" />
+            <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-purple-300" />
             <span>Top Up Saldo</span>
           </button>
 

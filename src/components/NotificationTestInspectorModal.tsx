@@ -26,6 +26,8 @@ export interface TestResultData {
   mailtoUrl?: string;
   phone?: string;
   email?: string;
+  formattedText?: string;
+  subject?: string;
   troubleshooting?: string[];
   debugPayload?: any;
 }

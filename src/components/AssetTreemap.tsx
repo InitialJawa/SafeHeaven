@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { PieChart, Sparkles, Activity } from 'lucide-react';
+import { PieChart, Activity } from 'lucide-react';
 import { useAppStore } from '../stores';
 
 interface AssetTreemapProps {
@@ -355,7 +355,7 @@ export const AssetTreemap: React.FC<AssetTreemapProps> = ({ capital = 500000000,
               HTML5 Canvas & SVG Treemap
             </span>
             <span className="text-[9px] font-mono bg-[#ccff00]/10 text-[#ccff00] px-1.5 py-0.2 rounded border border-[#ccff00]/20 flex items-center gap-1">
-              <Sparkles className="w-2.5 h-2.5" /> 60 FPS
+              60 FPS
             </span>
           </div>
           <h2 className="text-xl font-extrabold text-white tracking-tight leading-none font-sans mt-1">
