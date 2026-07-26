@@ -18,7 +18,7 @@ import { detectMarketRegime, resolveWeights, MarketRegime, StrategyProfile } fro
 
 dotenv.config();
 
-const PORT = 3000;
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 const app = express();
 app.use(express.json());
 
@@ -48,11 +48,11 @@ const dbClient = createClient({
 
 // Robust query executor with Cloudflare D1 REST API and local SQLite fallback
 async function executeQuery(sql: string, args: any[] = []): Promise<any> {
-  const cfAccountId = process.env.CLOUDFLARE_ACCOUNT_ID || 'e8585651011f6f7bef297da93c952b4f';
-  const cfDatabaseId = process.env.CLOUDFLARE_D1_DATABASE_ID || '947c79d9-a27f-4a84-9cf3-c12acaae4141';
-  const cfApiToken = process.env.CLOUDFLARE_API_TOKEN || 'cfut_nElv3u3E8ya1iIe6UpQJ8gYZ9AfhXFKoHf11kSmNcf878aba';
+  const cfAccountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+  const cfDatabaseId = process.env.CLOUDFLARE_D1_DATABASE_ID;
+  const cfApiToken = process.env.CLOUDFLARE_API_TOKEN;
 
-  if (cfAccountId && cfDatabaseId && cfApiToken && cfAccountId !== "" && cfDatabaseId !== "" && cfApiToken !== "") {
+  if (cfAccountId && cfDatabaseId && cfApiToken && cfAccountId !== "" && cfDatabaseId !== "" && cfApiToken !== "" && cfApiToken !== 'cfut_nElv3u3E8ya1iIe6UpQJ8gYZ9AfhXFKoHf11kSmNcf878aba') {
     try {
       const url = `https://api.cloudflare.com/client/v4/accounts/${cfAccountId}/d1/database/${cfDatabaseId}/query`;
       const response = await fetch(url, {
