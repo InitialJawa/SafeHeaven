@@ -687,9 +687,13 @@ import YahooFinance from 'yahoo-finance2';
 
 function initYahooFinance(): any {
   try {
-    const YFClass: any = YahooFinance || (YahooFinance as any)?.default || (YahooFinance as any)?.YahooFinance;
-    if (typeof YFClass === 'function') {
-      return new YFClass();
+    const mod: any = YahooFinance;
+    const Cls = mod?.default || mod;
+    if (typeof Cls === 'function') {
+      return new Cls();
+    }
+    if (Cls && typeof Cls.quote === 'function') {
+      return Cls;
     }
   } catch (e) {
     console.warn("Failed to instantiate YahooFinance:", e);
