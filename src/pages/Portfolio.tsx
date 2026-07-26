@@ -94,29 +94,29 @@ export const Portfolio: React.FC = () => {
   };
 
   return (
-    <div id="portfolio-view" className="px-6 space-y-6">
+    <div id="portfolio-view" className="px-4 sm:px-6 space-y-6">
       {/* Header Info */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div className="flex items-center gap-3">
-          <span className="w-1.5 h-8 bg-[#ccff00] rounded-full"></span>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-extrabold tracking-tight text-white font-sans">{getActiveStrategyTitle()}</h1>
-              <span className="text-[10px] font-mono text-[#ccff00] bg-[#ccff00]/10 border border-[#ccff00]/20 px-2.5 py-0.5 rounded-full uppercase tracking-wider font-bold">
+        <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 min-w-0">
+          <span className="w-1.5 h-7 sm:h-8 bg-[#ccff00] rounded-full shrink-0 mt-0.5 sm:mt-0"></span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center flex-wrap gap-2">
+              <h1 className="text-lg sm:text-xl md:text-2xl font-extrabold tracking-tight text-white font-sans truncate">{getActiveStrategyTitle()}</h1>
+              <span className="text-[10px] font-mono text-[#ccff00] bg-[#ccff00]/10 border border-[#ccff00]/20 px-2.5 py-0.5 rounded-full uppercase tracking-wider font-bold shrink-0">
                 PROFIL: {portfolioConfig?.strategyProfile?.toUpperCase() || 'AUTO'}
               </span>
             </div>
-            <p className="text-xs text-[#9f9bac] font-sans mt-0.5">
+            <p className="text-[11px] sm:text-xs text-[#9f9bac] font-sans mt-0.5">
               Universe: <span className="text-[#ccff00] font-bold">{portfolioConfig.universe}</span> • Top N Target: <span className="text-white font-bold">{portfolioConfig.topN} Saham Utama</span>
             </p>
           </div>
         </div>
         <button
             onClick={() => downloadPDF('portfolio-view', 'Portfolio_Summary')}
-            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#1b1926] hover:bg-[#252233] border border-[#2a273b] text-[#9f9bac] hover:text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
+            className="w-full md:w-auto flex items-center justify-center gap-2 px-4 py-2.5 bg-[#1b1926] hover:bg-[#252233] border border-[#2a273b] text-[#9f9bac] hover:text-white rounded-xl text-xs font-bold transition-colors cursor-pointer shrink-0"
         >
             <Download className="w-4 h-4" />
-            <span className="hidden sm:inline">Export PDF</span>
+            <span>Export PDF</span>
         </button>
       </div>
 

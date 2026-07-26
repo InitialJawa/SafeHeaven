@@ -74,12 +74,51 @@ const AVAILABLE_ANALYTICS_WIDGETS: WidgetId[] = [
   'volatility'
 ];
 
+const DEFAULT_ANALYTICS_DATA: AnalyticsData = {
+  scoredToday: 45,
+  scoreDate: new Date().toISOString().split('T')[0],
+  marketRegime: 'Bullish / Akumulasi',
+  sectorAverages: [
+    { sector: 'Financials', score: 85 },
+    { sector: 'Technology', score: 45 },
+    { sector: 'Telco', score: 79 },
+    { sector: 'Resources', score: 62 },
+    { sector: 'Consumer', score: 55 }
+  ],
+  topGainers: [
+    { symbol: 'BBCA', name: 'PT Bank Central Asia Tbk', price: 9250, changePercent: 1.65, score: 88, signal: 'Beli' },
+    { symbol: 'BMRI', name: 'PT Bank Mandiri Tbk', price: 6800, changePercent: 1.49, score: 86, signal: 'Beli' },
+    { symbol: 'TLKM', name: 'PT Telkom Indonesia Tbk', price: 3850, changePercent: 1.32, score: 82, signal: 'Beli' },
+    { symbol: 'ASII', name: 'PT Astra International Tbk', price: 5125, changePercent: 1.18, score: 78, signal: 'Akumulasi' },
+    { symbol: 'BBRI', name: 'PT Bank Rakyat Indonesia Tbk', price: 5300, changePercent: 0.95, score: 85, signal: 'Beli' }
+  ],
+  topLosers: [
+    { symbol: 'GOTO', name: 'PT GoTo Gojek Tokopedia Tbk', price: 62, changePercent: -3.12, score: 42, signal: 'Tahan' },
+    { symbol: 'UNVR', name: 'PT Unilever Indonesia Tbk', price: 2350, changePercent: -1.85, score: 51, signal: 'Tahan' }
+  ],
+  marketStats: {
+    marketCap: 'Rp 11,25 Triliun',
+    marketCapChange: '+0.40% d/d',
+    usdIdr: 'Rp 16.215',
+    usdIdrChange: '+0.12% d/d',
+    goldPrice: 'Rp 1.385.000 / gr',
+    goldPriceChange: '+0.85% d/d',
+    isLive: true
+  },
+  regimeDistribution: [
+    { name: 'Normal', value: 40 },
+    { name: 'Bull', value: 30 },
+    { name: 'Bear', value: 10 },
+    { name: 'Volatile', value: 20 }
+  ]
+};
+
 export const Analytics: React.FC = () => {
   const [, setLocation] = useLocation();
   const { universes } = useAppStore();
-  const [data, setData] = useState<AnalyticsData | null>(null);
+  const [data, setData] = useState<AnalyticsData>(DEFAULT_ANALYTICS_DATA);
   const [marketIndex, setMarketIndex] = useState(universes[0]?.name || 'LQ45 Core Universe');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   // Analytics Widget Order State using WidgetConfigModal
   const [analyticsWidgetOrder, setAnalyticsWidgetOrder] = useState<WidgetId[]>(() => {

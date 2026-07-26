@@ -463,7 +463,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     try {
       const fetchJson = async (endpoint: string) => {
         try {
-          const res = await fetch(getApiUrl(endpoint));
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 2500);
+          const res = await fetch(getApiUrl(endpoint), { signal: controller.signal });
+          clearTimeout(timeoutId);
           return res.ok ? await res.json() : null;
         } catch {
           return null;
@@ -521,22 +524,28 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (usersData) stateUpdates.users = usersData;
       if (clientData) stateUpdates.clients = clientData;
 
-      try {
-        const querySnapshot = await getDocs(collection(db, 'priceAlerts'));
-        const loadedAlerts: PriceAlert[] = [];
-        querySnapshot.forEach((docSnap) => {
-          loadedAlerts.push(docSnap.data() as PriceAlert);
-        });
-        if (loadedAlerts.length > 0) {
-          stateUpdates.priceAlerts = loadedAlerts;
-        }
-      } catch (err) {
-        // ignore if offline or not found
-      }
-
       set(stateUpdates);
 
-      await get().fetchBacktestHistory();
+      // Asynchronous background load for Firestore priceAlerts
+      (async () => {
+        try {
+          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 1500));
+          const queryPromise = getDocs(collection(db, 'priceAlerts'));
+          const querySnapshot = (await Promise.race([queryPromise, timeoutPromise])) as any;
+          const loadedAlerts: PriceAlert[] = [];
+          if (querySnapshot && typeof querySnapshot.forEach === 'function') {
+            querySnapshot.forEach((docSnap: any) => {
+              loadedAlerts.push(docSnap.data() as PriceAlert);
+            });
+            if (loadedAlerts.length > 0) {
+              set({ priceAlerts: loadedAlerts });
+            }
+          }
+        } catch {}
+      })();
+
+      // Asynchronous background load for Backtest History
+      get().fetchBacktestHistory().catch(() => {});
     } catch (err) {
       console.warn('API sync failed, continuing with responsive in-memory state.', err);
     } finally {

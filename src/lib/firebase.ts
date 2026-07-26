@@ -2,18 +2,15 @@ import { initializeApp, getApps } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut as firebaseSignOut, onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
 import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
 
-let firebaseConfig: any = {};
-try {
-  firebaseConfig = require('../../firebase-applet-config.json');
-} catch (e) {
-  firebaseConfig = {
-    projectId: "safehaven-demo",
-    appId: "1:000000000000:web:000000000000000000",
-    apiKey: "AIzaSyDummyKeyForFallbackBuildOnly000",
-    authDomain: "safehaven-demo.firebaseapp.com",
-    firestoreDatabaseId: "(default)",
-  };
-}
+import firebaseConfigJson from '../../firebase-applet-config.json';
+
+let firebaseConfig: any = firebaseConfigJson || {
+  projectId: "safehaven-demo",
+  appId: "1:000000000000:web:000000000000000000",
+  apiKey: "AIzaSyDummyKeyForFallbackBuildOnly000",
+  authDomain: "safehaven-demo.firebaseapp.com",
+  firestoreDatabaseId: "(default)",
+};
 
 let app: any;
 let db: any;

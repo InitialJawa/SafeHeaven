@@ -27,6 +27,57 @@ const POPULAR_TICKERS = [
   { symbol: 'KLBF', name: 'PT Kalbe Farma Tbk' }
 ];
 
+const GET_INITIAL_TICKER_DATA = (sym: string) => {
+  const clean = sym.toUpperCase().replace('.JK', '').replace('^JKSE', 'IHSG');
+  if (clean === 'IHSG') {
+    return {
+      symbol: 'IHSG',
+      fullSymbol: '^JKSE',
+      name: 'PT Bursa Efek Indonesia (IHSG)',
+      exchange: 'IDX',
+      sector: 'Indeks Utama',
+      subsector: 'Bursa Efek Indonesia',
+      price: 6283.60,
+      change: 32.40,
+      changePercent: 0.52,
+      currency: 'IDR',
+      isMarketOpen: true,
+      dayLow: 6196.43,
+      dayHigh: 6310.20,
+      fiftyTwoWeekLow: 5600.00,
+      fiftyTwoWeekHigh: 7600.00,
+      bid: 6280,
+      bidSize: 12500000,
+      ask: 6285,
+      askSize: 14200000,
+      volume: 18500000000,
+      avgVolume30: 16200000000,
+      marketCap: 11200000000000000,
+      dividendYield: 2.85,
+      peRatio: 14.20,
+      eps: 442.50,
+      floatShares: 85000000000,
+      beta: 1.00,
+      nextEarnings: 'Dalam 6 hari',
+      news: [
+        {
+          title: 'IHSG Bertahan di Zona Hijau Terakselerasi Sentimen Positif Pasar',
+          publisher: 'IDX News',
+          link: 'https://www.idx.co.id',
+          timeAgo: '1 jam lalu'
+        },
+        {
+          title: 'Arus Modal Asing Masuk Sektor Perbankan Menguatkan Indeks',
+          publisher: 'Market Insight',
+          link: 'https://www.idx.co.id',
+          timeAgo: '3 jam lalu'
+        }
+      ]
+    };
+  }
+  return null;
+};
+
 interface WidgetWatchlistDetailProps {
   defaultSymbol?: string;
   symbol?: string;
@@ -42,37 +93,48 @@ export const WidgetWatchlistDetail: React.FC<WidgetWatchlistDetailProps> = ({
 }) => {
   const activeSymbol = symbol || defaultSymbol;
   const [selectedSymbol, setSelectedSymbol] = useState<string>(activeSymbol);
-  const [data, setData] = useState<any | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<any | null>(() => GET_INITIAL_TICKER_DATA(activeSymbol));
+  const [loading, setLoading] = useState(() => !GET_INITIAL_TICKER_DATA(activeSymbol));
   const [showNewsModal, setShowNewsModal] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   useEffect(() => {
     setSelectedSymbol(activeSymbol);
+    const initial = GET_INITIAL_TICKER_DATA(activeSymbol);
+    if (initial) {
+      setData(initial);
+      setLoading(false);
+    }
   }, [activeSymbol]);
 
   useEffect(() => {
     fetchTickerData(selectedSymbol);
   }, [selectedSymbol]);
 
-  const fetchTickerData = async (symbol: string, retries = 1) => {
-    setLoading(true);
+  const fetchTickerData = async (sym: string, retries = 1) => {
+    // Only show skeleton if we have zero data for this symbol
+    if (!data || data.symbol !== sym.toUpperCase().replace('.JK', '').replace('^JKSE', 'IHSG')) {
+      setLoading(true);
+    }
+    let success = false;
     try {
       const base = window.location.origin;
-      const res = await fetch(`${base}/api/widgets/ticker-details?symbol=${encodeURIComponent(symbol)}`);
+      const res = await fetch(`${base}/api/widgets/ticker-details?symbol=${encodeURIComponent(sym)}`);
       if (res.ok) {
         const json = await res.json();
         setData(json);
+        success = true;
       }
     } catch (err: any) {
       if (retries > 0) {
-        setTimeout(() => fetchTickerData(symbol, retries - 1), 1000);
+        setTimeout(() => fetchTickerData(sym, retries - 1), 1000);
         return;
       }
       console.warn('Failed to fetch ticker details after retries:', err?.message || err);
     } finally {
-      if (retries === 0) setLoading(false);
-      else if (data) setLoading(false); // only disable loading if we're not retrying or already have data
+      if (success || retries === 0) {
+        setLoading(false);
+      }
     }
   };
 

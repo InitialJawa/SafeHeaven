@@ -411,7 +411,7 @@ export const StockAnalysis: React.FC = () => {
   const ActiveIcon = scoringConfig.icon;
 
   return (
-    <div id="stock-analysis-view" className="px-6 space-y-6">
+    <div id="stock-analysis-view" className="px-4 sm:px-6 space-y-6">
       
       {/* STREAMLINED UNIFIED COMPACT HEADER & METRICS BANNER */}
       <div className="card bg-[#0b0a10] border border-[#1b1926] rounded-2xl p-3.5 md:p-4 space-y-3 shadow-lg">

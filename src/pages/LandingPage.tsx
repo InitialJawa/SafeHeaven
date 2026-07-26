@@ -6,6 +6,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { TickerLogo } from '../components/TickerLogo';
+import { SafeHavenLogo } from '../components/SafeHavenLogo';
 import { 
   ShieldCheck, 
   TrendingUp, 
@@ -157,12 +158,12 @@ export const LandingPage: React.FC = () => {
           
           {/* Brand Logo */}
           <Link href="/" className="flex items-center gap-2.5 group cursor-pointer">
-            <div className="w-9 h-9 bg-[#ccff00]/10 border border-[#ccff00]/30 rounded-xl flex items-center justify-center text-[#ccff00] group-hover:scale-105 transition-transform">
-              <ShieldCheck className="w-5 h-5 text-[#ccff00]" />
+            <div className="w-9 h-9 flex items-center justify-center group-hover:scale-105 transition-transform">
+              <SafeHavenLogo className="w-8 h-8 drop-shadow-[0_0_8px_rgba(244,184,71,0.4)]" />
             </div>
             <div>
               <span className="text-lg font-extrabold tracking-tight text-white font-sans">
-                SafeHaven<span className="text-[#ccff00]">.</span>
+                SafeHaven<span className="text-[#F4B847]">.</span>
               </span>
               <span className="text-[9px] text-[#686477] block font-mono tracking-widest font-bold -mt-1">
                 IDX AI COCKPIT
@@ -1040,10 +1041,10 @@ export const LandingPage: React.FC = () => {
           
           <div className="md:col-span-2">
             <div className="flex items-center gap-2 mb-3">
-              <div className="w-7 h-7 bg-[#ccff00]/10 border border-[#ccff00]/30 rounded-lg flex items-center justify-center text-[#ccff00]">
-                <ShieldCheck className="w-4 h-4" />
+              <div className="w-7 h-7 flex items-center justify-center">
+                <SafeHavenLogo className="w-6 h-6 drop-shadow-[0_0_6px_rgba(244,184,71,0.4)]" />
               </div>
-              <span className="text-base font-bold text-white">SafeHaven<span className="text-[#ccff00]">.</span></span>
+              <span className="text-base font-bold text-white">SafeHaven<span className="text-[#F4B847]">.</span></span>
             </div>
             <p className="text-[#9f9bac] text-xs leading-relaxed max-w-sm">
               SafeHaven adalah platform analisis pasar saham Indonesia (IDX/IHSG) berbasis AI, menyediakan skor fundamental, indikator teknikal, strategi kuantitatif, dan analisis portofolio.

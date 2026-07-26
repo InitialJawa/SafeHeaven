@@ -606,51 +606,54 @@ export const Backtest: React.FC = () => {
   return (
     <div id="backtest-view" className="flex flex-col min-h-[calc(100vh-6rem)] lg:h-[calc(100vh-6rem)] w-full overflow-y-auto lg:overflow-hidden bg-[#0a090f] -mt-6">
       {/* Title Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-6 pt-5 pb-4 shrink-0 border-b border-[#1b1926] bg-[#060608]">
-        <div className="flex items-center gap-3">
-          <span className="w-1.5 h-8 bg-[#ccff00] rounded-full"></span>
-          <div>
-            <h1 className="text-2xl font-extrabold tracking-tight text-white font-sans flex items-center gap-2.5">
-              QuantLab Studio & Backtest
-              <span className="text-[10px] font-mono font-black text-[#ccff00] bg-[#ccff00]/10 border border-[#ccff00]/30 px-2 py-0.5 rounded-full uppercase tracking-wider">
+      <div className="flex items-center justify-between gap-2 sm:gap-4 px-3 sm:px-6 pt-3.5 sm:pt-5 pb-3 sm:pb-4 shrink-0 border-b border-[#1b1926] bg-[#060608]">
+        <div className="flex items-start sm:items-center gap-2 sm:gap-3 min-w-0">
+          <span className="w-1.5 h-6 sm:h-8 bg-[#ccff00] rounded-full shrink-0 mt-0.5 sm:mt-0"></span>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+              <h1 className="text-sm sm:text-lg lg:text-2xl font-extrabold tracking-tight text-white font-sans truncate">
+                QuantLab Studio & Backtest
+              </h1>
+              <span className="text-[9px] sm:text-[10px] font-mono font-black text-[#ccff00] bg-[#ccff00]/10 border border-[#ccff00]/30 px-1.5 sm:px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0">
                 v2.4
               </span>
-            </h1>
-            <p className="text-xs text-[#9f9bac] font-sans mt-0.5">
+            </div>
+            <p className="text-[10px] sm:text-xs text-[#9f9bac] font-sans mt-0.5 truncate hidden sm:block">
               Laboratorium kuantitatif: Uji strategi, simulasi Monte Carlo, stress test krisis, dan audit faktor risiko IHSG.
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0 ml-auto">
           <button
             type="button"
             onClick={() => setIsHistoryModalOpen(true)}
-            className="flex-1 sm:flex-none px-3 sm:px-4 py-2.5 rounded-xl bg-[#ccff00]/10 hover:bg-[#ccff00]/20 border border-[#ccff00]/30 text-[#ccff00] text-xs font-extrabold font-sans flex items-center justify-center gap-1.5 sm:gap-2 transition-all cursor-pointer shadow-lg shadow-[#ccff00]/5 hover:shadow-[#ccff00]/15 active:scale-95 whitespace-nowrap"
+            className="px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-lg sm:rounded-xl bg-[#ccff00]/10 hover:bg-[#ccff00]/20 border border-[#ccff00]/30 text-[#ccff00] text-[11px] sm:text-xs font-extrabold font-sans flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm shadow-[#ccff00]/5 hover:shadow-[#ccff00]/15 active:scale-95 whitespace-nowrap"
+            title="Riwayat & Komparasi Backtest"
           >
-            <History className="w-4 h-4 text-[#ccff00] shrink-0" />
-            <span className="hidden sm:inline">Riwayat & Komparasi Backtest ({backtestHistory.length})</span>
-            <span className="inline sm:hidden">Riwayat ({backtestHistory.length})</span>
+            <History className="w-3.5 h-3.5 text-[#ccff00] shrink-0" />
+            <span className="hidden sm:inline">Riwayat ({backtestHistory.length})</span>
+            <span className="inline sm:hidden">({backtestHistory.length})</span>
           </button>
 
           {result && (
-            <div className="relative flex-1 sm:flex-none">
+            <div className="relative">
               <button
                 type="button"
                 onClick={() => setIsExportDropdownOpen(!isExportDropdownOpen)}
-                className="w-full sm:w-auto px-3 sm:px-4 py-2.5 rounded-xl bg-[#ccff00] hover:bg-[#b8e600] text-black text-xs font-black font-sans flex items-center justify-center gap-1.5 sm:gap-2 transition-all cursor-pointer shadow-lg shadow-[#ccff00]/20 active:scale-95 whitespace-nowrap"
+                className="px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-lg sm:rounded-xl bg-[#ccff00] hover:bg-[#b8e600] text-black text-[11px] sm:text-xs font-black font-sans flex items-center justify-center gap-1 sm:gap-1.5 transition-all cursor-pointer shadow-md shadow-[#ccff00]/20 active:scale-95 whitespace-nowrap"
               >
                 {isExportingWord ? (
-                  <Loader2 className="w-4 h-4 animate-spin text-black shrink-0" />
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-black shrink-0" />
                 ) : (
-                  <Download className="w-4 h-4 stroke-[2.5px] shrink-0" />
+                  <Download className="w-3.5 h-3.5 stroke-[2.5px] shrink-0" />
                 )}
-                <span>Export Laporan</span>
-                <ChevronDown className="w-3.5 h-3.5 shrink-0" />
+                <span>Export</span>
+                <ChevronDown className="w-3 h-3 shrink-0" />
               </button>
 
               {isExportDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-72 bg-[#111018] border border-[#2a273b] rounded-xl shadow-2xl z-50 overflow-hidden animate-fadeIn py-1">
+                <div className="absolute right-0 mt-2 w-72 max-w-[calc(100vw-2rem)] bg-[#111018] border border-[#2a273b] rounded-xl shadow-2xl z-50 overflow-hidden animate-fadeIn py-1">
                   <button
                     onClick={handleExportWord}
                     disabled={isExportingWord}

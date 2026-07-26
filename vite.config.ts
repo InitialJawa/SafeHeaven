@@ -18,7 +18,7 @@ export default defineConfig(() => {
       rollupOptions: {
         output: {
           manualChunks(id) {
-            if (id.includes('node_modules')) {
+            if (id.includes('node_modules/')) {
               if (id.includes('recharts') || id.includes('lightweight-charts')) {
                 return 'vendor-charts';
               }
@@ -28,13 +28,6 @@ export default defineConfig(() => {
               if (id.includes('jspdf') || id.includes('docx') || id.includes('html2canvas') || id.includes('html-to-image')) {
                 return 'vendor-export';
               }
-              if (id.includes('lucide-react') || id.includes('motion') || id.includes('@dnd-kit')) {
-                return 'vendor-ui';
-              }
-              if (id.includes('react') || id.includes('wouter') || id.includes('zustand')) {
-                return 'vendor-core';
-              }
-              return 'vendor-others';
             }
           },
         },

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="100%" height="100%">
+  <defs>
+    <mask id="sh-logo-mask">
+      <rect x="0" y="0" width="1000" height="1000" fill="#FFFFFF" />
+      <g fill="#000000" stroke="#000000">
+        <path d="M 760 320 H 925 C 945 320 955 330 955 350 V 415 C 955 435 945 445 925 445 H 760 Z" fill="none" stroke="#000000" stroke-width="22" stroke-linejoin="round" />
+        <path d="M 760 555 H 925 C 945 555 955 565 955 585 V 650 C 955 670 945 680 925 680 H 760 Z" fill="none" stroke="#000000" stroke-width="22" stroke-linejoin="round" />
+        <path d="M 865 445 V 555" fill="none" stroke="#000000" stroke-width="22" stroke-linecap="square" />
+        <circle cx="450" cy="500" r="370" stroke="#000000" stroke-width="22" fill="none" />
+        <circle cx="450" cy="85" r="18" fill="#000000" stroke="none" />
+        <circle cx="683" cy="182" r="18" fill="#000000" stroke="none" />
+        <circle cx="683" cy="818" r="18" fill="#000000" stroke="none" />
+        <circle cx="450" cy="915" r="18" fill="#000000" stroke="none" />
+        <circle cx="217" cy="818" r="18" fill="#000000" stroke="none" />
+        <circle cx="120" cy="500" r="18" fill="#000000" stroke="none" />
+        <circle cx="217" cy="182" r="18" fill="#000000" stroke="none" />
+        <circle cx="450" cy="500" r="230" stroke="#000000" stroke-width="22" fill="none" />
+        <circle cx="450" cy="500" r="180" stroke="#000000" stroke-width="20" fill="none" />
+        <path d="M 450 500 L 323 373 A 180 180 0 0 1 577 373 Z" fill="#000000" stroke="none" />
+        <path d="M 450 500 L 577 627 A 180 180 0 0 1 323 627 Z" fill="#000000" stroke="none" />
+        <line x1="323" y1="373" x2="577" y2="627" stroke="#000000" stroke-width="30" stroke-linecap="round" />
+        <line x1="323" y1="627" x2="577" y2="373" stroke="#000000" stroke-width="30" stroke-linecap="round" />
+        <circle cx="450" cy="500" r="36" fill="#000000" stroke="none" />
+      </g>
+    </mask>
+  </defs>
+  <g fill="#F4B847" mask="url(#sh-logo-mask)">
+    <circle cx="450" cy="500" r="450" />
+    <path d="M 760 320 H 925 C 945 320 955 330 955 350 V 415 C 955 435 945 445 925 445 H 760 Z" />
+    <path d="M 760 555 H 925 C 945 555 955 565 955 585 V 650 C 955 670 945 680 925 680 H 760 Z" />
+  </g>
+</svg>

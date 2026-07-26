@@ -61,13 +61,13 @@ export const Optimizer: React.FC = () => {
   };
 
   return (
-    <div id="optimizer-view" className="px-6 space-y-6">
+    <div id="optimizer-view" className="px-4 sm:px-6 space-y-6">
       {/* Title */}
-      <div className="flex items-center gap-3">
-        <span className="w-1.5 h-8 bg-[#ccff00] rounded-full"></span>
-        <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-white font-sans">Walk-Forward Optimizer</h1>
-          <p className="text-xs text-[#9f9bac] font-sans mt-0.5">Temukan parameter rebalancing optimal melalui pemindaian brute force historis.</p>
+      <div className="flex items-start sm:items-center gap-2.5 sm:gap-3">
+        <span className="w-1.5 h-7 sm:h-8 bg-[#ccff00] rounded-full shrink-0 mt-0.5 sm:mt-0"></span>
+        <div className="min-w-0 flex-1">
+          <h1 className="text-lg sm:text-xl md:text-2xl font-extrabold tracking-tight text-white font-sans truncate">Walk-Forward Optimizer</h1>
+          <p className="text-[11px] sm:text-xs text-[#9f9bac] font-sans mt-0.5">Temukan parameter rebalancing optimal melalui pemindaian brute force historis.</p>
         </div>
       </div>
 

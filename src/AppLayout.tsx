@@ -11,6 +11,7 @@ import { ChatFAB } from './components/ChatFAB';
 import { JumpToTopFAB } from './components/JumpToTopFAB';
 import { AnimatedTierCard } from './components/AnimatedTierCard';
 import { GlobalSearch } from './components/GlobalSearch';
+import { SafeHavenLogo } from './components/SafeHavenLogo';
 import { 
   LayoutDashboard, 
   Wallet, 
@@ -146,13 +147,13 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
       >
         {/* Brand Header */}
         <div className={`h-14 border-b border-[#1b1926] flex items-center gap-2.5 transition-all duration-300 ${isCollapsed ? 'px-0 justify-center' : 'px-5'}`}>
-          <div className="w-8 h-8 bg-[#ccff00]/10 border border-[#ccff00]/30 rounded-lg flex items-center justify-center text-[#ccff00] shrink-0">
-            <ShieldCheck className="w-4.5 h-4.5 glow-text-lime" />
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0">
+            <SafeHavenLogo className="w-7 h-7 drop-shadow-[0_0_8px_rgba(244,184,71,0.4)]" />
           </div>
           {!isCollapsed && (
             <div className="flex-1 min-w-0 animate-[fadeIn_0.2s_ease-out]">
               <h1 className="text-base font-extrabold tracking-tight text-white leading-none font-sans truncate">
-                SafeHaven<span className="text-[#ccff00]">.</span>
+                SafeHaven<span className="text-[#F4B847]">.</span>
               </h1>
               <span className="text-[9px] text-[#686477] block font-mono tracking-wider font-bold truncate">FINANCE COCKPIT</span>
             </div>
@@ -247,23 +248,23 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
         {/* TOP HEADER BAR */}
         <header 
           id="top-header-panel" 
-          className="h-14 border-b border-[#1b1926] bg-[#0a090f]/80 backdrop-blur-md px-6 flex items-center justify-between sticky top-0 z-20"
+          className="h-14 border-b border-[#1b1926] bg-[#0a090f]/80 backdrop-blur-md px-3 sm:px-6 flex items-center justify-between sticky top-0 z-20"
         >
           {/* Mobile menu, Desktop Sidebar Toggle and Title */}
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
             <button
               id="mobile-menu-toggle-btn"
               onClick={() => setIsMobileMenuOpen(true)}
-              className="lg:hidden p-1.5 text-[#9f9bac] hover:text-white hover:bg-white/5 rounded-xl cursor-pointer"
+              className="lg:hidden p-1.5 text-[#9f9bac] hover:text-white hover:bg-white/5 rounded-xl cursor-pointer shrink-0"
             >
-              <Menu className="w-5.5 h-5.5" />
+              <Menu className="w-5 h-5 sm:w-5.5 sm:h-5.5" />
             </button>
 
             {/* Desktop Sidebar collapse/expand button */}
             <button
               id="desktop-sidebar-collapse-toggle-btn"
               onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-              className="hidden lg:flex p-1.5 text-[#9f9bac] hover:text-white hover:bg-white/5 rounded-xl cursor-pointer transition-colors"
+              className="hidden lg:flex p-1.5 text-[#9f9bac] hover:text-white hover:bg-white/5 rounded-xl cursor-pointer transition-colors shrink-0"
               title={isSidebarCollapsed ? "Tampilkan Sidebar (Expand)" : "Sembunyikan Sidebar (Collapse)"}
             >
               {isSidebarCollapsed ? (
@@ -273,32 +274,32 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
               )}
             </button>
 
-            <h2 className="text-sm font-bold text-white tracking-tight font-sans">
+            <h2 className="text-xs sm:text-sm font-bold text-white tracking-tight font-sans truncate max-w-[140px] sm:max-w-xs md:max-w-md lg:max-w-lg">
               {getCurrentHeaderTitle()}
             </h2>
           </div>
 
           {/* Right Header Controls */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
             <button
               onClick={() => setIsSearchOpen(true)}
-              className="p-2 text-[#686477] hover:text-white hover:bg-white/5 rounded-xl cursor-pointer transition-colors"
+              className="p-1.5 sm:p-2 text-[#686477] hover:text-white hover:bg-white/5 rounded-xl cursor-pointer transition-colors shrink-0"
               title="Cari (Ctrl+K)"
             >
-              <Search className="w-4.5 h-4.5" />
+              <Search className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
             </button>
             {/* Real-time triggering Notification dropdown widget */}
             <NotificationCenter />
 
             {/* Micro User Avatar display */}
             {user && (
-              <div className="hidden sm:flex items-center gap-2 pl-3 border-l border-[#1b1926]">
-                <div className="w-8 h-8 rounded-full bg-[#111018] border-2 border-[#ccff00]/40 flex items-center justify-center text-[#ccff00] relative overflow-hidden shrink-0">
+              <div className="hidden sm:flex items-center gap-2 pl-2 sm:pl-3 border-l border-[#1b1926] shrink-0">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#111018] border-2 border-[#ccff00]/40 flex items-center justify-center text-[#ccff00] relative overflow-hidden shrink-0">
                   <span className="font-bold text-xs font-sans text-white">{user.name.charAt(0).toUpperCase()}</span>
                 </div>
-                <div className="text-left">
-                  <p className="text-[10px] font-bold text-white leading-tight font-sans">{user.name}</p>
-                  <span className="text-[9px] text-[#686477] font-mono">SafeHeaven Active</span>
+                <div className="text-left hidden md:block max-w-[100px] lg:max-w-[140px]">
+                  <p className="text-[10px] font-bold text-white leading-tight font-sans truncate">{user.name}</p>
+                  <span className="text-[9px] text-[#686477] font-mono block truncate">SafeHeaven Active</span>
                 </div>
               </div>
             )}
@@ -329,10 +330,10 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
           {/* Drawer Header */}
           <div className="h-14 px-5 border-b border-[#1b1926] flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 bg-[#ccff00]/10 border border-[#ccff00]/30 rounded-lg flex items-center justify-center text-[#ccff00]">
-                  <ShieldCheck className="w-4.5 h-4.5" />
+                <div className="w-7 h-7 flex items-center justify-center">
+                  <SafeHavenLogo className="w-6 h-6 drop-shadow-[0_0_6px_rgba(244,184,71,0.4)]" />
                 </div>
-                <h1 className="text-sm font-bold tracking-tight text-white leading-none">SafeHeaven<span className="text-[#ccff00]">.</span></h1>
+                <h1 className="text-sm font-bold tracking-tight text-white leading-none">SafeHaven<span className="text-[#F4B847]">.</span></h1>
               </div>
               <button
                 id="mobile-sidebar-close-btn"

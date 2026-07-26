@@ -8,6 +8,7 @@ import { useLocation } from 'wouter';
 import { useAppStore } from '../stores';
 import { auth, googleProvider, signInWithPopup } from '../lib/firebase';
 import { ShieldCheck, ArrowRight, UserPlus, LogIn, Lock, Mail, User, TrendingUp, Landmark, Shield } from 'lucide-react';
+import { SafeHavenLogo } from '../components/SafeHavenLogo';
 
 export const Login: React.FC = () => {
   const [, setLocation] = useLocation();
@@ -69,10 +70,10 @@ export const Login: React.FC = () => {
         {/* LEFT COLUMN: Visual Marketing Panel (Behance Presentation Element) */}
         <div className="hidden md:flex flex-col md:col-span-6 space-y-6 text-left pr-4">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-[#ccff00]/10 border border-[#ccff00]/30 flex items-center justify-center text-[#ccff00]">
-              <ShieldCheck className="w-4.5 h-4.5 glow-text-lime" />
+            <div className="w-7 h-7 flex items-center justify-center">
+              <SafeHavenLogo className="w-6 h-6 drop-shadow-[0_0_6px_rgba(244,184,71,0.4)]" />
             </div>
-            <span className="text-xs uppercase font-bold tracking-widest text-[#ccff00]">Cockpit Engine v1.2</span>
+            <span className="text-xs uppercase font-bold tracking-widest text-[#F4B847]">Cockpit Engine v1.2</span>
           </div>
 
           <div className="space-y-3">
@@ -168,8 +169,8 @@ export const Login: React.FC = () => {
             
             {/* Form Header */}
             <div className="text-center mb-6">
-              <div className="md:hidden inline-flex items-center justify-center w-10 h-10 bg-[#ccff00]/10 border border-[#ccff00]/30 rounded-xl mb-3 text-[#ccff00]">
-                <ShieldCheck className="w-5.5 h-5.5 glow-text-lime" />
+              <div className="md:hidden inline-flex items-center justify-center w-10 h-10 mb-3">
+                <SafeHavenLogo className="w-8 h-8 drop-shadow-[0_0_8px_rgba(244,184,71,0.4)]" />
               </div>
               <h2 className="text-xl font-bold tracking-tight text-white font-sans">
                 {isRegister ? 'Membuat Akun Baru' : 'Masuk ke Cockpit'}

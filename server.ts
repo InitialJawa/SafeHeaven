@@ -46,13 +46,15 @@ const dbClient = createClient({
   url: "file:data/safehaven.db",
 });
 
+let cloudflareDisabled = false;
+
 // Robust query executor with Cloudflare D1 REST API and local SQLite fallback
 async function executeQuery(sql: string, args: any[] = []): Promise<any> {
   const cfAccountId = process.env.CLOUDFLARE_ACCOUNT_ID;
   const cfDatabaseId = process.env.CLOUDFLARE_D1_DATABASE_ID;
   const cfApiToken = process.env.CLOUDFLARE_API_TOKEN;
 
-  if (cfAccountId && cfDatabaseId && cfApiToken && cfAccountId !== "" && cfDatabaseId !== "" && cfApiToken !== "" && cfApiToken !== 'cfut_nElv3u3E8ya1iIe6UpQJ8gYZ9AfhXFKoHf11kSmNcf878aba') {
+  if (!cloudflareDisabled && process.env.USE_CLOUDFLARE_D1 === 'true' && cfAccountId && cfDatabaseId && cfApiToken && cfAccountId !== "" && cfDatabaseId !== "" && cfApiToken !== "" && cfApiToken !== 'cfut_nElv3u3E8ya1iIe6UpQJ8gYZ9AfhXFKoHf11kSmNcf878aba') {
     try {
       const url = `https://api.cloudflare.com/client/v4/accounts/${cfAccountId}/d1/database/${cfDatabaseId}/query`;
       const response = await fetch(url, {
@@ -75,10 +77,12 @@ async function executeQuery(sql: string, args: any[] = []): Promise<any> {
           rows: d1Result.results || []
         };
       } else {
-        console.warn('Cloudflare D1 query returned success=false, falling back to local SQLite:', data.errors || data);
+        console.warn('Cloudflare D1 query returned success=false, disabling D1 and falling back to local SQLite:', data.errors || data);
+        cloudflareDisabled = true;
       }
     } catch (err) {
-      console.error('Cloudflare D1 HTTP connection error, falling back to local SQLite:', err);
+      console.error('Cloudflare D1 HTTP connection error, disabling D1 and falling back to local SQLite:', err);
+      cloudflareDisabled = true;
     }
   }
 
@@ -280,6 +284,20 @@ async function initDbSchema() {
         date TEXT NOT NULL,
         total_value REAL NOT NULL,
         FOREIGN KEY (portfolio_id) REFERENCES portfolio_configs(id)
+      );
+    `);
+
+    // 10. Create alerts table
+    await executeQuery(`
+      CREATE TABLE IF NOT EXISTS alerts (
+        id TEXT PRIMARY KEY,
+        portfolio_id TEXT,
+        type TEXT,
+        severity TEXT,
+        title TEXT,
+        message TEXT,
+        is_read INTEGER DEFAULT 0,
+        created_at TEXT DEFAULT (datetime('now'))
       );
     `);
 
@@ -686,6 +704,17 @@ app.put('/api/portfolio/config', async (req, res) => {
 import YahooFinance from 'yahoo-finance2';
 
 function initYahooFinance(): any {
+  const withTimeout = <T>(fn: () => Promise<T>, timeoutMs = 2500, fallback: T): Promise<T> => {
+    let timer: any;
+    const timeoutPromise = new Promise<T>((resolve) => {
+      timer = setTimeout(() => resolve(fallback), timeoutMs);
+    });
+    return Promise.race([
+      fn().then(res => { clearTimeout(timer); return res; }),
+      timeoutPromise
+    ]);
+  };
+
   try {
     const mod: any = YahooFinance;
     const Cls = mod?.default || mod;
@@ -694,38 +723,81 @@ function initYahooFinance(): any {
 
     return {
       quote: async (...args: any[]) => {
-        try {
-          if (rawYf && typeof rawYf.quote === 'function') return await rawYf.quote(...args);
-          if (YahooFinance && typeof (YahooFinance as any).quote === 'function') return await (YahooFinance as any).quote(...args);
-        } catch (err) {
-          console.warn("yf.quote error:", err);
-        }
-        return { regularMarketPrice: 7000, regularMarketChangePercent: 0, symbol: args[0] };
+        const fallback = { regularMarketPrice: 7000, regularMarketChangePercent: 0, symbol: args[0] };
+        return withTimeout(async () => {
+          try {
+            if (rawYf && typeof rawYf.quote === 'function') return await rawYf.quote(...args);
+            if (YahooFinance && typeof (YahooFinance as any).quote === 'function') return await (YahooFinance as any).quote(...args);
+          } catch (err) {
+            console.warn("yf.quote error:", err);
+          }
+          return fallback;
+        }, 2500, fallback);
       },
       chart: async (...args: any[]) => {
-        try {
-          if (rawYf && typeof rawYf.chart === 'function') return await rawYf.chart(...args);
-          if (YahooFinance && typeof (YahooFinance as any).chart === 'function') return await (YahooFinance as any).chart(...args);
-        } catch (err) {
-          console.warn("yf.chart error:", err);
-        }
-        return { quotes: [] };
+        const fallback = { quotes: [] };
+        return withTimeout(async () => {
+          try {
+            if (rawYf && typeof rawYf.chart === 'function') return await rawYf.chart(...args);
+            if (YahooFinance && typeof (YahooFinance as any).chart === 'function') return await (YahooFinance as any).chart(...args);
+          } catch (err) {
+            console.warn("yf.chart error:", err);
+          }
+          return fallback;
+        }, 2500, fallback);
       },
       search: async (...args: any[]) => {
-        try {
-          if (rawYf && typeof rawYf.search === 'function') return await rawYf.search(...args);
-        } catch (err) {
-          console.warn("yf.search error:", err);
-        }
-        return { quotes: [] };
+        const fallback = { quotes: [] };
+        return withTimeout(async () => {
+          try {
+            if (rawYf && typeof rawYf.search === 'function') return await rawYf.search(...args);
+          } catch (err) {
+            console.warn("yf.search error:", err);
+          }
+          return fallback;
+        }, 2500, fallback);
       },
       historical: async (...args: any[]) => {
-        try {
-          if (rawYf && typeof rawYf.historical === 'function') return await rawYf.historical(...args);
-        } catch (err) {
-          console.warn("yf.historical error:", err);
-        }
-        return [];
+        const fallback: any[] = [];
+        return withTimeout(async () => {
+          try {
+            const symbol = args[0];
+            const queryOpts = args[1] || {};
+            if (rawYf && typeof rawYf.chart === 'function') {
+              const chartRes = await rawYf.chart(symbol, queryOpts);
+              if (chartRes && Array.isArray(chartRes.quotes) && chartRes.quotes.length > 0) {
+                return chartRes.quotes.map((q: any) => ({
+                  date: q.date,
+                  open: q.open ?? q.close,
+                  high: q.high ?? q.close,
+                  low: q.low ?? q.close,
+                  close: q.close,
+                  volume: q.volume || 0,
+                  adjClose: q.adjclose ?? q.close
+                })).filter((q: any) => q.close !== undefined && q.close !== null);
+              }
+            }
+            if (rawYf && typeof rawYf.historical === 'function') {
+              const res = await rawYf.historical(...args);
+              if (Array.isArray(res) && res.length > 0) return res;
+            }
+          } catch (err) {
+            console.warn("yf.historical/chart error:", err);
+          }
+          return fallback;
+        }, 15000, fallback);
+      },
+      quoteSummary: async (...args: any[]) => {
+        const fallback = null;
+        return withTimeout(async () => {
+          try {
+            if (rawYf && typeof rawYf.quoteSummary === 'function') return await rawYf.quoteSummary(...args);
+            if (YahooFinance && typeof (YahooFinance as any).quoteSummary === 'function') return await (YahooFinance as any).quoteSummary(...args);
+          } catch (err) {
+            console.warn("yf.quoteSummary error:", err);
+          }
+          return fallback;
+        }, 2500, fallback);
       }
     };
   } catch (e) {
@@ -735,7 +807,8 @@ function initYahooFinance(): any {
     quote: async () => ({ regularMarketPrice: 7000, regularMarketChangePercent: 0 }),
     chart: async () => ({ quotes: [] }),
     search: async () => ({ quotes: [] }),
-    historical: async () => []
+    historical: async () => [],
+    quoteSummary: async () => null
   };
 }
 
@@ -1312,9 +1385,19 @@ app.get('/api/market/live-stats', async (req, res) => {
   }
 });
 
+// Cache for analytics dashboard and ticker details
+const analyticsDashboardCache = new Map<string, { data: any, timestamp: number }>();
+
 // 10. Analytics Dashboard
 app.get('/api/analytics/dashboard', async (req, res) => {
   const index = req.query.index as string || 'LQ45 Core Universe';
+  
+  // Return instant cache if fresh (< 2 minutes)
+  const cacheKey = index;
+  const cachedDash = analyticsDashboardCache.get(cacheKey);
+  if (cachedDash && (Date.now() - cachedDash.timestamp < 120000)) {
+    return res.json(cachedDash.data);
+  }
   
   // Find the selected universe
   const selectedUniverse = universes.find(u => u.name === index || u.id === index);
@@ -1371,7 +1454,7 @@ app.get('/api/analytics/dashboard', async (req, res) => {
   const multiplier = 1;
   const liveStats = await getLiveMarketStats();
   
-  res.json({
+  const responseData = {
     scoredToday: universeStocks.length,
     scoreDate: new Date().toISOString().split('T')[0],
     marketRegime: currentMarketRegime,
@@ -1391,7 +1474,10 @@ app.get('/api/analytics/dashboard', async (req, res) => {
       { name: 'Bear', value: 10 },
       { name: 'Volatile', value: 20 }
     ]
-  });
+  };
+
+  analyticsDashboardCache.set(cacheKey, { data: responseData, timestamp: Date.now() });
+  res.json(responseData);
 });
 
 // 11. Portfolio Growth Data
@@ -1442,9 +1528,11 @@ app.get('/api/portfolio/growth', async (req, res) => {
       let quotes: any[] = [];
       try {
         const period1 = new Date(Date.now() - 365 * 86400000).toISOString();
-        const chart = await yf.chart('^JKSE', { period1, interval: '1d' });
+        const chartPromise = yf.chart('^JKSE', { period1, interval: '1d' });
+        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 1500));
+        const chart: any = await Promise.race([chartPromise, timeoutPromise]);
         if (chart && chart.quotes) {
-          quotes = chart.quotes.filter(q => q.close !== null && q.date);
+          quotes = chart.quotes.filter((q: any) => q.close !== null && q.date);
         }
       } catch (e) {
         console.warn("Could not fetch Yahoo Finance history for growth:", e);
@@ -1452,6 +1540,7 @@ app.get('/api/portfolio/growth', async (req, res) => {
       
       const data = [];
       const now = new Date();
+      const dbInserts: Promise<any>[] = [];
       
       if (quotes.length > 0) {
         const initialClose = quotes[0].close || 7000;
@@ -1468,9 +1557,11 @@ app.get('/api/portfolio/growth', async (req, res) => {
           const bal = Math.round(capital * Math.max(0.3, effectiveRatio));
           const id = `${portfolioId}-${dateISO}`;
           
-          await executeQuery(
-            "INSERT OR IGNORE INTO portfolio_snapshots (id, portfolio_id, date, total_value) VALUES (?, ?, ?, ?)",
-            [id, portfolioId, dateISO, bal]
+          dbInserts.push(
+            executeQuery(
+              "INSERT OR IGNORE INTO portfolio_snapshots (id, portfolio_id, date, total_value) VALUES (?, ?, ?, ?)",
+              [id, portfolioId, dateISO, bal]
+            )
           );
           
           const monthStr = dateObj.toLocaleString('id-ID', { month: 'short' });
@@ -1492,9 +1583,11 @@ app.get('/api/portfolio/growth', async (req, res) => {
           const bal = Math.round(currentBalance);
           const id = `${portfolioId}-${dateISO}`;
           
-          await executeQuery(
-            "INSERT OR IGNORE INTO portfolio_snapshots (id, portfolio_id, date, total_value) VALUES (?, ?, ?, ?)",
-            [id, portfolioId, dateISO, bal]
+          dbInserts.push(
+            executeQuery(
+              "INSERT OR IGNORE INTO portfolio_snapshots (id, portfolio_id, date, total_value) VALUES (?, ?, ?, ?)",
+              [id, portfolioId, dateISO, bal]
+            )
           );
           
           const monthStr = dateObj.toLocaleString('id-ID', { month: 'short' });
@@ -1505,6 +1598,10 @@ app.get('/api/portfolio/growth', async (req, res) => {
           });
         }
       }
+
+      // Execute DB inserts asynchronously in background
+      Promise.all(dbInserts).catch(err => console.warn("Background snapshot insert error:", err));
+
       return res.json(data);
     }
     
@@ -2526,6 +2623,32 @@ app.post('/api/backtest/run', async (req, res) => {
     // 2. Run simulation if we have sufficient data
     const sortedDates = Array.from(uniqueDatesSet).sort();
     if (sortedDates.length >= 10) {
+      // Forward-fill missing price data across trading days
+      const lastKnownPrice: { [ticker: string]: number } = {};
+      for (const d of sortedDates) {
+        if (!dailyPricesMap[d]) dailyPricesMap[d] = {};
+        for (const symbol of tickersToFetch) {
+          if (dailyPricesMap[d][symbol] !== undefined && dailyPricesMap[d][symbol] > 0) {
+            lastKnownPrice[symbol] = dailyPricesMap[d][symbol];
+          } else if (lastKnownPrice[symbol] !== undefined) {
+            dailyPricesMap[d][symbol] = lastKnownPrice[symbol];
+          }
+        }
+      }
+
+      // Backward-fill for any initial missing dates
+      const firstKnownPrice: { [ticker: string]: number } = {};
+      for (let i = sortedDates.length - 1; i >= 0; i--) {
+        const d = sortedDates[i];
+        for (const symbol of tickersToFetch) {
+          if (dailyPricesMap[d][symbol] !== undefined && dailyPricesMap[d][symbol] > 0) {
+            firstKnownPrice[symbol] = dailyPricesMap[d][symbol];
+          } else if (firstKnownPrice[symbol] !== undefined) {
+            dailyPricesMap[d][symbol] = firstKnownPrice[symbol];
+          }
+        }
+      }
+
       let currentCash = seedCapital;
       let totalDividendEarned = 0;
       let accumulatedDividends: { [ticker: string]: number } = {};
@@ -4357,6 +4480,24 @@ app.get('/api/live-tickers', async (req, res) => {
 const widgetCache = new Map<string, { data: any, timestamp: number }>();
 const WIDGET_CACHE_TTL = 15 * 60 * 1000; // 15 minutes
 
+async function safeYfChart(symbol: string, options: any, timeoutMs = 2000): Promise<any> {
+  const chartPromise = yf.chart(symbol, options);
+  const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("YF Timeout")), timeoutMs));
+  return Promise.race([chartPromise, timeoutPromise]);
+}
+
+async function safeYfQuote(symbol: string, timeoutMs = 2000): Promise<any> {
+  const quotePromise = yf.quote(symbol);
+  const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("YF Timeout")), timeoutMs));
+  return Promise.race([quotePromise, timeoutPromise]);
+}
+
+async function safeYfSummary(symbol: string, options: any, timeoutMs = 2000): Promise<any> {
+  const summaryPromise = yf.quoteSummary(symbol, options);
+  const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("YF Timeout")), timeoutMs));
+  return Promise.race([summaryPromise, timeoutPromise]);
+}
+
 app.get('/api/widgets/kinerja', async (req, res) => {
   let symbol = (req.query.symbol as string || 'IHSG').toUpperCase();
   if (symbol === 'IHSG') {
@@ -4377,7 +4518,7 @@ app.get('/api/widgets/kinerja', async (req, res) => {
     period1.setFullYear(now.getFullYear() - 1);
     period1.setMonth(period1.getMonth() - 3); // cushion for weekends/holidays
     
-    const chartResult = await yf.chart(symbol, {
+    const chartResult = await safeYfChart(symbol, {
       period1: period1.toISOString(),
       interval: '1d'
     });
@@ -4468,7 +4609,7 @@ app.get('/api/widgets/musiman', async (req, res) => {
     const now = new Date();
     const period1 = new Date(2024, 0, 1);
     
-    const chartResult = await yf.chart(symbol, {
+    const chartResult = await safeYfChart(symbol, {
       period1: period1.toISOString(),
       interval: '1wk'
     });
@@ -4726,9 +4867,9 @@ app.get('/api/widgets/gauges', async (req, res) => {
   try {
     const summary = isIndex 
       ? null 
-      : await yf.quoteSummary(symbol, { modules: ['financialData', 'recommendationTrend'] }).catch(() => null);
+      : await safeYfSummary(symbol, { modules: ['financialData', 'recommendationTrend'] }).catch(() => null);
       
-    const quote = await yf.quote(symbol).catch(() => null) || {} as any;
+    const quote = await safeYfQuote(symbol).catch(() => null) || {} as any;
     const finData: any = (summary?.financialData || {}) as any;
     
     let targetPrice = finData.targetMeanPrice?.raw || quote.regularMarketPrice || 0;
@@ -4761,7 +4902,7 @@ app.get('/api/widgets/gauges', async (req, res) => {
       analystValue = 30;
     }
     
-    const chartData = await yf.chart(symbol, {
+    const chartData = await safeYfChart(symbol, {
       period1: new Date(Date.now() - 60 * 86400000).toISOString(),
       interval: '1d'
     }).catch(() => null);
@@ -5192,6 +5333,11 @@ app.get('/api/widgets/ticker-details', async (req, res) => {
   }
 
   const cleanSymbol = isIndex ? 'IHSG' : symbol.replace('.JK', '');
+  const cacheKey = `ticker_details_${cleanSymbol}`;
+  const cached = widgetCache.get(cacheKey);
+  if (cached && (Date.now() - cached.timestamp < 180000)) {
+    return res.json(cached.data);
+  }
 
   try {
     const quote = await yf.quote(symbol).catch(() => null) as any;
@@ -5282,7 +5428,7 @@ app.get('/api/widgets/ticker-details', async (req, res) => {
       }
     }
 
-    return res.json({
+    const resultData = {
       symbol: cleanSymbol,
       fullSymbol: symbol,
       name,
@@ -5312,7 +5458,10 @@ app.get('/api/widgets/ticker-details', async (req, res) => {
       beta: parseFloat(beta.toFixed(2)),
       nextEarnings,
       news: newsItems
-    });
+    };
+
+    widgetCache.set(cacheKey, { data: resultData, timestamp: Date.now() });
+    return res.json(resultData);
   } catch (err: any) {
     console.error("Ticker details widget error:", err);
     const fallbackNews = await fetchLiveIndonesianNews(cleanSymbol);
