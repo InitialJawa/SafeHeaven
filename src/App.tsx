@@ -10,6 +10,7 @@ import { AppLayout } from './AppLayout';
 import { testConnection, auth, onAuthStateChanged } from './lib/firebase';
 import { Toaster } from 'sonner';
 import { PageLoader } from './components/PageLoader';
+import { AdminProtectedRoute } from './admin/AdminProtectedRoute';
 
 // Lazy-loaded Page Modules
 const LandingPage = lazy(() => import('./pages/LandingPage').then(m => ({ default: m.LandingPage })));
@@ -28,6 +29,7 @@ const Risk = lazy(() => import('./pages/Risk').then(m => ({ default: m.Risk })))
 const Alerts = lazy(() => import('./pages/Alerts').then(m => ({ default: m.Alerts })));
 const Admin = lazy(() => import('./pages/Admin').then(m => ({ default: m.Admin })));
 const Settings = lazy(() => import('./pages/Settings').then(m => ({ default: m.Settings })));
+const AiManager = lazy(() => import('./pages/AiManager').then(m => ({ default: m.AiManager })));
 const TickerDetail = lazy(() => import('./pages/TickerDetail').then(m => ({ default: m.TickerDetail })));
 const FullChart = lazy(() => import('./pages/FullChart').then(m => ({ default: m.FullChart })));
 const NotFound = lazy(() => import('./pages/NotFound').then(m => ({ default: m.NotFound })));
@@ -102,10 +104,15 @@ export default function App() {
             {!user ? <Redirect to="/login" /> : <AppLayout><Alerts /></AppLayout>}
           </Route>
           <Route path="/admin">
-            {!user ? <Redirect to="/login" /> : <AppLayout><Admin /></AppLayout>}
+            <AdminProtectedRoute>
+              <AppLayout><Admin /></AppLayout>
+            </AdminProtectedRoute>
           </Route>
           <Route path="/settings">
             {!user ? <Redirect to="/login" /> : <AppLayout><Settings /></AppLayout>}
+          </Route>
+          <Route path="/ai">
+            {!user ? <Redirect to="/login" /> : <AppLayout><AiManager /></AppLayout>}
           </Route>
 
           {/* Dynamic ticker detail route */}

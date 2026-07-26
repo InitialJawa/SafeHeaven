@@ -172,6 +172,22 @@ export interface ChatMessage {
   sender: 'user' | 'ai';
   text: string;
   timestamp: string;
+  provider?: string;
+  model?: string;
+}
+
+export interface ChatSessionItem {
+  id: string;
+  title: string;
+  updatedAt: number;
+  messages?: ChatMessage[];
+}
+
+export interface SavedPromptItem {
+  id: string;
+  title: string;
+  prompt: string;
+  category?: string;
 }
 
 export interface BacktestResult {

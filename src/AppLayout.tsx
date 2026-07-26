@@ -36,7 +36,8 @@ import {
   Activity,
   LineChart,
   Newspaper,
-  Globe
+  Globe,
+  Bot
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -74,7 +75,6 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
       items: [
         { name: 'Market Cockpit', path: '/', icon: LayoutDashboard },
         { name: 'IHSG Chart', path: '/full-chart/IHSG', icon: LineChart },
-        { name: 'Landing Page', path: '/landing', icon: Globe },
       ]
     },
     {

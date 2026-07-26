@@ -34,7 +34,8 @@ import {
   Gauge,
   LayoutList,
   ChevronRight,
-  Filter
+  Filter,
+  Bot
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -169,7 +170,7 @@ export const Dashboard: React.FC = () => {
             <p className="text-[11px] sm:text-xs text-[#9f9bac] mt-0.5 sm:mt-1 font-sans">Pusat komando finansial dan intelijen kuantitatif cerdas Anda.</p>
           </div>
           <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
-            <div className="text-xs text-[#686477] font-mono bg-[#111018] border border-[#1b1926] px-3.5 py-1.5 rounded-xl hidden sm:block">
+            <div className="text-xs text-[#686477] font-mono bg-[#111018] border border-[#1b1926] px-3.5 py-1.5 rounded-xl hidden md:block">
               Hari ini: {new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </div>
             <button

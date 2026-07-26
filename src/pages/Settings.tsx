@@ -99,7 +99,7 @@ export const Settings: React.FC = () => {
   const [showApiKey, setShowApiKey] = useState(false);
   const [aiState, setAiState] = useState<AiApiConfig>({
     provider: 'gemini',
-    aiModel: 'gemini-3.6-flash',
+    aiModel: 'gemini-2.5-flash',
     customApiKey: '',
     customBaseUrl: '',
     aiTemperature: 0.3,
@@ -175,7 +175,7 @@ export const Settings: React.FC = () => {
     if (aiConfig) {
       setAiState({
         provider: aiConfig.provider || 'gemini',
-        aiModel: aiConfig.aiModel || 'gemini-3.6-flash',
+        aiModel: aiConfig.aiModel || 'gemini-2.5-flash',
         customApiKey: aiConfig.customApiKey || '',
         customBaseUrl: aiConfig.customBaseUrl || '',
         aiTemperature: aiConfig.aiTemperature ?? 0.3,
@@ -235,7 +235,7 @@ export const Settings: React.FC = () => {
   };
 
   const handleProviderChange = (newProvider: AiProvider) => {
-    let defaultModel = 'gemini-3.6-flash';
+    let defaultModel = 'gemini-2.5-flash';
     if (newProvider === 'openai') defaultModel = 'gpt-4o-mini';
     else if (newProvider === 'anthropic') defaultModel = 'claude-3-5-sonnet-20241022';
     else if (newProvider === 'deepseek') defaultModel = 'deepseek-chat';
@@ -1140,7 +1140,7 @@ export const Settings: React.FC = () => {
                           onChange={(e) => setAiState({ ...aiState, aiModel: e.target.value })}
                           className="w-full bg-[#111018]/60 border border-[#1b1926] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#ccff00]/40 text-xs font-medium cursor-pointer"
                         >
-                          <option value="gemini-3.6-flash">Gemini 3.6 Flash — Cepat & Efisien (Rekomendasi Utama)</option>
+                          <option value="gemini-2.5-flash">Gemini 3.6 Flash — Cepat & Efisien (Rekomendasi Utama)</option>
                           <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro — Penalaran Kuantitatif Kompleks</option>
                           <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite — Mode Kecepatan Tinggi</option>
                         </select>

@@ -23,6 +23,8 @@ import {
   BacktestResult, 
   OptimizerResult,
   BacktestHistoryItem,
+  ChatSessionItem,
+  SavedPromptItem,
   NotificationChannelConfig,
   GlobalSystemConfig,
   AiApiConfig
@@ -77,9 +79,23 @@ interface AppState {
   // Keys
   apiKeys: ApiKey[];
   
-  // Chat
+  // AI Memory Context
+  userMemoryContext: string | null;
+  fetchUserMemoryContext: () => Promise<void>;
+  updateUserMemoryContext: (newContext: string) => Promise<void>;
+
+  // Chat & AI Sessions
   chatMessages: ChatMessage[];
   chatLoading: boolean;
+  chatSessions: ChatSessionItem[];
+  fetchChatSessions: () => Promise<ChatSessionItem[]>;
+  saveChatSession: (session: ChatSessionItem) => Promise<void>;
+  deleteChatSession: (sessionId: string) => Promise<void>;
+
+  savedPrompts: SavedPromptItem[];
+  fetchSavedPrompts: () => Promise<SavedPromptItem[]>;
+  saveSavedPrompt: (prompt: SavedPromptItem) => Promise<void>;
+  deleteSavedPrompt: (promptId: string) => Promise<void>;
 
   // Settings configs
   rebalanceConfig: {
@@ -114,6 +130,7 @@ interface AppState {
   generateApiKey: (name: string) => Promise<void>;
   revokeApiKey: (id: string) => Promise<void>;
   sendChatMessage: (message: string) => Promise<void>;
+  clearChatMessages: () => void;
   changeUserRole: (userId: string, role: 'user' | 'advisor' | 'admin') => Promise<void>;
   addClient: (name: string, email: string) => Promise<void>;
 }
@@ -328,10 +345,13 @@ export const useAppStore = create<AppState>((set, get) => ({
     { id: 'k-1', name: 'Production Live Feed', key: 'sh_live_9f83a218', status: 'Active', lastUsed: '2026-07-20 11:14' },
     { id: 'k-2', name: 'Backtest Sandbox', key: 'sh_test_cc9831fa', status: 'Active', lastUsed: '2026-07-19 14:22' }
   ],
+  userMemoryContext: null,
   chatMessages: [
-    { id: 'c-1', sender: 'ai', text: 'Halo! Saya SafeHeaven AI Assistant. Saya dapat membantu menganalisis portfolio, menyusun aturan alert, atau menjelaskan strategi backtest Anda. Silakan tanyakan apa saja!', timestamp: new Date().toLocaleTimeString('id-ID') }
+    { id: 'c-1', sender: 'ai', text: 'Halo! Saya SafeHaven AI Assistant. Saya dapat membantu menganalisis portfolio, menyusun aturan alert, atau menjelaskan strategi backtest Anda. Silakan tanyakan apa saja!', timestamp: new Date().toLocaleTimeString('id-ID') }
   ],
   chatLoading: false,
+  chatSessions: [],
+  savedPrompts: [],
 
   rebalanceConfig: {
     enabled: true,
@@ -368,7 +388,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   aiConfig: {
     provider: 'gemini',
-    aiModel: 'gemini-3.6-flash',
+    aiModel: 'gemini-2.5-flash',
     customApiKey: '',
     customBaseUrl: '',
     aiTemperature: 0.3,
@@ -546,6 +566,11 @@ export const useAppStore = create<AppState>((set, get) => ({
 
       // Asynchronous background load for Backtest History
       get().fetchBacktestHistory().catch(() => {});
+      // Fetch AI user memory context
+      get().fetchUserMemoryContext().catch(() => {});
+      // Fetch Chat Sessions & Saved Prompts
+      get().fetchChatSessions().catch(() => {});
+      get().fetchSavedPrompts().catch(() => {});
     } catch (err) {
       console.warn('API sync failed, continuing with responsive in-memory state.', err);
     } finally {
@@ -824,13 +849,54 @@ export const useAppStore = create<AppState>((set, get) => ({
     } catch {}
   },
 
+  fetchUserMemoryContext: async () => {
+    const firebaseUid = auth.currentUser?.uid;
+    const userId = firebaseUid || get().user?.id;
+    if (!userId) return;
+
+    try {
+      const docRef = doc(db, `users/${userId}/memory/default`);
+      const snapshot = await getDoc(docRef);
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        set({ userMemoryContext: data.memoryContext || null });
+      } else {
+        set({ userMemoryContext: null });
+      }
+    } catch (e) {
+      console.warn("Failed to fetch user memory", e);
+    }
+  },
+
+  updateUserMemoryContext: async (newContext: string) => {
+    const firebaseUid = auth.currentUser?.uid;
+    const userId = firebaseUid || get().user?.id;
+    if (!userId) return;
+
+    try {
+      const docRef = doc(db, `users/${userId}/memory/default`);
+      await setDoc(docRef, {
+        userId,
+        memoryContext: newContext,
+        lastUpdated: new Date().toISOString()
+      }, { merge: true });
+      set({ userMemoryContext: newContext });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `users/${userId}/memory/default`);
+    }
+  },
+
+  clearChatMessages: () => {
+    set({ chatMessages: [] });
+  },
+
   sendChatMessage: async (text) => {
     const idUser = `msg-user-${Date.now()}`;
     const userMsg: ChatMessage = {
       id: idUser,
       sender: 'user',
       text,
-      timestamp: new Date().toLocaleTimeString('id-ID')
+      timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
     };
 
     set((state) => ({
@@ -839,46 +905,58 @@ export const useAppStore = create<AppState>((set, get) => ({
     }));
 
     try {
+      const { userMemoryContext } = get();
       const response = await fetch(getApiUrl('/api/chat'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: text })
+        body: JSON.stringify({ prompt: text, memoryContext: userMemoryContext })
       });
 
-      if (response.ok) {
-        const data = await response.json();
+      const data = await response.json().catch(() => ({}));
+
+      if (response.ok && data.text) {
+        if (data.newMemoryContext) {
+          get().updateUserMemoryContext(data.newMemoryContext);
+        }
+
         const idAi = `msg-ai-${Date.now()}`;
         const aiMsg: ChatMessage = {
           id: idAi,
           sender: 'ai',
-          text: data.text || 'Maaf, saya tidak dapat memproses tanggapan.',
-          timestamp: new Date().toLocaleTimeString('id-ID')
+          text: data.text,
+          provider: data.provider,
+          model: data.model,
+          timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
         };
         set((state) => ({
           chatMessages: [...state.chatMessages, aiMsg],
           chatLoading: false
         }));
       } else {
-        throw new Error('API Error');
-      }
-    } catch {
-      // Local fallback mock reply using basic rule matches or standard reply
-      setTimeout(() => {
         const idAi = `msg-ai-${Date.now()}`;
-        const replyText = text.toLowerCase().includes('saham') 
-          ? 'Saham-saham blue-chip seperti BBCA dan BBRI saat ini memiliki skor fundamental tinggi (skor > 80), menjadikannya kandidat Beli/Akumulasi utama di portfolio Defensive Value Anda.'
-          : 'Terima kasih atas pertanyaannya! SafeHeaven AI merekomendasikan rebalancing berkala setiap minggu (Senin pagi) untuk meminimalisir deviasi alokasi aset Anda dari target.';
         const aiMsg: ChatMessage = {
           id: idAi,
           sender: 'ai',
-          text: replyText,
-          timestamp: new Date().toLocaleTimeString('id-ID')
+          text: data.text || `⚠️ Gagal mendapatkan respons dari AI: ${data.error || 'Server tidak merespons'}`,
+          timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
         };
         set((state) => ({
           chatMessages: [...state.chatMessages, aiMsg],
           chatLoading: false
         }));
-      }, 800);
+      }
+    } catch (err: any) {
+      const idAi = `msg-ai-${Date.now()}`;
+      const aiMsg: ChatMessage = {
+        id: idAi,
+        sender: 'ai',
+        text: `⚠️ Terjadi kendala jaringan/koneksi backend: ${err?.message || 'Gagal menghubungi server'}.`,
+        timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+      };
+      set((state) => ({
+        chatMessages: [...state.chatMessages, aiMsg],
+        chatLoading: false
+      }));
     }
   },
 
@@ -978,6 +1056,175 @@ export const useAppStore = create<AppState>((set, get) => ({
         await deleteDoc(docRef);
       } catch (err) {
         handleFirestoreError(err, OperationType.DELETE, `users/${userId}/backtests/${id}`);
+      }
+    }
+  },
+
+  fetchChatSessions: async () => {
+    const firebaseUid = auth.currentUser?.uid;
+    const userId = firebaseUid || get().user?.id || 'usr-1';
+
+    if (firebaseUid && firebaseUid === userId) {
+      try {
+        const colRef = collection(db, 'users', userId, 'chatSessions');
+        const snapshot = await getDocs(colRef);
+        const items: ChatSessionItem[] = [];
+        snapshot.forEach(docSnap => {
+          items.push(docSnap.data() as ChatSessionItem);
+        });
+        items.sort((a, b) => b.updatedAt - a.updatedAt);
+        if (items.length > 0) {
+          set({ chatSessions: items });
+          localStorage.setItem(`ai_chat_sessions_${userId}`, JSON.stringify(items));
+          return items;
+        }
+      } catch (err) {
+        console.warn("Failed to fetch chat sessions from Firestore", err);
+      }
+    }
+
+    const local = localStorage.getItem(`ai_chat_sessions_${userId}`) || localStorage.getItem("ai_chat_sessions");
+    if (local) {
+      try {
+        const parsed = JSON.parse(local);
+        set({ chatSessions: parsed });
+        return parsed;
+      } catch {}
+    }
+    return [];
+  },
+
+  saveChatSession: async (sessionItem) => {
+    const firebaseUid = auth.currentUser?.uid;
+    const userId = firebaseUid || get().user?.id || 'usr-1';
+    
+    const existingIndex = get().chatSessions.findIndex(s => s.id === sessionItem.id);
+    let updated: ChatSessionItem[];
+    if (existingIndex >= 0) {
+      updated = get().chatSessions.map(s => s.id === sessionItem.id ? { ...s, ...sessionItem } : s);
+    } else {
+      updated = [sessionItem, ...get().chatSessions];
+    }
+
+    set({ chatSessions: updated });
+    localStorage.setItem(`ai_chat_sessions_${userId}`, JSON.stringify(updated));
+    localStorage.setItem("ai_chat_sessions", JSON.stringify(updated));
+
+    if (firebaseUid && firebaseUid === userId) {
+      try {
+        const docRef = doc(db, 'users', userId, 'chatSessions', sessionItem.id);
+        const firestorePayload: any = {
+          id: sessionItem.id,
+          title: sessionItem.title,
+          updatedAt: sessionItem.updatedAt
+        };
+        if (sessionItem.messages) {
+          firestorePayload.messages = JSON.stringify(sessionItem.messages);
+        }
+        await setDoc(docRef, firestorePayload, { merge: true });
+      } catch (err) {
+        handleFirestoreError(err, OperationType.WRITE, `users/${userId}/chatSessions/${sessionItem.id}`);
+      }
+    }
+  },
+
+  deleteChatSession: async (sessionId) => {
+    const firebaseUid = auth.currentUser?.uid;
+    const userId = firebaseUid || get().user?.id || 'usr-1';
+    const updated = get().chatSessions.filter(s => s.id !== sessionId);
+    set({ chatSessions: updated });
+    localStorage.setItem(`ai_chat_sessions_${userId}`, JSON.stringify(updated));
+    localStorage.setItem("ai_chat_sessions", JSON.stringify(updated));
+
+    if (firebaseUid && firebaseUid === userId) {
+      try {
+        const docRef = doc(db, 'users', userId, 'chatSessions', sessionId);
+        await deleteDoc(docRef);
+      } catch (err) {
+        handleFirestoreError(err, OperationType.DELETE, `users/${userId}/chatSessions/${sessionId}`);
+      }
+    }
+  },
+
+  fetchSavedPrompts: async () => {
+    const firebaseUid = auth.currentUser?.uid;
+    const userId = firebaseUid || get().user?.id || 'usr-1';
+
+    if (firebaseUid && firebaseUid === userId) {
+      try {
+        const colRef = collection(db, 'users', userId, 'savedPrompts');
+        const snapshot = await getDocs(colRef);
+        const items: SavedPromptItem[] = [];
+        snapshot.forEach(docSnap => {
+          items.push(docSnap.data() as SavedPromptItem);
+        });
+        if (items.length > 0) {
+          set({ savedPrompts: items });
+          localStorage.setItem(`ai_saved_prompts_${userId}`, JSON.stringify(items));
+          return items;
+        }
+      } catch (err) {
+        console.warn("Failed to fetch saved prompts from Firestore", err);
+      }
+    }
+
+    const local = localStorage.getItem(`ai_saved_prompts_${userId}`) || localStorage.getItem("ai_saved_prompts");
+    if (local) {
+      try {
+        const parsed = JSON.parse(local);
+        set({ savedPrompts: parsed });
+        return parsed;
+      } catch {}
+    }
+    const defaultPrompts: SavedPromptItem[] = [
+      { id: "1", title: "Analisa Makro IHSG", prompt: "Tolong berikan analisis makro IHSG hari ini beserta sektor yang diuntungkan." },
+      { id: "2", title: "Review Portfolio", prompt: "Berikan saran taktis untuk portofolio saham perbankan dan energi saya saat ini." },
+      { id: "3", title: "Screener Saham Undervalued", prompt: "Bantu saya mencari 3 saham blue chip yang sedang undervalued secara fundamental." }
+    ];
+    set({ savedPrompts: defaultPrompts });
+    return defaultPrompts;
+  },
+
+  saveSavedPrompt: async (promptItem) => {
+    const firebaseUid = auth.currentUser?.uid;
+    const userId = firebaseUid || get().user?.id || 'usr-1';
+    
+    const existingIndex = get().savedPrompts.findIndex(p => p.id === promptItem.id);
+    let updated: SavedPromptItem[];
+    if (existingIndex >= 0) {
+      updated = get().savedPrompts.map(p => p.id === promptItem.id ? { ...p, ...promptItem } : p);
+    } else {
+      updated = [promptItem, ...get().savedPrompts];
+    }
+
+    set({ savedPrompts: updated });
+    localStorage.setItem(`ai_saved_prompts_${userId}`, JSON.stringify(updated));
+    localStorage.setItem("ai_saved_prompts", JSON.stringify(updated));
+
+    if (firebaseUid && firebaseUid === userId) {
+      try {
+        const docRef = doc(db, 'users', userId, 'savedPrompts', promptItem.id);
+        await setDoc(docRef, promptItem, { merge: true });
+      } catch (err) {
+        handleFirestoreError(err, OperationType.WRITE, `users/${userId}/savedPrompts/${promptItem.id}`);
+      }
+    }
+  },
+
+  deleteSavedPrompt: async (promptId) => {
+    const firebaseUid = auth.currentUser?.uid;
+    const userId = firebaseUid || get().user?.id || 'usr-1';
+    const updated = get().savedPrompts.filter(p => p.id !== promptId);
+    set({ savedPrompts: updated });
+    localStorage.setItem(`ai_saved_prompts_${userId}`, JSON.stringify(updated));
+    localStorage.setItem("ai_saved_prompts", JSON.stringify(updated));
+
+    if (firebaseUid && firebaseUid === userId) {
+      try {
+        const docRef = doc(db, 'users', userId, 'savedPrompts', promptId);
+        await deleteDoc(docRef);
+      } catch (err) {
+        handleFirestoreError(err, OperationType.DELETE, `users/${userId}/savedPrompts/${promptId}`);
       }
     }
   }

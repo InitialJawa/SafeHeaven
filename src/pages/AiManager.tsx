@@ -1,0 +1,629 @@
+
+import React, { useState, useRef, useEffect } from 'react';
+import { 
+  MessageSquare, Bot, Settings, Bookmark, Trash2, Send, 
+  Copy, Check, Plus, AlertCircle 
+} from 'lucide-react';
+import Markdown from 'react-markdown';
+import { useAppStore } from '../stores';
+
+interface AiConfigState {
+  provider: string;
+  aiModel: string;
+  advisorStyle: string;
+}
+
+interface ChatSession {
+  id: string;
+  title: string;
+  updatedAt: number;
+}
+
+interface SavedPrompt {
+  id: string;
+  title: string;
+  prompt: string;
+}
+
+export const AiManager: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<'chat' | 'prompts' | 'settings'>('chat');
+  const [input, setInput] = useState('');
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  
+  const [activeConfig, setActiveConfig] = useState<AiConfigState>({
+    provider: 'gemini',
+    aiModel: 'gemini-2.5-flash',
+    advisorStyle: 'Seimbang'
+  });
+
+  const [includePortfolio, setIncludePortfolio] = useState(false);
+  const [includeWatchlist, setIncludeWatchlist] = useState(false);
+  const [selectedTicker, setSelectedTicker] = useState<string>('');
+
+  const { 
+    chatMessages, 
+    chatLoading, 
+    sendChatMessage, 
+    clearChatMessages, 
+    portfolioConfig, 
+    tickers,
+    chatSessions,
+    fetchChatSessions,
+    saveChatSession,
+    deleteChatSession,
+    savedPrompts,
+    fetchSavedPrompts,
+    saveSavedPrompt,
+    deleteSavedPrompt
+  } = useAppStore();
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // States
+  const [currentSessionId, setCurrentSessionId] = useState<string>('');
+  const [showPromptForm, setShowPromptForm] = useState(false);
+  const [newPromptTitle, setNewPromptTitle] = useState('');
+  const [newPromptText, setNewPromptText] = useState('');
+
+  useEffect(() => {
+    fetchActiveAiConfig();
+    
+    // Load sessions from store/Firestore
+    fetchChatSessions().then((loadedSessions) => {
+      if (loadedSessions && loadedSessions.length > 0) {
+        const first = loadedSessions[0];
+        setCurrentSessionId(first.id);
+        if (first.messages) {
+          try {
+            const msgs = typeof first.messages === 'string' ? JSON.parse(first.messages) : first.messages;
+            if (Array.isArray(msgs)) {
+              useAppStore.setState({ chatMessages: msgs });
+            }
+          } catch {}
+        }
+      } else {
+        const initialSessionId = "sess-" + Date.now();
+        const newSess = { id: initialSessionId, title: "Sesi Baru", updatedAt: Date.now() };
+        saveChatSession(newSess);
+        setCurrentSessionId(initialSessionId);
+      }
+    });
+
+    // Load saved prompts from store/Firestore
+    fetchSavedPrompts();
+  }, []);
+
+  const fetchActiveAiConfig = async () => {
+    try {
+      const base = window.location.origin;
+      const res = await fetch(`${base}/api/ai/config`);
+      if (res.ok) {
+        const data = await res.json();
+        setActiveConfig({
+          provider: data.provider || 'gemini',
+          aiModel: data.aiModel || 'gemini-2.5-flash',
+          advisorStyle: data.advisorStyle || 'Seimbang'
+        });
+      }
+    } catch (e) {
+      console.warn('Failed to fetch active AI config:', e);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'chat' && chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [chatMessages, chatLoading, activeTab]);
+
+  const handleNewSession = async () => {
+    const newId = "sess-" + Date.now();
+    const newSession = { id: newId, title: "Sesi Baru", updatedAt: Date.now() };
+    await saveChatSession(newSession);
+    setCurrentSessionId(newId);
+    clearChatMessages();
+  };
+
+  const handleSelectSession = (id: string) => {
+    setCurrentSessionId(id);
+    const targetSess = chatSessions.find(s => s.id === id);
+    if (targetSess && targetSess.messages) {
+      try {
+        const msgs = typeof targetSess.messages === 'string' ? JSON.parse(targetSess.messages) : targetSess.messages;
+        if (Array.isArray(msgs)) {
+          useAppStore.setState({ chatMessages: msgs });
+          return;
+        }
+      } catch {}
+    }
+    clearChatMessages();
+  };
+
+  const handleDeleteSession = async (id: string) => {
+    await deleteChatSession(id);
+    if (currentSessionId === id) {
+      const remaining = chatSessions.filter(s => s.id !== id);
+      if (remaining.length > 0) {
+        handleSelectSession(remaining[0].id);
+      } else {
+        handleNewSession();
+      }
+    }
+  };
+
+  const handleSavePrompt = async () => {
+    if (!newPromptTitle.trim() || !newPromptText.trim()) return;
+    const newPrompt = { id: "p-" + Date.now(), title: newPromptTitle, prompt: newPromptText };
+    await saveSavedPrompt(newPrompt);
+    setShowPromptForm(false);
+    setNewPromptTitle("");
+    setNewPromptText("");
+  };
+
+  const handleDeletePrompt = async (id: string) => {
+    await deleteSavedPrompt(id);
+  };
+
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!input.trim() || chatLoading) return;
+    
+    let message = input.trim();
+    
+    // Append context if requested
+    let contextString = "";
+    if (includePortfolio) {
+      contextString += `\n\n[CONTEXT: Portfolio saat ini memiliki capital ${portfolioConfig?.capital?.toLocaleString('id-ID') || 'N/A'}, strategi: ${portfolioConfig?.strategyName || 'N/A'}]`;
+    }
+    if (includeWatchlist) {
+      contextString += `\n\n[CONTEXT: User sedang memantau watchlist]`;
+    }
+    if (selectedTicker) {
+      const tickerData = tickers.find(t => t.symbol === selectedTicker);
+      if (tickerData) {
+        contextString += `\n\n[CONTEXT: Analisis difokuskan pada saham ${selectedTicker} dengan harga terakhir ${tickerData.price} (Perubahan: ${tickerData.changePercent}%)]`;
+      }
+    }
+    
+    setInput('');
+    await sendChatMessage(message + contextString);
+    fetchActiveAiConfig();
+
+    // Get current chat messages and sync session
+    const currentMsgs = useAppStore.getState().chatMessages;
+    let currentTitle = chatSessions.find(s => s.id === currentSessionId)?.title || "Sesi Baru";
+    if (currentTitle === "Sesi Baru" && message.length > 0) {
+      currentTitle = message.length > 20 ? message.substring(0, 20) + "..." : message;
+    }
+
+    await saveChatSession({
+      id: currentSessionId || ("sess-" + Date.now()),
+      title: currentTitle,
+      updatedAt: Date.now(),
+      messages: currentMsgs
+    });
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit();
+    }
+  };
+
+  const copyToClipboard = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const handleQuickPrompt = (prompt: string) => {
+    setInput(prompt);
+    setActiveTab('chat');
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  };
+
+  return (
+    <div className="flex flex-col h-[calc(100vh-5rem)] bg-[#0b0a10] animate-fade-in">
+      {/* Header */}
+      <div className="flex-none p-6 border-b border-[#222030] bg-[#111018]">
+        <div className="flex items-center justify-between max-w-screen-2xl mx-auto px-4 lg:px-8">
+          <div>
+            <h1 className="text-2xl font-bold text-white flex items-center space-x-3 tracking-tight">
+              <div className="w-10 h-10 bg-[#ccff00]/10 border border-[#ccff00]/30 rounded-xl flex items-center justify-center">
+                <Bot className="w-5 h-5 text-[#ccff00]" />
+              </div>
+              <span>SafeHaven AI Manager</span>
+            </h1>
+            <p className="text-sm text-[#888899] mt-2">
+              Pusat komando cerdas untuk analisis, strategi, dan wawasan pasar modal Anda.
+            </p>
+          </div>
+          
+          <div className="flex items-center space-x-3 bg-[#1a1926] p-1.5 rounded-xl border border-[#2f2d45]">
+            <button
+              onClick={() => setActiveTab('chat')}
+              className={`px-4 py-2 rounded-lg flex items-center space-x-2 text-sm font-medium transition-all ${
+                activeTab === 'chat' ? 'bg-[#222030] text-white shadow-sm' : 'text-[#888899] hover:text-white'
+              }`}
+            >
+              <MessageSquare className="w-4 h-4" />
+              <span>Chat</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('prompts')}
+              className={`px-4 py-2 rounded-lg flex items-center space-x-2 text-sm font-medium transition-all ${
+                activeTab === 'prompts' ? 'bg-[#222030] text-white shadow-sm' : 'text-[#888899] hover:text-white'
+              }`}
+            >
+              <Bookmark className="w-4 h-4" />
+              <span>Saved Prompts</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('settings')}
+              className={`px-4 py-2 rounded-lg flex items-center space-x-2 text-sm font-medium transition-all ${
+                activeTab === 'settings' ? 'bg-[#222030] text-white shadow-sm' : 'text-[#888899] hover:text-white'
+              }`}
+            >
+              <Settings className="w-4 h-4" />
+              <span>Settings</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content Area */}
+      <div className="flex-1 overflow-hidden relative">
+        <div className="max-w-screen-2xl mx-auto h-full flex">
+          
+          {/* History Sidebar (Desktop only) */}
+          <div className="hidden lg:flex w-64 border-r border-[#222030] bg-[#0f0e15] flex-col h-full">
+            <div className="p-4 border-b border-[#222030]">
+              <button 
+                onClick={handleNewSession}
+                className="w-full py-2 bg-[#ccff00]/10 hover:bg-[#ccff00]/20 text-[#ccff00] border border-[#ccff00]/30 rounded-lg flex items-center justify-center space-x-2 text-xs font-bold transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Chat Baru</span>
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-3">
+              <h3 className="text-[10px] uppercase tracking-wider text-[#686880] font-bold mb-3 px-2">Sesi Tersimpan</h3>
+              <div className="space-y-1">
+                {chatSessions.map(sess => (
+                  <div 
+                    key={sess.id}
+                    onClick={() => handleSelectSession(sess.id)}
+                    className={`group w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                      currentSessionId === sess.id 
+                        ? 'bg-[#222030]/50 text-white border border-[#222030]' 
+                        : 'text-[#888899] hover:bg-[#222030]/50 border border-transparent'
+                    }`}
+                  >
+                    <span className="truncate flex-1">{sess.title}</span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteSession(sess.id);
+                      }}
+                      className="opacity-0 group-hover:opacity-100 p-1 hover:text-red-400 text-zinc-500 transition-opacity"
+                      title="Hapus Sesi"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex-1 h-full flex flex-col">
+          {/* Chat Tab */}
+          {activeTab === 'chat' && (
+            <div className="flex-1 flex flex-col h-full">
+              {/* Messages Area */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                {chatMessages.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-center">
+                    <div className="w-16 h-16 bg-[#ccff00]/10 border border-[#ccff00]/30 rounded-2xl flex items-center justify-center mb-6">
+                      <Bot className="w-8 h-8 text-[#ccff00]" />
+                    </div>
+                    <h3 className="text-xl font-bold text-white mb-2">Mulai Sesi Konsultasi Baru</h3>
+                    <p className="text-[#888899] max-w-md mx-auto text-sm leading-relaxed mb-8">
+                      Tanyakan tentang proyeksi makro, screener saham, bedah fundamental emiten, atau minta review portofolio Anda saat ini.
+                    </p>
+                    <div className="grid grid-cols-2 gap-4 max-w-lg w-full">
+                      <button onClick={() => handleQuickPrompt("Berikan analisis fundamental BBCA terkini.")} className="p-4 bg-[#111018] hover:bg-[#1a1926] border border-[#222030] hover:border-[#ccff00]/30 rounded-xl text-left transition-all">
+                        <span className="block text-[#ccff00] text-sm font-bold mb-1">Analisis Emiten</span>
+                        <span className="block text-xs text-[#888899]">Bedah fundamental BBCA</span>
+                      </button>
+                      <button onClick={() => handleQuickPrompt("Bagaimana prospek sektor energi bulan ini?")} className="p-4 bg-[#111018] hover:bg-[#1a1926] border border-[#222030] hover:border-[#ccff00]/30 rounded-xl text-left transition-all">
+                        <span className="block text-[#ccff00] text-sm font-bold mb-1">Rotasi Sektor</span>
+                        <span className="block text-xs text-[#888899]">Prospek sektor energi</span>
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="max-w-4xl mx-auto w-full space-y-6 pb-6">
+                    {chatMessages.map((msg) => (
+                      <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`flex items-start max-w-[85%] ${msg.sender === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                          <div className={`w-8 h-8 shrink-0 rounded-lg flex items-center justify-center mt-1 ${
+                            msg.sender === 'user' 
+                              ? 'ml-4 bg-[#222030] text-white' 
+                              : 'mr-4 bg-[#ccff00]/10 border border-[#ccff00]/30 text-[#ccff00]'
+                          }`}>
+                            {msg.sender === 'user' ? <MessageSquare className="w-4 h-4" /> : <Bot className="w-5 h-5" />}
+                          </div>
+                          
+                          <div className={`group relative p-4 rounded-2xl ${
+                            msg.sender === 'user' 
+                              ? 'bg-[#1a1926] text-white rounded-tr-sm border border-[#2f2d45]' 
+                              : 'bg-transparent text-[#e0e0e0]'
+                          }`}>
+                            <div className={`text-sm leading-relaxed ${msg.sender === 'ai' ? 'markdown-body' : ''}`}>
+                              {msg.sender === 'ai' ? (
+                                <Markdown>{msg.text}</Markdown>
+                              ) : (
+                                <p className="whitespace-pre-wrap">{msg.text}</p>
+                              )}
+                            </div>
+                            
+                            <div className={`flex items-center mt-2 space-x-3 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                              <span className="text-[10px] text-[#686880] font-mono">{msg.timestamp}</span>
+                              {msg.sender === 'ai' && (
+                                <button 
+                                  onClick={() => copyToClipboard(msg.text, msg.id)}
+                                  className="text-[#686880] hover:text-[#ccff00] transition-colors"
+                                  title="Copy text"
+                                >
+                                  {copiedId === msg.id ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {chatLoading && (
+                      <div className="flex justify-start">
+                        <div className="flex items-start max-w-[80%]">
+                          <div className="w-8 h-8 mr-4 bg-[#ccff00]/10 border border-[#ccff00]/30 rounded-lg flex items-center justify-center mt-1 shrink-0">
+                            <Bot className="w-5 h-5 text-[#ccff00]" />
+                          </div>
+                          <div className="p-4">
+                            <div className="flex space-x-2">
+                              <div className="w-2 h-2 bg-[#ccff00] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                              <div className="w-2 h-2 bg-[#ccff00] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                              <div className="w-2 h-2 bg-[#ccff00] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    <div ref={chatEndRef} />
+                  </div>
+                )}
+              </div>
+
+              {/* Input Area */}
+              <div className="p-6 bg-[#111018] border-t border-[#222030] flex flex-col gap-3">
+                <form onSubmit={handleSubmit} className="relative max-w-4xl mx-auto w-full">
+                  <div className="absolute left-4 top-4 flex items-center space-x-2">
+                    <button
+                      type="button"
+                      className="p-1.5 text-[#686880] hover:text-white hover:bg-[#222030] rounded-md transition-colors"
+                      title="Clear Chat"
+                      onClick={clearChatMessages}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                  
+                  <textarea
+                    ref={inputRef}
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Tanyakan analisis saham, review portfolio, atau strategi makro..."
+                    className="w-full bg-[#1a1926] border border-[#2f2d45] focus:border-[#ccff00] focus:ring-1 focus:ring-[#ccff00] rounded-xl pl-14 pr-14 py-4 text-sm text-white placeholder-[#686880] resize-none h-14 overflow-hidden transition-all shadow-inner"
+                    rows={1}
+                  />
+                  
+                  <button
+                    type="submit"
+                    disabled={!input.trim() || chatLoading}
+                    className="absolute right-3 top-2.5 p-2 bg-[#ccff00] text-black hover:bg-[#b2e000] disabled:opacity-50 disabled:hover:bg-[#ccff00] rounded-lg transition-colors flex items-center justify-center"
+                  >
+                    <Send className="w-4 h-4" />
+                  </button>
+                </form>
+                
+                {/* Context Attachments */}
+                <div className="max-w-4xl mx-auto w-full flex items-center flex-wrap gap-4 px-2">
+                  <span className="text-xs text-[#888899] font-medium uppercase tracking-wider">Context:</span>
+                  <label className="flex items-center space-x-2 cursor-pointer group">
+                    <input 
+                      type="checkbox" 
+                      className="form-checkbox rounded bg-[#1a1926] border-[#2f2d45] text-[#ccff00] focus:ring-[#ccff00] focus:ring-offset-0 focus:ring-offset-transparent w-4 h-4 transition-colors cursor-pointer"
+                      checked={includePortfolio}
+                      onChange={(e) => setIncludePortfolio(e.target.checked)}
+                    />
+                    <span className="text-xs text-[#a0a0b0] group-hover:text-white transition-colors">Data Portfolio</span>
+                  </label>
+                  <label className="flex items-center space-x-2 cursor-pointer group">
+                    <input 
+                      type="checkbox" 
+                      className="form-checkbox rounded bg-[#1a1926] border-[#2f2d45] text-[#ccff00] focus:ring-[#ccff00] focus:ring-offset-0 focus:ring-offset-transparent w-4 h-4 transition-colors cursor-pointer"
+                      checked={includeWatchlist}
+                      onChange={(e) => setIncludeWatchlist(e.target.checked)}
+                    />
+                    <span className="text-xs text-[#a0a0b0] group-hover:text-white transition-colors">Data Watchlist</span>
+                  </label>
+                  
+                  <div className="flex items-center space-x-2 ml-auto">
+                    <span className="text-xs text-[#888899]">Fokus Saham:</span>
+                    <select
+                      value={selectedTicker}
+                      onChange={(e) => setSelectedTicker(e.target.value)}
+                      className="bg-[#1a1926] border border-[#2f2d45] text-white text-xs rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#ccff00]"
+                    >
+                      <option value="">-- Pilih Ticker --</option>
+                      {tickers.slice(0, 15).map(t => (
+                        <option key={t.symbol} value={t.symbol}>{t.symbol}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Prompts Tab */}
+          {activeTab === 'prompts' && (
+            <div className="flex-1 p-8 overflow-y-auto">
+              <div className="max-w-3xl mx-auto">
+                <div className="flex items-center justify-between mb-8">
+                  <h2 className="text-xl font-bold text-white flex items-center space-x-2">
+                    <Bookmark className="w-5 h-5 text-[#ccff00]" />
+                    <span>Saved Prompts Library</span>
+                  </h2>
+                  <button 
+                    onClick={() => setShowPromptForm(!showPromptForm)}
+                    className="flex items-center space-x-1.5 px-3 py-1.5 bg-[#ccff00]/10 text-[#ccff00] hover:bg-[#ccff00]/20 rounded-lg text-sm font-medium transition-colors cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Buat Prompt</span>
+                  </button>
+                </div>
+                
+                {showPromptForm && (
+                  <div className="bg-[#111018] border border-[#222030] rounded-xl p-5 mb-6">
+                    <h3 className="text-white font-medium mb-3">Buat Prompt Baru</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-xs text-[#888899] mb-1">Judul Prompt</label>
+                        <input 
+                          type="text" 
+                          value={newPromptTitle}
+                          onChange={(e) => setNewPromptTitle(e.target.value)}
+                          className="w-full bg-[#1a1926] border border-[#2f2d45] text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-[#ccff00]"
+                          placeholder="Contoh: Analisa Makro"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-[#888899] mb-1">Isi Prompt</label>
+                        <textarea 
+                          value={newPromptText}
+                          onChange={(e) => setNewPromptText(e.target.value)}
+                          className="w-full bg-[#1a1926] border border-[#2f2d45] text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-[#ccff00] h-24 resize-none"
+                          placeholder="Tuliskan instruksi prompt..."
+                        />
+                      </div>
+                      <div className="flex justify-end space-x-2">
+                        <button 
+                          onClick={() => setShowPromptForm(false)}
+                          className="px-4 py-2 bg-[#222030] text-white rounded-lg text-xs font-bold hover:bg-[#2f2d45]"
+                        >
+                          Batal
+                        </button>
+                        <button 
+                          onClick={handleSavePrompt}
+                          className="px-4 py-2 bg-[#ccff00] text-black rounded-lg text-xs font-bold hover:bg-[#b2e000]"
+                        >
+                          Simpan Prompt
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                <div className="grid grid-cols-1 gap-4">
+                  {savedPrompts.map((item) => (
+                    <div key={item.id} className="bg-[#111018] border border-[#222030] rounded-xl p-5 flex items-start justify-between group hover:border-[#ccff00]/30 transition-colors">
+                      <div className="flex-1 mr-4">
+                        <h3 className="text-white font-medium text-base mb-1">{item.title}</h3>
+                        <p className="text-[#888899] text-sm leading-relaxed">{item.prompt}</p>
+                      </div>
+                      <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => handleQuickPrompt(item.prompt)}
+                          className="px-3 py-1.5 bg-[#ccff00] text-black rounded-lg text-xs font-bold hover:bg-[#b2e000] cursor-pointer"
+                        >
+                          Gunakan
+                        </button>
+                        <button
+                          onClick={() => handleDeletePrompt(item.id)}
+                          className="p-1.5 bg-[#2a1b1b] text-[#ff8080] rounded-lg hover:bg-[#4a2b2b] transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  {savedPrompts.length === 0 && (
+                    <div className="text-center py-10">
+                      <p className="text-[#888899] text-sm">Belum ada prompt yang tersimpan.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Settings Tab */}
+          {activeTab === 'settings' && (
+            <div className="flex-1 p-8 overflow-y-auto">
+              <div className="max-w-3xl mx-auto">
+                <div className="mb-8">
+                  <h2 className="text-xl font-bold text-white flex items-center space-x-2">
+                    <Settings className="w-5 h-5 text-[#ccff00]" />
+                    <span>AI Engine Configuration</span>
+                  </h2>
+                  <p className="text-[#888899] text-sm mt-1">Konfigurasi ini dikelola melalui menu pengaturan sistem utama.</p>
+                </div>
+
+                <div className="bg-[#111018] border border-[#222030] rounded-xl p-6 mb-6">
+                  <div className="flex items-start space-x-4">
+                    <div className="w-12 h-12 rounded-xl bg-[#ccff00]/10 flex items-center justify-center shrink-0">
+                      <Bot className="w-6 h-6 text-[#ccff00]" />
+                    </div>
+                    <div>
+                      <h3 className="text-white font-bold text-lg mb-1">Status Konfigurasi Saat Ini</h3>
+                      <div className="grid grid-cols-2 gap-y-4 gap-x-12 mt-4">
+                        <div>
+                          <p className="text-[#888899] text-xs uppercase tracking-wider mb-1">AI Provider</p>
+                          <p className="text-white font-medium capitalize">{activeConfig.provider}</p>
+                        </div>
+                        <div>
+                          <p className="text-[#888899] text-xs uppercase tracking-wider mb-1">Active Model</p>
+                          <p className="text-[#ccff00] font-mono text-sm">{activeConfig.aiModel}</p>
+                        </div>
+                        <div>
+                          <p className="text-[#888899] text-xs uppercase tracking-wider mb-1">Gaya Penasihat</p>
+                          <p className="text-white font-medium">{activeConfig.advisorStyle}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-[#2a1b1b] border border-[#4a2b2b] rounded-xl p-4 flex items-start space-x-3 text-[#ff8080]">
+                  <AlertCircle className="w-5 h-5 mt-0.5 shrink-0" />
+                  <p className="text-sm leading-relaxed">
+                    Untuk mengubah pengaturan ini, mengelola API Key, dan model yang digunakan, silakan kunjungi menu <strong>Settings &gt; AI Settings</strong> pada panel navigasi utama.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};

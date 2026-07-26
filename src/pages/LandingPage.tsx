@@ -175,6 +175,10 @@ export const LandingPage: React.FC = () => {
           <nav className="hidden md:flex items-center gap-6 text-xs font-semibold text-[#9f9bac]">
             <a href="#fitur" className="hover:text-[#ccff00] transition-colors">Fitur Utama</a>
             <a href="#demo-ai" className="hover:text-[#ccff00] transition-colors">AI Intelligence</a>
+            <Link href={user ? "/ai" : "/login"} className="hover:text-[#ccff00] transition-colors flex items-center gap-1">
+              <Bot className="w-3.5 h-3.5" />
+              <span>AI Manager</span>
+            </Link>
             <a href="#screener" className="hover:text-[#ccff00] transition-colors">Live Market</a>
             <a href="#harga" className="hover:text-[#ccff00] transition-colors">Paket Harga</a>
             <a href="#faq" className="hover:text-[#ccff00] transition-colors">FAQ</a>

@@ -1476,7 +1476,7 @@ export const TickerDetail: React.FC<{ params: TickerParams }> = ({ params }) => 
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-white tracking-tight font-sans">Analisis Kuantitatif AI</h3>
-                  <p className="text-[10px] text-[#686477] font-sans mt-0.5">Gemini 3.5 Flash Model Analysis.</p>
+                  <p className="text-[10px] text-[#686477] font-sans mt-0.5">SafeHaven AI Engine Analysis.</p>
                 </div>
               </div>
               <button

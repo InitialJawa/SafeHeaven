@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { useLocation } from 'wouter';
 import { createChart, IChartApi, ISeriesApi, CandlestickSeries, HistogramSeries, LineSeries, ColorType, LineStyle, createSeriesMarkers } from 'lightweight-charts';
 import { ArrowLeft, SlidersHorizontal, Check, LineChart, Activity, Search, ChevronDown, RefreshCw, BarChart2 } from 'lucide-react';
@@ -6,6 +6,7 @@ import { TickerLogo } from '../components/TickerLogo';
 import { SignalBadge } from '../components/SignalBadge';
 import { IndicatorModal } from '../components/IndicatorModal';
 import { calculateIndicators, INDICATORS_REGISTRY } from '../lib/indicators';
+import { useAppStore } from '../stores';
 
 interface FullChartProps {
   params?: {
@@ -31,6 +32,7 @@ const POPULAR_SYMBOLS = [
 
 export const FullChart: React.FC<FullChartProps> = ({ params }) => {
   const [, setLocation] = useLocation();
+  const { tickers } = useAppStore();
   const symbol = (params?.symbol || 'BBCA').toUpperCase();
   const isMacroType = ['IHSG', 'USD', 'GOLD'].includes(symbol);
 
@@ -582,7 +584,18 @@ export const FullChart: React.FC<FullChartProps> = ({ params }) => {
     setActiveIndicatorIds([]);
   };
 
-  const filteredSymbols = POPULAR_SYMBOLS.filter(
+  const allSymbols = useMemo(() => {
+    const map = new Map<string, { symbol: string; name: string }>();
+    POPULAR_SYMBOLS.forEach((s) => map.set(s.symbol, s));
+    tickers.forEach((t) => {
+      if (!map.has(t.symbol)) {
+        map.set(t.symbol, { symbol: t.symbol, name: t.name || t.symbol });
+      }
+    });
+    return Array.from(map.values());
+  }, [tickers]);
+
+  const filteredSymbols = allSymbols.filter(
     (s) =>
       s.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
       s.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -602,7 +615,7 @@ export const FullChart: React.FC<FullChartProps> = ({ params }) => {
       />
 
       {/* Top Navigation & Controls Toolbar */}
-      <div className="flex flex-nowrap items-center justify-between gap-2 bg-[#111018] border border-[#1b1926] px-3 py-2.5 rounded-2xl shadow-lg shrink-0 overflow-x-auto no-scrollbar">
+      <div className="relative z-30 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 bg-[#111018] border border-[#1b1926] px-3 py-2.5 rounded-2xl shadow-lg shrink-0">
         
         {/* Left: Back Button & Symbol Switcher */}
         <div className="flex items-center gap-2 shrink-0">
@@ -646,6 +659,7 @@ export const FullChart: React.FC<FullChartProps> = ({ params }) => {
                   <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-[#8e8a9d]" />
                   <input
                     type="text"
+                    autoFocus
                     placeholder="Cari emiten atau indeks..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}

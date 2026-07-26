@@ -86,15 +86,15 @@ const DEFAULT_ANALYTICS_DATA: AnalyticsData = {
     { sector: 'Consumer', score: 55 }
   ],
   topGainers: [
-    { symbol: 'BBCA', name: 'PT Bank Central Asia Tbk', price: 9250, changePercent: 1.65, score: 88, signal: 'Beli' },
-    { symbol: 'BMRI', name: 'PT Bank Mandiri Tbk', price: 6800, changePercent: 1.49, score: 86, signal: 'Beli' },
-    { symbol: 'TLKM', name: 'PT Telkom Indonesia Tbk', price: 3850, changePercent: 1.32, score: 82, signal: 'Beli' },
-    { symbol: 'ASII', name: 'PT Astra International Tbk', price: 5125, changePercent: 1.18, score: 78, signal: 'Akumulasi' },
-    { symbol: 'BBRI', name: 'PT Bank Rakyat Indonesia Tbk', price: 5300, changePercent: 0.95, score: 85, signal: 'Beli' }
+    { symbol: 'BBCA', name: 'PT Bank Central Asia Tbk', price: 9250, changePercent: 1.65, score: 88 },
+    { symbol: 'BMRI', name: 'PT Bank Mandiri Tbk', price: 6800, changePercent: 1.49, score: 86 },
+    { symbol: 'TLKM', name: 'PT Telkom Indonesia Tbk', price: 3850, changePercent: 1.32, score: 82 },
+    { symbol: 'ASII', name: 'PT Astra International Tbk', price: 5125, changePercent: 1.18, score: 78 },
+    { symbol: 'BBRI', name: 'PT Bank Rakyat Indonesia Tbk', price: 5300, changePercent: 0.95, score: 85 }
   ],
   topLosers: [
-    { symbol: 'GOTO', name: 'PT GoTo Gojek Tokopedia Tbk', price: 62, changePercent: -3.12, score: 42, signal: 'Tahan' },
-    { symbol: 'UNVR', name: 'PT Unilever Indonesia Tbk', price: 2350, changePercent: -1.85, score: 51, signal: 'Tahan' }
+    { symbol: 'GOTO', name: 'PT GoTo Gojek Tokopedia Tbk', price: 62, changePercent: -3.12, score: 42 },
+    { symbol: 'UNVR', name: 'PT Unilever Indonesia Tbk', price: 2350, changePercent: -1.85, score: 51 }
   ],
   marketStats: {
     marketCap: 'Rp 11,25 Triliun',

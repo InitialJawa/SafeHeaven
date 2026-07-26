@@ -73,6 +73,17 @@
       },
       "required": ["id", "symbol"]
     },
+    "UserMemory": {
+      "title": "User Memory Context",
+      "description": "Continuous context updated by AI representing user preferences and discussion history",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "memoryContext": { "type": "string", "maxLength": 8192 },
+        "lastUpdated": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["userId", "memoryContext", "lastUpdated"]
+    },
     "BacktestHistory": {
       "title": "Backtest History Record",
       "description": "Historical backtest simulation run result",
@@ -92,6 +103,46 @@
         "totalTrades": { "type": "number" }
       },
       "required": ["id", "createdAt", "strategyName", "finalEquity"]
+    },
+    "ChatSession": {
+      "title": "AI Chat Session",
+      "description": "User AI chat conversation session and message history",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 256 },
+        "updatedAt": { "type": "number" },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "messages": { "type": "string", "maxLength": 65536 }
+      },
+      "required": ["id", "title", "updatedAt"]
+    },
+    "SavedPrompt": {
+      "title": "Saved AI Prompt",
+      "description": "User saved prompt template for AI advisor",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 256 },
+        "prompt": { "type": "string", "maxLength": 4096 },
+        "category": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "title", "prompt"]
+    },
+    "Strategy": {
+      "title": "User Trading Strategy",
+      "description": "User custom trading strategy configuration",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 256 },
+        "description": { "type": "string", "maxLength": 1024 },
+        "universe": { "type": "string", "maxLength": 128 },
+        "rulesJson": { "type": "string", "maxLength": 8192 },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "name"]
     }
   },
   "firestore": {
@@ -118,6 +169,22 @@
     "/users/{userId}/backtests/{backtestId}": {
       "schema": { "$ref": "#/entities/BacktestHistory" },
       "description": "User saved backtest simulation records"
+    },
+    "/users/{userId}/memory/{memoryId}": {
+      "schema": { "$ref": "#/entities/UserMemory" },
+      "description": "AI Memory Context for the user"
+    },
+    "/users/{userId}/chatSessions/{sessionId}": {
+      "schema": { "$ref": "#/entities/ChatSession" },
+      "description": "User AI chat session records and messages"
+    },
+    "/users/{userId}/savedPrompts/{promptId}": {
+      "schema": { "$ref": "#/entities/SavedPrompt" },
+      "description": "User saved prompt templates"
+    },
+    "/users/{userId}/strategies/{strategyId}": {
+      "schema": { "$ref": "#/entities/Strategy" },
+      "description": "User custom strategy blueprints"
     }
   }
 }

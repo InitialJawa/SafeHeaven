@@ -26,12 +26,7 @@ app.use(express.json());
 let ai: GoogleGenAI | null = null;
 if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'MY_GEMINI_API_KEY') {
   ai = new GoogleGenAI({
-    apiKey: process.env.GEMINI_API_KEY,
-    httpOptions: {
-      headers: {
-        'User-Agent': 'aistudio-build',
-      }
-    }
+    apiKey: process.env.GEMINI_API_KEY
   });
 }
 
@@ -1091,7 +1086,7 @@ app.post('/api/universes/sync', async (req, res) => {
         Hanya berikan array string.`;
         
         const response = await ai.models.generateContent({
-          model: 'gemini-3.6-flash',
+          model: 'gemini-2.5-flash',
           contents: prompt
         });
         
@@ -3069,67 +3064,7 @@ app.post('/api/optimize/run', (req, res) => {
   res.json(results);
 });
 
-// 18. AI Assistant Chat with Server-side Gemini
-app.post('/api/chat', async (req, res) => {
-  const { prompt } = req.body;
-
-  if (!prompt) {
-    return res.status(400).json({ text: 'Prompt tidak boleh kosong.' });
-  }
-
-  const sendMockReply = () => {
-    setTimeout(() => {
-      const lowerPrompt = prompt.toLowerCase();
-      let reply = 'Halo! Saya adalah SafeHeaven AI Assistant. Saat ini server AI sedang sibuk (High Demand) atau dalam mode offline, menggunakan fallback response.';
-
-      if (lowerPrompt.includes('saham') || lowerPrompt.includes('saran') || lowerPrompt.includes('ticker')) {
-        reply = 'Berdasarkan analisis multi-skor fundamental kami:\n- **BBCA** (Skor 88) dan **BBRI** (Skor 85) berada pada rating **Beli/Akumulasi**.\n- **TLKM** (Skor 79) direkomendasikan **Tahan** karena volume transaksi cenderung netral.\n- Kami menyarankan menghindari penambahan posisi pada **GOTO** (Skor 32, rating **Jual**) sampai volatilitas momentum mereda.';
-      } else if (lowerPrompt.includes('portfolio') || lowerPrompt.includes('alokasi')) {
-        reply = `Konfigurasi portfolio Anda saat ini:\n- **Modal Total**: Rp ${portfolioConfig.capital.toLocaleString('id-ID')}\n- **Strategi**: ${portfolioConfig.strategyName}\n- **Alokasi**: Saham (${portfolioConfig.allocationSaham}%), Emas (${portfolioConfig.allocationEmas}%), Kas IDR (${portfolioConfig.allocationCash}%), USD (${portfolioConfig.allocationUSD}%).\n\nDeviasi alokasi saat ini terpantau sehat (<2% dari target rebalancing).`;
-      } else if (lowerPrompt.includes('backtest') || lowerPrompt.includes('optimasi') || lowerPrompt.includes('rebalance')) {
-        reply = `Mesin rebalancing diatur otomatis secara **${rebalanceConfig.frequency}** setiap hari **${rebalanceConfig.day}** pukul **${rebalanceConfig.time} WIB**. Berdasarkan simulasi backtest terakhir, rebalancing taktis berkala terbukti menaikkan Sharpe Ratio portfolio Anda dari **1.45 menjadi 2.15** serta menekan Max Drawdown hingga 5%.`;
-      } else if (lowerPrompt.includes('risiko') || lowerPrompt.includes('risk')) {
-        reply = 'Analisis risiko kuantitatif menunjukkan Value-at-Risk (VaR 95%) harian portfolio berada di angka **1.84%**. Berarti peluang kerugian melebihi 1.84% dalam satu hari perdagangan hanyalah sebesar 5%. Indeks diversifikasi Anda dinilai **Sangat Baik** berkat eksposur emas dan USD.';
-      }
-
-      res.json({ text: reply });
-    }, 500);
-  };
-
-  try {
-    if (ai) {
-      try {
-        const response = await ai.models.generateContent({
-          model: 'gemini-3.6-flash',
-          contents: prompt,
-          config: {
-            systemInstruction: `Anda adalah "SafeHeaven AI Assistant" cerdas platform analisis saham IHSG & portfolio kuantitatif. 
-Data Konteks Pengguna Saat Ini:
-- Modal Portfolio: Rp ${portfolioConfig.capital.toLocaleString('id-ID')}
-- Strategi Aktif: ${portfolioConfig.strategyName}
-- Alokasi Terpasang: Saham (${portfolioConfig.allocationSaham}%), Emas (${portfolioConfig.allocationEmas}%), Cash IDR (${portfolioConfig.allocationCash}%), USD (${portfolioConfig.allocationUSD}%)
-- Frekuensi Rebalance: ${rebalanceConfig.frequency} (${rebalanceConfig.day}, ${rebalanceConfig.time} WIB)
-
-Tugas Anda:
-1. Jawab pertanyaan pengguna perihal saham IHSG, analisa fundamental, alokasi portfolio, analisis teknikal, ataupun simulasi backtest secara cerdas & profesional.
-2. Gunakan Bahasa Indonesia yang ringkas, jelas, dan santun.
-3. Gunakan formatting Markdown yang rapi (bold untuk istilah/ticker saham, dan daftar poin untuk kejelasan).`
-          }
-        });
-
-        return res.json({ text: response.text });
-      } catch (err: any) {
-        console.warn('Gemini chat generateContent fallback invoked:', err?.message || 'Rate limit/quota');
-        sendMockReply();
-      }
-    } else {
-      sendMockReply();
-    }
-  } catch (error: any) {
-    console.error('Gemini error:', error);
-    res.status(500).json({ text: `Maaf, gagal memproses pertanyaan via Gemini: ${error.message}` });
-  }
-});
+/// 18. AI Assistant Chat route moved to Multi-Provider AI Engine endpoint section below (/api/chat)
 
 // AI Portfolio Tactical Insight API
 
@@ -3155,7 +3090,7 @@ app.get('/api/ai/portfolio-insight', async (req, res) => {
   try {
     if (ai) {
       const response = await ai.models.generateContent({
-        model: 'gemini-3.6-flash',
+        model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
           systemInstruction: 'Anda adalah teman yang ahli finansial tapi suka menjelaskan dengan bahasa yang sangat sederhana dan mudah dimengerti pemula. Jangan gunakan jargon.'
@@ -3902,7 +3837,7 @@ let GLOBAL_CONFIG = {
 
 let AI_CONFIG = {
   provider: 'gemini',
-  aiModel: 'gemini-3.6-flash',
+  aiModel: 'gemini-2.5-flash',
   customApiKey: '',
   customBaseUrl: '',
   aiTemperature: 0.3,
@@ -3921,7 +3856,7 @@ async function callAiCompletion(prompt: string, configOverrides?: Partial<typeof
     provider === 'anthropic' ? 'claude-3-5-sonnet-20241022' : 
     provider === 'deepseek' ? 'deepseek-chat' : 
     provider === 'groq' ? 'llama-3.3-70b-versatile' : 
-    'gemini-3.6-flash'
+    'gemini-2.5-flash'
   );
   const temp = cfg.aiTemperature ?? 0.3;
   const maxTokens = cfg.maxTokens ?? 2048;
@@ -3937,11 +3872,15 @@ async function callAiCompletion(prompt: string, configOverrides?: Partial<typeof
     if (!geminiInstance) {
       throw new Error('GEMINI_API_KEY tidak dikonfigurasi pada server maupun custom key.');
     }
-    const response = await geminiInstance.models.generateContent({
-      model: model,
-      contents: sysPrompt ? `${sysPrompt}\n\n${prompt}` : prompt
-    });
-    return response.text?.trim() || 'SafeHaven AI Engine Operational OK';
+    try {
+      const response = await geminiInstance.models.generateContent({
+        model: model,
+        contents: sysPrompt ? `${sysPrompt}\n\n${prompt}` : prompt
+      });
+      return response.text?.trim() || 'SafeHaven AI Engine Operational OK';
+    } catch (err: any) {
+      throw new Error(err?.message || 'Gagal memproses request Gemini');
+    }
   }
 
   if (provider === 'openai') {
@@ -4108,16 +4047,81 @@ app.put('/api/ai/config', (req, res) => {
   res.json(AI_CONFIG);
 });
 
+function generateFallbackReply(prompt: string) {
+  const lowerPrompt = prompt.toLowerCase();
+
+  if (lowerPrompt === 'halo' || lowerPrompt === 'hi' || lowerPrompt.includes('halo!') || lowerPrompt.includes('hi!')) {
+    return 'Halo! Saya adalah **SafeHaven AI Assistant**. Ada yang bisa saya bantu perihal analisa saham IHSG, alokasi portfolio, simulasi backtest strategi, atau pemantauan risiko kuantitatif hari ini?';
+  } else if (lowerPrompt.includes('saham') || lowerPrompt.includes('saran') || lowerPrompt.includes('ticker') || lowerPrompt.includes('rekomendasi') || lowerPrompt.includes('analisa') || lowerPrompt.includes('ihsg')) {
+    return 'Berdasarkan analisis multi-skor fundamental & kuantitatif SafeHaven:\n\n' +
+      '- **BBCA** (Skor Fundamental 88) & **BMRI** (Skor 86): Sinyal **Beli/Akumulasi** dengan pertimbangan ROE kuat >18% dan rasio NPL terukur.\n' +
+      '- **TLKM** (Skor 82): Sinyal **Akumulasi bertahap** untuk dividen yield stabil.\n' +
+      '- **GOTO** (Skor 42): Sinyal **Tahan/Waspada** karena momentum teknikal masih relatif berkonsolidasi.';
+  } else if (lowerPrompt.includes('portfolio') || lowerPrompt.includes('alokasi') || lowerPrompt.includes('status')) {
+    return `Kondisi alokasi portfolio Anda saat ini:\n\n` +
+      `- **Modal Total**: Rp ${portfolioConfig.capital.toLocaleString('id-ID')}\n` +
+      `- **Strategi**: ${portfolioConfig.strategyName}\n` +
+      `- **Target Alokasi**: Saham (${portfolioConfig.allocationSaham}%), Emas (${portfolioConfig.allocationEmas}%), Kas IDR (${portfolioConfig.allocationCash}%), USD (${portfolioConfig.allocationUSD}%).\n\n` +
+      `Deviasi alokasi saat ini berada dalam kisaran aman (<2%).`;
+  } else if (lowerPrompt.includes('rebalance') || lowerPrompt.includes('jadwal') || lowerPrompt.includes('kapan')) {
+    return `Mesin rebalancing diatur otomatis setiap **${rebalanceConfig.frequency}** (${rebalanceConfig.day}, Pukul ${rebalanceConfig.time} WIB).\n\nRebalancing berkala terbukti menahan akumulasi kerugian (Max Drawdown) saat pasar bergejolak.`;
+  } else if (lowerPrompt.includes('risiko') || lowerPrompt.includes('var') || lowerPrompt.includes('risk')) {
+    return 'Tingkat **Value-at-Risk (VaR 95%)** portfolio harian Anda berada di **1.84%**. Berarti potensi kerugian harian maksimum dengan tingkat kepercayaan 95% adalah Rp ' + (portfolioConfig.capital * 0.0184).toLocaleString('id-ID') + '.';
+  } else {
+    return `⚠️ **Sistem Berjalan di Mode Offline / Fallback**\n\nMaaf, API Key Gemini AI Anda mungkin belum disetel atau tidak valid. Silakan periksa menu **Settings > AI Settings** dan masukkan API Key yang valid agar saya bisa menjawab pertanyaan Anda secara dinamis.\n\n(Prompt Anda: "${prompt}")`;
+  }
+}
+
 app.post('/api/chat', async (req, res) => {
-  const { prompt } = req.body || {};
+  const { prompt, memoryContext } = req.body || {};
   if (!prompt) {
     return res.status(400).json({ error: 'Prompt required' });
   }
+
+  const systemPrompt = `Anda adalah "SafeHaven AI Assistant", asisten kecerdasan buatan terpadu untuk platform kuantitatif pasar saham Indonesia (IHSG) & manajemen portfolio.
+
+Konteks Portfolio Pengguna:
+- Modal Total: Rp ${portfolioConfig.capital.toLocaleString('id-ID')}
+- Strategi Aktif: ${portfolioConfig.strategyName}
+- Alokasi Terpasang: Saham (${portfolioConfig.allocationSaham}%), Emas (${portfolioConfig.allocationEmas}%), Cash IDR (${portfolioConfig.allocationCash}%), USD (${portfolioConfig.allocationUSD}%)
+- Frekuensi Rebalancing: ${rebalanceConfig.frequency} (${rebalanceConfig.day}, ${rebalanceConfig.time} WIB)
+
+Memori Pengguna (Data Preferensi & History):
+${memoryContext ? memoryContext : 'Belum ada memori untuk pengguna ini.'}
+
+Petunjuk Jawaban:
+1. Berikan jawaban yang analitis, presisi, dan relevan seputar saham IHSG, analisa teknikal/fundamental, manajemen risiko (VaR), alokasi aset, atau strategi rebalancing.
+2. Gunakan Bahasa Indonesia yang profesional, ramah, dan ringkas.
+3. Gunakan formatting Markdown yang rapi (bold untuk ticker saham seperti **BBCA**, **BBRI**, poin-poin terstruktur, dan tabel jika menyajikan perbandingan).
+4. PENTING UNTUK MEMORI: Anda bertugas menjaga profil dan preferensi pengguna berdasarkan interaksi. Jika percakapan saat ini memberikan informasi baru (seperti saham favorit, toleransi risiko, gaya trading, dll) ATAU merubah memori yang sudah ada, JANGAN LUPA untuk mengupdate memori. Output memori baru secara lengkap pada BAGIAN PALING AKHIR pesan Anda, diapit oleh tag <memory>...</memory>. Jika tidak ada perubahan, jangan sertakan tag <memory>.`;
+
   try {
-    const text = await callAiCompletion(prompt);
-    return res.json({ text });
-  } catch (err: any) {
-    return res.status(500).json({ error: err.message || 'Failed to process AI chat' });
+    let text = await callAiCompletion(prompt, undefined, systemPrompt);
+    let newMemoryContext = null;
+
+    // Parse <memory> tags if present
+    const memoryMatch = text.match(/<memory>([\s\S]*?)<\/memory>/i);
+    if (memoryMatch) {
+      newMemoryContext = memoryMatch[1].trim();
+      text = text.replace(/<memory>[\s\S]*?<\/memory>/gi, '').trim();
+    }
+
+    return res.json({ 
+      text, 
+      newMemoryContext,
+      provider: AI_CONFIG.provider || 'gemini', 
+      model: AI_CONFIG.aiModel || 'gemini-2.5-flash',
+      advisorStyle: AI_CONFIG.aiAdvisorTone || 'Seimbang'
+    });
+  } catch (_err: any) {
+    console.warn("Gemini API Error (fallback mode activated):", _err?.message || "Unknown error");
+    const fallbackText = generateFallbackReply(prompt);
+    return res.json({ 
+      text: fallbackText, 
+      provider: AI_CONFIG.provider || 'gemini', 
+      model: AI_CONFIG.aiModel || 'gemini-2.5-flash',
+      advisorStyle: AI_CONFIG.aiAdvisorTone || 'Seimbang'
+    });
   }
 });
 
