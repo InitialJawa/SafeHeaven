@@ -39,8 +39,13 @@ export const PortfolioSummaryWidget: React.FC = () => {
       const base = window.location.origin;
       const res = await fetch(`${base}/api/portfolio/growth?capital=${capital}`);
       if (res.ok) {
-        const json: GrowthPoint[] = await res.json();
-        setGrowthData(json);
+        const contentType = res.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const json: GrowthPoint[] = await res.json();
+          if (Array.isArray(json)) {
+            setGrowthData(json);
+          }
+        }
       }
     } catch (e) {
       console.error('Gagal mengambil data pertumbuhan portfolio:', e);
@@ -55,9 +60,16 @@ export const PortfolioSummaryWidget: React.FC = () => {
       const base = window.location.origin;
       const res = await fetch(`${base}/api/ai/portfolio-insight`);
       if (res.ok) {
-        const json = await res.json();
-        setAiAdvice(json.text);
+        const contentType = res.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const json = await res.json();
+          if (json && json.text) {
+            setAiAdvice(json.text);
+            return;
+          }
+        }
       }
+      setAiAdvice('Sistem beroperasi dalam jaring pengaman optimal. Portofolio defensif Anda terdiversifikasi dengan baik.');
     } catch (e) {
       console.error('Gagal mengambil AI insight:', e);
       setAiAdvice('Sistem beroperasi dalam jaring pengaman optimal. Portofolio defensif Anda terdiversifikasi dengan baik.');

@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useLocation } from 'wouter';
-import { SignalBadge } from '../components/SignalBadge';
 import { TickerLogo } from '../components/TickerLogo';
-import { ArrowLeft, Bot, Brain, Info, Layers, LineChart, Activity, PieChart, LayoutDashboard, TrendingUp, Download, ChevronDown, SlidersHorizontal, Check, Newspaper } from 'lucide-react';
-import { createChart, IChartApi, ISeriesApi, CandlestickSeries, HistogramSeries, LineSeries, ColorType, LineStyle } from 'lightweight-charts';
+import { ArrowLeft, Bot, Brain, Info, Layers, LineChart, Activity, PieChart, LayoutDashboard, TrendingUp, Download, ChevronDown, SlidersHorizontal, Check, Newspaper, Maximize2, Minimize2, X } from 'lucide-react';
+import { createChart, IChartApi, ISeriesApi, CandlestickSeries, HistogramSeries, LineSeries, ColorType, LineStyle, createSeriesMarkers } from 'lightweight-charts';
 import { toast } from 'sonner';
 import { downloadPDF } from '../lib/pdfUtils';
+import { IndicatorModal } from '../components/IndicatorModal';
+import { calculateIndicators, INDICATORS_REGISTRY } from '../lib/indicators';
 import { Skeleton, SkeletonCard, SkeletonChart, SkeletonText } from '../components/Skeleton';
 import { 
   WidgetKinerja, 
@@ -78,7 +79,8 @@ export const TickerDetail: React.FC<{ params: TickerParams }> = ({ params }) => 
   const [candles, setCandles] = useState<Candle[]>([]);
   const [fundamentals, setFundamentals] = useState<FundamentalData | null>(null);
   const [sectorData, setSectorData] = useState<SectorData | null>(null);
-  const [range, setRange] = useState<'1m' | '3m' | '6m' | '1y'>('3m');
+  const [range, setRange] = useState<'1m' | '3m' | '6m' | '1y' | '3y' | '5y' | 'max'>('3m');
+  const [interval, setInterval] = useState<'1d' | '1wk' | '1mo'>('1d');
   
   const [aiAnalysis, setAiAnalysis] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
@@ -98,26 +100,69 @@ export const TickerDetail: React.FC<{ params: TickerParams }> = ({ params }) => 
   const bbLowerSeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
   const donchianUpperSeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
   const donchianLowerSeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
+  const rsiSeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
+  const macdLineSeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
+  const macdSignalSeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
+  const macdHistSeriesRef = useRef<ISeriesApi<"Histogram"> | null>(null);
+  const volMASeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
+  const vwapSeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
+  const seriesMapRef = useRef<Record<string, ISeriesApi<any>>>({});
+  const markersPrimitiveRef = useRef<any>(null);
 
-  const [showMA, setShowMA] = useState(true);
-  const [showSMA20, setShowSMA20] = useState(false);
-  const [showEMA10, setShowEMA10] = useState(false);
-  const [showEMA50, setShowEMA50] = useState(false);
-  const [showBB, setShowBB] = useState(false);
-  const [showDonchian, setShowDonchian] = useState(false);
-  const [showVolume, setShowVolume] = useState(true);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [activeIndicatorIds, setActiveIndicatorIds] = useState<string[]>(['sma5', 'sma20', 'rsi']);
+  const [isIndicatorModalOpen, setIsIndicatorModalOpen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const [isIntervalDropdownOpen, setIsIntervalDropdownOpen] = useState(false);
+  const [isRangeDropdownOpen, setIsRangeDropdownOpen] = useState(false);
+  const intervalDropdownRef = useRef<HTMLDivElement>(null);
+  const rangeDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsDropdownOpen(false);
+    const handleClickOutside = (e: MouseEvent) => {
+      if (intervalDropdownRef.current && !intervalDropdownRef.current.contains(e.target as Node)) {
+        setIsIntervalDropdownOpen(false);
+      }
+      if (rangeDropdownRef.current && !rangeDropdownRef.current.contains(e.target as Node)) {
+        setIsRangeDropdownOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const toggleIndicator = (id: string) => {
+    setActiveIndicatorIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  };
+
+  const clearAllIndicators = () => {
+    setActiveIndicatorIds([]);
+  };
+
+  const toggleFullscreen = () => {
+    setIsFullscreen(prev => {
+      const next = !prev;
+      setTimeout(() => {
+        window.dispatchEvent(new Event('resize'));
+      }, 100);
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFullscreen) {
+        setIsFullscreen(false);
+        setTimeout(() => {
+          window.dispatchEvent(new Event('resize'));
+        }, 100);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFullscreen]);
+
+
 
   useEffect(() => {
     const fetchData = async () => {
@@ -158,7 +203,7 @@ export const TickerDetail: React.FC<{ params: TickerParams }> = ({ params }) => 
     const fetchCandles = async () => {
       try {
         const base = window.location.origin;
-        const candlesRes = await fetch(`${base}/api/ticker/${symbol}/chart?range=${range}`);
+        const candlesRes = await fetch(`${base}/api/ticker/${symbol}/chart?range=max&interval=${interval}`);
         const candlesData = candlesRes.ok ? await candlesRes.json() : [];
         setCandles(candlesData);
       } catch (e) {
@@ -166,7 +211,12 @@ export const TickerDetail: React.FC<{ params: TickerParams }> = ({ params }) => 
       }
     };
     fetchCandles();
-  }, [symbol, range]);
+
+    let intervalId: any;
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [symbol, interval]);
 
   // Initialize Lightweight Charts
   useEffect(() => {
@@ -277,7 +327,83 @@ export const TickerDetail: React.FC<{ params: TickerParams }> = ({ params }) => 
     });
     donchianLowerSeriesRef.current = donchianLowerSeries;
 
+    // RSI (14) Series
+    const rsiSeries = chart.addSeries(LineSeries, {
+      color: '#a855f7', // Purple
+      lineWidth: 2,
+      priceScaleId: 'rsi',
+      crosshairMarkerVisible: true,
+    });
+    rsiSeries.priceScale().applyOptions({
+      scaleMargins: { top: 0.72, bottom: 0.02 },
+      borderVisible: false,
+    });
+    rsiSeries.createPriceLine({
+      price: 70,
+      color: '#ff3366',
+      lineWidth: 1,
+      lineStyle: LineStyle.Dashed,
+      axisLabelVisible: true,
+      title: '70 OB',
+    });
+    rsiSeries.createPriceLine({
+      price: 30,
+      color: '#00f5a0',
+      lineWidth: 1,
+      lineStyle: LineStyle.Dashed,
+      axisLabelVisible: true,
+      title: '30 OS',
+    });
+    rsiSeriesRef.current = rsiSeries;
+
+    // MACD (12, 26, 9) Series
+    const macdHistSeries = chart.addSeries(HistogramSeries, {
+      priceScaleId: 'macd',
+    });
+    macdHistSeries.priceScale().applyOptions({
+      scaleMargins: { top: 0.75, bottom: 0.02 },
+      borderVisible: false,
+    });
+    macdHistSeriesRef.current = macdHistSeries;
+
+    const macdLineSeries = chart.addSeries(LineSeries, {
+      color: '#00f0ff', // Cyan
+      lineWidth: 2,
+      priceScaleId: 'macd',
+      crosshairMarkerVisible: false,
+    });
+    macdLineSeriesRef.current = macdLineSeries;
+
+    const macdSignalSeries = chart.addSeries(LineSeries, {
+      color: '#ff9100', // Orange
+      lineWidth: 1,
+      priceScaleId: 'macd',
+      crosshairMarkerVisible: false,
+    });
+    macdSignalSeriesRef.current = macdSignalSeries;
+
+    // Volume MA (20) Series
+    const volMASeries = chart.addSeries(LineSeries, {
+      color: '#facc15', // Yellow
+      lineWidth: 1,
+      priceScaleId: '', // Same overlay scale as Volume
+      crosshairMarkerVisible: false,
+    });
+    volMASeriesRef.current = volMASeries;
+
+    // VWAP Series (Main Price Chart)
+    const vwapSeries = chart.addSeries(LineSeries, {
+      color: '#e11d48', // Crimson/Rose
+      lineWidth: 2,
+      crosshairMarkerVisible: false,
+    });
+    vwapSeriesRef.current = vwapSeries;
+
     return () => {
+      if (markersPrimitiveRef.current) {
+        try { markersPrimitiveRef.current.detach(); } catch {}
+        markersPrimitiveRef.current = null;
+      }
       chart.remove();
       chartRef.current = null;
       candlestickSeriesRef.current = null;
@@ -290,160 +416,345 @@ export const TickerDetail: React.FC<{ params: TickerParams }> = ({ params }) => 
       bbLowerSeriesRef.current = null;
       donchianUpperSeriesRef.current = null;
       donchianLowerSeriesRef.current = null;
+      rsiSeriesRef.current = null;
+      macdLineSeriesRef.current = null;
+      macdSignalSeriesRef.current = null;
+      macdHistSeriesRef.current = null;
+      volMASeriesRef.current = null;
+      vwapSeriesRef.current = null;
     };
   }, [loading]); // Run when loading state changes and container becomes available
 
-  // Update data
+  // Update chart data & dynamic indicators
   useEffect(() => {
     if (candles.length === 0 || !chartRef.current) return;
 
+    const validCandles = candles.filter((c: any) => 
+      c && c.time && 
+      Number.isFinite(Number(c.open)) && 
+      Number.isFinite(Number(c.high)) && 
+      Number.isFinite(Number(c.low)) && 
+      Number.isFinite(Number(c.close))
+    );
+
+    if (validCandles.length === 0) return;
+
     if (candlestickSeriesRef.current) {
-      candlestickSeriesRef.current.setData(candles.map(c => ({
-        time: c.time,
-        open: c.open,
-        high: c.high,
-        low: c.low,
-        close: c.close
-      })));
+      candlestickSeriesRef.current.setData(
+        validCandles.map((c) => ({
+          time: c.time,
+          open: Number(c.open),
+          high: Number(c.high),
+          low: Number(c.low),
+          close: Number(c.close),
+        }))
+      );
     }
-    
+
     if (volumeSeriesRef.current) {
-      volumeSeriesRef.current.setData(candles.map(c => ({
-        time: c.time,
-        value: c.value,
-        color: c.color
-      })));
-      volumeSeriesRef.current.applyOptions({ visible: showVolume });
+      volumeSeriesRef.current.setData(
+        validCandles.map((c) => ({
+          time: c.time,
+          value: Number.isFinite(c.value) ? c.value : 0,
+          color: c.color || (c.close >= c.open ? "rgba(0, 230, 118, 0.4)" : "rgba(255, 23, 68, 0.4)") || (c.close >= c.open ? "rgba(0, 230, 118, 0.4)" : "rgba(255, 23, 68, 0.4)"),
+        }))
+      );
+      volumeSeriesRef.current.applyOptions({ visible: true });
     }
 
-    if (
-      maSeriesRef.current && 
-      sma20SeriesRef.current && 
-      ema10SeriesRef.current &&
-      ema50SeriesRef.current &&
-      bbUpperSeriesRef.current &&
-      bbLowerSeriesRef.current &&
-      donchianUpperSeriesRef.current &&
-      donchianLowerSeriesRef.current
-    ) {
-      // Calculate 5-period SMA
-      const maData = [];
-      const period = 5;
-      for (let i = 0; i < candles.length; i++) {
-        if (i < period - 1) continue;
-        let sum = 0;
-        for (let j = 0; j < period; j++) {
-          sum += candles[i - j].close;
-        }
-        maData.push({ time: candles[i].time, value: sum / period });
+    // Compute indicators
+    const calc = calculateIndicators(validCandles, activeIndicatorIds);
+    const chart = chartRef.current;
+
+    const getSeries = (key: string, createFn: () => ISeriesApi<any>) => {
+      if (!seriesMapRef.current[key]) {
+        seriesMapRef.current[key] = createFn();
       }
-      maSeriesRef.current.setData(maData);
-      maSeriesRef.current.applyOptions({ visible: showMA });
-      
-      // Calculate 20-period SMA
-      const sma20Data = [];
-      const period20 = 20;
-      for (let i = 0; i < candles.length; i++) {
-        if (i < period20 - 1) continue;
-        let sum = 0;
-        for (let j = 0; j < period20; j++) {
-          sum += candles[i - j].close;
-        }
-        sma20Data.push({ time: candles[i].time, value: sum / period20 });
+      return seriesMapRef.current[key];
+    };
+
+    const getColor = (id: string, fallback = '#ccff00') => {
+      const def = INDICATORS_REGISTRY.find((i) => i.id === id);
+      return def ? def.defaultColor : fallback;
+    };
+
+    const activeKeys = new Set<string>();
+
+    // Single Line Overlays
+    const lineOverlays = ['sma5', 'sma20', 'sma50', 'sma200', 'ema10', 'ema20', 'ema50', 'ema200', 'wma20', 'vwap', 'psar', 'supertrend', 'avwap', 'vpvrPoc'];
+    lineOverlays.forEach((id) => {
+      const calcKey = id === 'vpvrPoc' ? 'vpvrPoc' : id;
+      if (activeIndicatorIds.includes(id === 'vpvrPoc' ? 'vpvr' : id) && calc[calcKey]) {
+        activeKeys.add(calcKey);
+        const s = getSeries(calcKey, () =>
+          chart.addSeries(LineSeries, {
+            color: getColor(id === 'vpvrPoc' ? 'vpvr' : id),
+            lineWidth: id === 'psar' ? 1 : 2,
+            crosshairMarkerVisible: id !== 'psar',
+          })
+        );
+        s.setData(calc[calcKey]);
+        s.applyOptions({ visible: true });
       }
-      sma20SeriesRef.current.setData(sma20Data);
-      sma20SeriesRef.current.applyOptions({ visible: showSMA20 });
-      
-      // Calculate 10-period EMA
-      const ema10Data = [];
-      const period10 = 10;
-      let k = 2 / (period10 + 1);
-      let ema = candles.length > 0 ? candles[0].close : 0;
-      for (let i = 0; i < candles.length; i++) {
-        if (i === 0) {
-          ema = candles[i].close;
+    });
+
+    // LuxAlgo Markers & Auto S/R
+    if (activeIndicatorIds.includes('luxalgo')) {
+      if (candlestickSeriesRef.current && calc.luxalgoMarkers) {
+        if (!markersPrimitiveRef.current) {
+          markersPrimitiveRef.current = createSeriesMarkers(candlestickSeriesRef.current, calc.luxalgoMarkers);
         } else {
-          ema = (candles[i].close - ema) * k + ema;
-        }
-        if (i >= period10 - 1) {
-          ema10Data.push({ time: candles[i].time, value: ema });
+          markersPrimitiveRef.current.setMarkers(calc.luxalgoMarkers);
         }
       }
-      ema10SeriesRef.current.setData(ema10Data);
-      ema10SeriesRef.current.applyOptions({ visible: showEMA10 });
-
-      // Calculate 50-period EMA
-      const ema50Data = [];
-      const period50 = 50;
-      let k50 = 2 / (period50 + 1);
-      let ema50 = candles.length > 0 ? candles[0].close : 0;
-      for (let i = 0; i < candles.length; i++) {
-        if (i === 0) {
-          ema50 = candles[i].close;
-        } else {
-          ema50 = (candles[i].close - ema50) * k50 + ema50;
-        }
-        if (i >= period50 - 1) {
-          ema50Data.push({ time: candles[i].time, value: ema50 });
-        }
+      if (calc.luxalgoSRUpper) {
+        activeKeys.add('luxalgoSRUpper');
+        const sU = getSeries('luxalgoSRUpper', () =>
+          chart.addSeries(LineSeries, { color: '#ff1744', lineWidth: 1, lineStyle: LineStyle.Dashed, crosshairMarkerVisible: false })
+        );
+        sU.setData(calc.luxalgoSRUpper);
+        sU.applyOptions({ visible: true });
       }
-      ema50SeriesRef.current.setData(ema50Data);
-      ema50SeriesRef.current.applyOptions({ visible: showEMA50 });
-
-      // Calculate Bollinger Bands
-      const bbUpperData = [];
-      const bbLowerData = [];
-      const periodBB = 20;
-      for (let i = 0; i < candles.length; i++) {
-        if (i < periodBB - 1) continue;
-        let sum = 0;
-        for (let j = 0; j < periodBB; j++) {
-          sum += candles[i - j].close;
-        }
-        const mean = sum / periodBB;
-
-        let varianceSum = 0;
-        for (let j = 0; j < periodBB; j++) {
-          const diff = candles[i - j].close - mean;
-          varianceSum += diff * diff;
-        }
-        const stdDev = Math.sqrt(varianceSum / periodBB);
-
-        bbUpperData.push({ time: candles[i].time, value: mean + 2 * stdDev });
-        bbLowerData.push({ time: candles[i].time, value: mean - 2 * stdDev });
+      if (calc.luxalgoSRLower) {
+        activeKeys.add('luxalgoSRLower');
+        const sL = getSeries('luxalgoSRLower', () =>
+          chart.addSeries(LineSeries, { color: '#00e676', lineWidth: 1, lineStyle: LineStyle.Dashed, crosshairMarkerVisible: false })
+        );
+        sL.setData(calc.luxalgoSRLower);
+        sL.applyOptions({ visible: true });
       }
-      bbUpperSeriesRef.current.setData(bbUpperData);
-      bbLowerSeriesRef.current.setData(bbLowerData);
-      bbUpperSeriesRef.current.applyOptions({ visible: showBB });
-      bbLowerSeriesRef.current.applyOptions({ visible: showBB });
-
-      // Calculate Donchian Channels
-      const donchianUpperData = [];
-      const donchianLowerData = [];
-      const periodDonchian = 20;
-      for (let i = 0; i < candles.length; i++) {
-        if (i < periodDonchian - 1) continue;
-        let maxHigh = candles[i].high !== undefined ? candles[i].high : candles[i].close;
-        let minLow = candles[i].low !== undefined ? candles[i].low : candles[i].close;
-        for (let j = 0; j < periodDonchian; j++) {
-          const c = candles[i - j];
-          const h = c.high !== undefined ? c.high : c.close;
-          const l = c.low !== undefined ? c.low : c.close;
-          if (h > maxHigh) maxHigh = h;
-          if (l < minLow) minLow = l;
-        }
-        donchianUpperData.push({ time: candles[i].time, value: maxHigh });
-        donchianLowerData.push({ time: candles[i].time, value: minLow });
+      if (calc.luxalgoOsc) {
+        activeKeys.add('luxalgoOsc');
+        const sO = getSeries('luxalgoOsc', () =>
+          chart.addSeries(LineSeries, { color: '#ccff00', lineWidth: 2, priceScaleId: 'luxalgoOsc' })
+        );
+        sO.setData(calc.luxalgoOsc);
+        sO.applyOptions({ visible: true });
       }
-      donchianUpperSeriesRef.current.setData(donchianUpperData);
-      donchianLowerSeriesRef.current.setData(donchianLowerData);
-      donchianUpperSeriesRef.current.applyOptions({ visible: showDonchian });
-      donchianLowerSeriesRef.current.applyOptions({ visible: showDonchian });
+    } else {
+      if (markersPrimitiveRef.current) {
+        markersPrimitiveRef.current.setMarkers([]);
+      }
     }
 
-    chartRef.current.timeScale().fitContent();
+    // Ichimoku Cloud
+    if (activeIndicatorIds.includes('ichimoku')) {
+      const ichiKeys = [
+        { k: 'ichimokuTenkan', col: '#00f0ff' },
+        { k: 'ichimokuKijun', col: '#ff1744' },
+        { k: 'ichimokuSpanA', col: '#00e676' },
+        { k: 'ichimokuSpanB', col: '#a855f7' },
+        { k: 'ichimokuChikou', col: '#facc15' },
+      ];
+      ichiKeys.forEach(({ k, col }) => {
+        if (calc[k]) {
+          activeKeys.add(k);
+          const s = getSeries(k, () =>
+            chart.addSeries(LineSeries, { color: col, lineWidth: 1, crosshairMarkerVisible: false })
+          );
+          s.setData(calc[k]);
+          s.applyOptions({ visible: true });
+        }
+      });
+    }
 
-  }, [candles, showMA, showSMA20, showEMA10, showEMA50, showBB, showDonchian, showVolume, loading]);
+    // Fibonacci Retracement
+    if (activeIndicatorIds.includes('fibonacci')) {
+      const fibKeys = ['fib0', 'fib236', 'fib382', 'fib500', 'fib618', 'fib786', 'fib1000'];
+      fibKeys.forEach((fk) => {
+        if (calc[fk]) {
+          activeKeys.add(fk);
+          const s = getSeries(fk, () =>
+            chart.addSeries(LineSeries, { color: '#eab308', lineWidth: 1, lineStyle: LineStyle.Dotted, crosshairMarkerVisible: false })
+          );
+          s.setData(calc[fk]);
+          s.applyOptions({ visible: true });
+        }
+      });
+    }
+
+    // Fair Value Gap (FVG)
+    if (activeIndicatorIds.includes('fvg')) {
+      if (calc.fvgUpper && calc.fvgLower) {
+        activeKeys.add('fvgUpper');
+        activeKeys.add('fvgLower');
+        const sUp = getSeries('fvgUpper', () =>
+          chart.addSeries(LineSeries, { color: '#f43f5e', lineWidth: 1, lineStyle: LineStyle.Dashed, crosshairMarkerVisible: false })
+        );
+        const sLow = getSeries('fvgLower', () =>
+          chart.addSeries(LineSeries, { color: '#00e676', lineWidth: 1, lineStyle: LineStyle.Dashed, crosshairMarkerVisible: false })
+        );
+        sUp.setData(calc.fvgUpper);
+        sLow.setData(calc.fvgLower);
+        sUp.applyOptions({ visible: true });
+        sLow.applyOptions({ visible: true });
+      }
+    }
+
+    // Dual Channels
+    const dualChannels = [
+      { id: 'bb', keys: ['bbUpper', 'bbLower'], color: '#3b82f6' },
+      { id: 'donchian', keys: ['donchianUpper', 'donchianLower'], color: '#eab308' },
+      { id: 'keltner', keys: ['keltnerUpper', 'keltnerLower'], color: '#06b6d4' },
+    ];
+    dualChannels.forEach((chan) => {
+      if (activeIndicatorIds.includes(chan.id)) {
+        chan.keys.forEach((k) => {
+          if (calc[k]) {
+            activeKeys.add(k);
+            const s = getSeries(k, () =>
+              chart.addSeries(LineSeries, { color: chan.color, lineWidth: 1, crosshairMarkerVisible: false })
+            );
+            s.setData(calc[k]);
+            s.applyOptions({ visible: true });
+          }
+        });
+      }
+    });
+
+    // Oscillators (Single Line Subpanels)
+    const subPanels = ['rsi', 'cci', 'willr', 'roc', 'atr', 'obv', 'mfi', 'cvd', 'percent_b', 'rs_line'];
+    subPanels.forEach((id) => {
+      const calcKey = id === 'percent_b' ? 'percentB' : id === 'rs_line' ? 'rsLine' : id;
+      if (activeIndicatorIds.includes(id) && calc[calcKey]) {
+        activeKeys.add(calcKey);
+        const s = getSeries(calcKey, () =>
+          chart.addSeries(LineSeries, { color: getColor(id), lineWidth: 2, priceScaleId: id })
+        );
+        s.setData(calc[calcKey]);
+        s.applyOptions({ visible: true });
+      }
+    });
+
+    // VuManChu WaveTrend
+    if (activeIndicatorIds.includes('vumanchu') && calc.vumanchuWT1 && calc.vumanchuWT2) {
+      activeKeys.add('vumanchuWT1');
+      activeKeys.add('vumanchuWT2');
+      const sWT1 = getSeries('vumanchuWT1', () =>
+        chart.addSeries(LineSeries, { color: '#00f0ff', lineWidth: 2, priceScaleId: 'vumanchu' })
+      );
+      const sWT2 = getSeries('vumanchuWT2', () =>
+        chart.addSeries(LineSeries, { color: '#ff007f', lineWidth: 1, priceScaleId: 'vumanchu' })
+      );
+      sWT1.setData(calc.vumanchuWT1);
+      sWT2.setData(calc.vumanchuWT2);
+      sWT1.applyOptions({ visible: true });
+      sWT2.applyOptions({ visible: true });
+    }
+
+    // ADX & DMI
+    if (activeIndicatorIds.includes('adx') && calc.adx && calc.plusDI && calc.minusDI) {
+      activeKeys.add('adx');
+      activeKeys.add('plusDI');
+      activeKeys.add('minusDI');
+      const sADX = getSeries('adx', () =>
+        chart.addSeries(LineSeries, { color: '#38bdf8', lineWidth: 2, priceScaleId: 'adx' })
+      );
+      const sPDI = getSeries('plusDI', () =>
+        chart.addSeries(LineSeries, { color: '#00e676', lineWidth: 1, priceScaleId: 'adx' })
+      );
+      const sMDI = getSeries('minusDI', () =>
+        chart.addSeries(LineSeries, { color: '#ff1744', lineWidth: 1, priceScaleId: 'adx' })
+      );
+      sADX.setData(calc.adx);
+      sPDI.setData(calc.plusDI);
+      sMDI.setData(calc.minusDI);
+      sADX.applyOptions({ visible: true });
+      sPDI.applyOptions({ visible: true });
+      sMDI.applyOptions({ visible: true });
+    }
+
+    // Stochastic
+    if (activeIndicatorIds.includes('stoch') && calc.stochK && calc.stochD) {
+      activeKeys.add('stochK');
+      activeKeys.add('stochD');
+      const sK = getSeries('stochK', () =>
+        chart.addSeries(LineSeries, { color: '#38bdf8', lineWidth: 2, priceScaleId: 'stoch' })
+      );
+      const sD = getSeries('stochD', () =>
+        chart.addSeries(LineSeries, { color: '#f43f5e', lineWidth: 1, priceScaleId: 'stoch' })
+      );
+      sK.setData(calc.stochK);
+      sD.setData(calc.stochD);
+      sK.applyOptions({ visible: true });
+      sD.applyOptions({ visible: true });
+    }
+
+    // MACD
+    if (activeIndicatorIds.includes('macd') && calc.macdLine && calc.macdSignal && calc.macdHist) {
+      activeKeys.add('macdLine');
+      activeKeys.add('macdSignal');
+      activeKeys.add('macdHist');
+      const sHist = getSeries('macdHist', () => chart.addSeries(HistogramSeries, { priceScaleId: 'macd' }));
+      const sLine = getSeries('macdLine', () =>
+        chart.addSeries(LineSeries, { color: '#00f0ff', lineWidth: 2, priceScaleId: 'macd', crosshairMarkerVisible: false })
+      );
+      const sSig = getSeries('macdSignal', () =>
+        chart.addSeries(LineSeries, { color: '#ff9100', lineWidth: 1, priceScaleId: 'macd', crosshairMarkerVisible: false })
+      );
+      sHist.setData(calc.macdHist);
+      sLine.setData(calc.macdLine);
+      sSig.setData(calc.macdSignal);
+      sHist.applyOptions({ visible: true });
+      sLine.applyOptions({ visible: true });
+      sSig.applyOptions({ visible: true });
+    }
+
+    // Hide inactive series
+    Object.keys(seriesMapRef.current).forEach((key) => {
+      if (!activeKeys.has(key)) {
+        seriesMapRef.current[key]?.applyOptions({ visible: false });
+      }
+    });
+
+    // Dynamic scale margins to prevent overlap
+    const activeSubPanels = ['rsi', 'stoch', 'macd', 'cci', 'willr', 'roc', 'atr', 'obv', 'mfi', 'cvd', 'percent_b', 'rs_line', 'luxalgoOsc', 'vumanchu', 'adx'].filter((id) =>
+      activeIndicatorIds.includes(id)
+    );
+    const panelCount = activeSubPanels.length;
+
+    let mainBottomMargin = 0.20;
+    if (panelCount > 0) {
+      const totalHeight = Math.min(0.25 * panelCount, 0.50);
+      mainBottomMargin = totalHeight + 0.04;
+
+      const singleHeight = totalHeight / panelCount;
+      activeSubPanels.forEach((panelId, idx) => {
+        const topMargin = 1 - totalHeight + idx * singleHeight + 0.02;
+        const bottomMargin = 1 - (topMargin + singleHeight - 0.03);
+
+        chart.priceScale(panelId).applyOptions({
+          scaleMargins: {
+            top: Math.max(0.05, topMargin),
+            bottom: Math.max(0.02, bottomMargin),
+          },
+          borderVisible: false,
+        });
+      });
+    }
+
+    chart.priceScale('right').applyOptions({
+      scaleMargins: { top: 0.05, bottom: mainBottomMargin },
+      autoScale: true,
+    });
+
+    if (candles.length > 0) {
+      const total = candles.length;
+      let limit = 65;
+      if (range === '1m') limit = 22;
+      else if (range === '3m') limit = 65;
+      else if (range === '6m') limit = 130;
+      else if (range === '1y') limit = 260;
+      else if (range === '3y') limit = 780;
+      else if (range === '5y') limit = 1300;
+      else if (range === 'max') limit = total;
+
+      chart.timeScale().setVisibleLogicalRange({
+        from: Math.max(0, total - limit),
+        to: total - 1
+      });
+    }
+  }, [candles, activeIndicatorIds, loading, range]);
 
   const handleAskGemini = async () => {
     setAiLoading(true);
@@ -528,10 +839,15 @@ export const TickerDetail: React.FC<{ params: TickerParams }> = ({ params }) => 
     );
   }
 
-  const activeIndicatorsCount = [showMA, showSMA20, showEMA10, showEMA50, showBB, showDonchian, showVolume].filter(Boolean).length;
-
   return (
     <div id="ticker-detail-view" className="px-4 lg:px-6 space-y-6 pb-20">
+      <IndicatorModal
+        isOpen={isIndicatorModalOpen}
+        onClose={() => setIsIndicatorModalOpen(false)}
+        activeIndicatorIds={activeIndicatorIds}
+        onToggleIndicator={toggleIndicator}
+        onClearAll={clearAllIndicators}
+      />
       
       {/* Navigation and Name Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -556,7 +872,6 @@ export const TickerDetail: React.FC<{ params: TickerParams }> = ({ params }) => 
                 <div className="text-left">
                     <div className="flex items-center gap-3 justify-start">
                     <h1 className="text-3xl font-extrabold tracking-tight text-white font-mono">{details.symbol}</h1>
-                    <SignalBadge signal={details.signal} />
                     </div>
                     <span className="text-sm text-[#9f9bac] font-sans font-medium mt-1 block">{details.name}</span>
                 </div>
@@ -589,142 +904,141 @@ export const TickerDetail: React.FC<{ params: TickerParams }> = ({ params }) => 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         
         {/* Candlestick Chart Area */}
-        <div className="card card-elevated p-5 lg:col-span-8 flex flex-col space-y-4 relative min-h-[450px]">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 z-10">
-            <div>
-              <h3 className="text-sm font-bold text-white tracking-tight font-sans flex items-center gap-2">
-                  <LineChart className="w-4 h-4 text-[#ccff00]" /> 
-                  Grafik Perdagangan Historis
-              </h3>
-              <p className="text-[11px] text-[#686477] font-sans mt-0.5">Analisis teknikal interaktif dengan Lightweight Charts.</p>
+        <div className="card card-elevated p-3.5 sm:p-5 lg:col-span-8 flex flex-col space-y-4 relative min-h-[450px]">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 z-10 pb-2 border-b border-[#1b1926]/40">
+            <div className="flex items-center gap-3">
+              <TickerLogo symbol={details.symbol} sizeClassName="w-8 h-8" />
+              <div>
+                <h3 className="text-sm font-bold text-white tracking-tight font-sans flex items-center gap-2">
+                    <span className="font-mono text-[#ccff00] font-extrabold text-base">{details.symbol}</span>
+                    <span className="text-[#9f9bac] font-normal text-xs truncate max-w-[150px] sm:max-w-[250px]">{details.name}</span>
+                </h3>
+                <p className="text-[11px] text-[#686477] font-sans mt-0.5 flex items-center gap-2">
+                  <span>Rp {details.price.toLocaleString('id-ID')}</span>
+                  <span className={`font-mono font-bold ${details.changePercent >= 0 ? 'text-[#00f5a0]' : 'text-[#ff3366]'}`}>
+                    ({details.changePercent >= 0 ? '+' : ''}{details.changePercent.toFixed(2)}%)
+                  </span>
+                </p>
+              </div>
             </div>
             
-            <div className="flex flex-wrap items-center gap-3">
-                {/* Dropdown Indicator Trigger */}
-                <div className="relative" ref={dropdownRef}>
-                  <button
-                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                    className="px-3 py-1.5 flex items-center gap-2 text-[10px] font-bold text-white bg-[#111018]/80 border border-[#1b1926] hover:border-[#ccff00]/40 rounded-lg transition-colors cursor-pointer select-none"
-                  >
-                    <SlidersHorizontal className="w-3 h-3 text-[#ccff00]" />
-                    <span>Indikator ({activeIndicatorsCount})</span>
-                    <ChevronDown className="w-3 h-3 text-[#686477]" />
-                  </button>
+            <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-between md:justify-end">
+                {/* Modal Indicator Catalog Trigger */}
+                <button
+                  onClick={() => setIsIndicatorModalOpen(true)}
+                  className="px-4 py-2 flex items-center gap-2 text-[11px] font-bold text-white bg-[#111018] border border-[#1b1926] hover:border-[#ccff00]/40 rounded-xl transition-colors cursor-pointer select-none h-[36px]"
+                >
+                  <SlidersHorizontal className="w-3.5 h-3.5 text-[#ccff00]" />
+                  <span className="font-mono tracking-wide">INDIKATOR</span>
+                  <span className="bg-[#ccff00] text-black px-1.5 py-0.5 rounded-md text-[10px] font-extrabold leading-none">
+                    {activeIndicatorIds.length}
+                  </span>
+                </button>
 
-                  {isDropdownOpen && (
-                    <div className="absolute right-0 mt-1.5 w-60 bg-[#0f0e15] border border-[#1b1926] rounded-xl shadow-2xl p-2 z-50 space-y-0.5">
-                      <div className="px-2 py-1 text-[9px] font-bold text-[#686477] uppercase tracking-wider font-mono border-b border-[#1b1926]/50 mb-1">
-                        Pilih Indikator Teknikal
-                      </div>
-                      
-                      {/* SMA 5 */}
-                      <button
-                        onClick={() => setShowMA(!showMA)}
-                        className="w-full px-2.5 py-1.5 rounded-lg flex items-center justify-between hover:bg-[#111018] text-left transition-colors cursor-pointer"
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-2.5 h-2.5 rounded-full bg-[#ccff00]" />
-                          <span className="text-[10px] font-bold text-white">SMA 5 (Moving Average 5-Hari)</span>
-                        </div>
-                        {showMA && <Check className="w-3 h-3 text-[#ccff00]" />}
-                      </button>
-
-                      {/* SMA 20 */}
-                      <button
-                        onClick={() => setShowSMA20(!showSMA20)}
-                        className="w-full px-2.5 py-1.5 rounded-lg flex items-center justify-between hover:bg-[#111018] text-left transition-colors cursor-pointer"
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-2.5 h-2.5 rounded-full bg-[#00b0ff]" />
-                          <span className="text-[10px] font-bold text-white">SMA 20 (Moving Average 20-Hari)</span>
-                        </div>
-                        {showSMA20 && <Check className="w-3 h-3 text-[#00b0ff]" />}
-                      </button>
-
-                      {/* EMA 10 */}
-                      <button
-                        onClick={() => setShowEMA10(!showEMA10)}
-                        className="w-full px-2.5 py-1.5 rounded-lg flex items-center justify-between hover:bg-[#111018] text-left transition-colors cursor-pointer"
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-2.5 h-2.5 rounded-full bg-[#ff9100]" />
-                          <span className="text-[10px] font-bold text-white">EMA 10 (Exponential 10-Hari)</span>
-                        </div>
-                        {showEMA10 && <Check className="w-3 h-3 text-[#ff9100]" />}
-                      </button>
-
-                      {/* EMA 50 */}
-                      <button
-                        onClick={() => setShowEMA50(!showEMA50)}
-                        className="w-full px-2.5 py-1.5 rounded-lg flex items-center justify-between hover:bg-[#111018] text-left transition-colors cursor-pointer"
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-2.5 h-2.5 rounded-full bg-[#e040fb]" />
-                          <span className="text-[10px] font-bold text-white">EMA 50 (Sinyal Tren Mayor)</span>
-                        </div>
-                        {showEMA50 && <Check className="w-3 h-3 text-[#e040fb]" />}
-                      </button>
-
-                      {/* Bollinger Bands */}
-                      <button
-                        onClick={() => setShowBB(!showBB)}
-                        className="w-full px-2.5 py-1.5 rounded-lg flex items-center justify-between hover:bg-[#111018] text-left transition-colors cursor-pointer"
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-2.5 h-2.5 rounded bg-[#00f5a0]" />
-                          <span className="text-[10px] font-bold text-white">Bollinger Bands (20, 2)</span>
-                        </div>
-                        {showBB && <Check className="w-3 h-3 text-[#00f5a0]" />}
-                      </button>
-
-                      {/* Donchian Channel */}
-                      <button
-                        onClick={() => setShowDonchian(!showDonchian)}
-                        className="w-full px-2.5 py-1.5 rounded-lg flex items-center justify-between hover:bg-[#111018] text-left transition-colors cursor-pointer"
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-2.5 h-2.5 rounded bg-[#ff007f]" />
-                          <span className="text-[10px] font-bold text-white">Donchian Channels (20)</span>
-                        </div>
-                        {showDonchian && <Check className="w-3 h-3 text-[#ff007f]" />}
-                      </button>
-
-                      {/* Volume */}
-                      <button
-                        onClick={() => setShowVolume(!showVolume)}
-                        className="w-full px-2.5 py-1.5 rounded-lg flex items-center justify-between hover:bg-[#111018] text-left transition-colors cursor-pointer border-t border-[#1b1926]/50 mt-1 pt-2"
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-2.5 h-2.5 rounded bg-[#9f9bac]" />
-                          <span className="text-[10px] font-bold text-white">Volume Bar (Overlay)</span>
-                        </div>
-                        {showVolume && <Check className="w-3 h-3 text-[#ccff00]" />}
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Range picker buttons */}
-                <div className="flex gap-1 border border-[#1b1926] bg-[#111018]/80 rounded-lg p-1">
-                {(['1m', '3m', '6m', '1y'] as const).map((r) => (
+                {/* Time Controls Group */}
+                <div className="flex items-center gap-2">
+                  {/* Interval Picker Dropdown */}
+                  <div className="relative" ref={intervalDropdownRef}>
                     <button
-                    key={r}
-                    onClick={() => setRange(r)}
-                    className={`px-3 py-1.5 rounded-md font-extrabold text-[10px] transition-all cursor-pointer ${
-                        range === r 
-                        ? 'bg-[#ccff00] text-black shadow-sm' 
-                        : 'text-[#686477] hover:text-white'
-                    }`}
+                      onClick={() => setIsIntervalDropdownOpen(!isIntervalDropdownOpen)}
+                      className="flex items-center justify-between w-[100px] bg-[#111018] hover:bg-[#1b1926] border border-[#1b1926] hover:border-[#ccff00]/50 text-white text-[11px] font-bold font-mono rounded-xl pl-3 pr-2 h-[36px] transition-all cursor-pointer"
                     >
-                    {r.toUpperCase()}
+                      <span>
+                        {{
+                          '1m': '1 Menit',
+                          '5m': '5 Menit',
+                          '15m': '15 Menit',
+                          '60m': '1 Jam',
+                          '1d': '1 Hari',
+                          '1wk': '1 Minggu',
+                          '1mo': '1 Bulan'
+                        }[interval]}
+                      </span>
+                      <ChevronDown className={`w-4 h-4 text-[#8e8a9d] transition-transform ${isIntervalDropdownOpen ? 'rotate-180' : ''}`} />
                     </button>
-                ))}
+                    
+                    {isIntervalDropdownOpen && (
+                      <div className="absolute top-full right-0 mt-2 w-32 bg-[#111018] border border-[#2a273b] rounded-xl shadow-2xl z-50 p-1 space-y-0.5 animate-in fade-in duration-150">
+                        {([
+                          { value: '1d', label: '1 Hari' },
+                          { value: '1wk', label: '1 Minggu' },
+                          { value: '1mo', label: '1 Bulan' }
+                        ] as const).map(opt => (
+                          <button
+                            key={opt.value}
+                            onClick={() => {
+                              setInterval(opt.value);
+                              setIsIntervalDropdownOpen(false);
+                            }}
+                            className={`w-full text-left px-3 py-2 rounded-lg text-[11px] font-mono font-bold transition-all cursor-pointer ${
+                              interval === opt.value
+                                ? 'bg-[#ccff00] text-black shadow-sm'
+                                : 'text-[#8e8a9d] hover:bg-[#1b1926] hover:text-white'
+                            }`}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Range Picker Dropdown */}
+                  <div className="relative" ref={rangeDropdownRef}>
+                    <button
+                      onClick={() => setIsRangeDropdownOpen(!isRangeDropdownOpen)}
+                      className="flex items-center justify-between w-[140px] bg-[#111018] hover:bg-[#1b1926] border border-[#1b1926] hover:border-[#ccff00]/50 text-white text-[11px] font-bold font-mono rounded-xl pl-3 pr-2 h-[36px] transition-all cursor-pointer"
+                    >
+                      <span>
+                        {{
+                          '1m': '1 Bulan (1M)',
+                          '3m': '3 Bulan (3M)',
+                          '6m': '6 Bulan (6M)',
+                          '1y': '1 Tahun (1Y)',
+                          '3y': '3 Tahun (3Y)',
+                          '5y': '5 Tahun (5Y)',
+                          'max': 'Maksimal (MAX)'
+                        }[range]}
+                      </span>
+                      <ChevronDown className={`w-4 h-4 text-[#8e8a9d] transition-transform ${isRangeDropdownOpen ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {isRangeDropdownOpen && (
+                      <div className="absolute top-full right-0 mt-2 w-40 bg-[#111018] border border-[#2a273b] rounded-xl shadow-2xl z-50 p-1 space-y-0.5 animate-in fade-in duration-150">
+                        {([
+                          { value: '1m', label: '1 Bulan (1M)' },
+                          { value: '3m', label: '3 Bulan (3M)' },
+                          { value: '6m', label: '6 Bulan (6M)' },
+                          { value: '1y', label: '1 Tahun (1Y)' },
+                          { value: '3y', label: '3 Tahun (3Y)' },
+                          { value: '5y', label: '5 Tahun (5Y)' },
+                          { value: 'max', label: 'Maksimal (MAX)' }
+                        ] as const).map(opt => (
+                          <button
+                            key={opt.value}
+                            onClick={() => {
+                              setRange(opt.value);
+                              setIsRangeDropdownOpen(false);
+                            }}
+                            className={`w-full text-left px-3 py-2 rounded-lg text-[11px] font-mono font-bold transition-all cursor-pointer ${
+                              range === opt.value
+                                ? 'bg-[#ccff00] text-black shadow-sm'
+                                : 'text-[#8e8a9d] hover:bg-[#1b1926] hover:text-white'
+                            }`}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
+
             </div>
           </div>
           
           {/* Canvas Wrapper */}
-          <div className="flex-grow w-full h-[350px] relative rounded-xl overflow-hidden bg-[#0a0a0f] border border-[#1b1926]">
+          <div className="w-full relative flex-1 rounded-xl overflow-hidden bg-[#0a0a0f] border border-[#1b1926] min-h-[380px] sm:min-h-[450px]">
             <div ref={chartContainerRef} className="w-full h-full absolute inset-0" />
             
             {candles.length === 0 && (
@@ -732,6 +1046,15 @@ export const TickerDetail: React.FC<{ params: TickerParams }> = ({ params }) => 
                     <span className="w-6 h-6 border-2 border-[#ccff00]/30 border-t-[#ccff00] rounded-full animate-spin"></span>
                 </div>
             )}
+
+            {/* Floating Fullscreen Button at Bottom Right */}
+            <button
+              onClick={() => setLocation(`/full-chart/${symbol}`)}
+              title="Buka Halaman Full Chart Workspace"
+              className="absolute bottom-3 right-3 z-30 p-2 bg-[#111018]/90 hover:bg-[#1b1926] border border-[#2a273b] hover:border-[#ccff00] text-white rounded-xl shadow-2xl transition-all cursor-pointer flex items-center justify-center group"
+            >
+              <Maximize2 className="w-4 h-4 text-[#ccff00] group-hover:scale-110 transition-transform" />
+            </button>
           </div>
         </div>
 
@@ -742,10 +1065,10 @@ export const TickerDetail: React.FC<{ params: TickerParams }> = ({ params }) => 
       </div>
 
       {/* 3. Interactive Sub-Tabs Bar */}
-      <div className="flex items-center gap-2 border-b border-[#1b1926] pb-3 pt-2 overflow-x-auto no-scrollbar">
+      <div className="flex items-center gap-2 border-b border-[#1b1926] pb-3 pt-2 overflow-x-auto no-scrollbar scroll-smooth">
         <button
           onClick={() => setActiveTab('overview')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap shrink-0 ${
             activeTab === 'overview'
               ? 'bg-[#ccff00] text-black shadow-lg shadow-[#ccff00]/10 font-black'
               : 'bg-[#111018] text-[#9f9bac] hover:text-white hover:bg-[#1b1926]'
@@ -757,7 +1080,7 @@ export const TickerDetail: React.FC<{ params: TickerParams }> = ({ params }) => 
 
         <button
           onClick={() => setActiveTab('technical')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap shrink-0 ${
             activeTab === 'technical'
               ? 'bg-[#ccff00] text-black shadow-lg shadow-[#ccff00]/10 font-black'
               : 'bg-[#111018] text-[#9f9bac] hover:text-white hover:bg-[#1b1926]'
@@ -769,7 +1092,7 @@ export const TickerDetail: React.FC<{ params: TickerParams }> = ({ params }) => 
 
         <button
           onClick={() => setActiveTab('financials')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap shrink-0 ${
             activeTab === 'financials'
               ? 'bg-[#ccff00] text-black shadow-lg shadow-[#ccff00]/10 font-black'
               : 'bg-[#111018] text-[#9f9bac] hover:text-white hover:bg-[#1b1926]'
@@ -781,7 +1104,7 @@ export const TickerDetail: React.FC<{ params: TickerParams }> = ({ params }) => 
 
         <button
           onClick={() => setActiveTab('ai')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap shrink-0 ${
             activeTab === 'ai'
               ? 'bg-[#ccff00] text-black shadow-lg shadow-[#ccff00]/10 font-black'
               : 'bg-[#111018] text-[#9f9bac] hover:text-white hover:bg-[#1b1926]'
@@ -793,7 +1116,7 @@ export const TickerDetail: React.FC<{ params: TickerParams }> = ({ params }) => 
 
         <button
           onClick={() => setActiveTab('news')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap shrink-0 ${
             activeTab === 'news'
               ? 'bg-[#ccff00] text-black shadow-lg shadow-[#ccff00]/10 font-black'
               : 'bg-[#111018] text-[#9f9bac] hover:text-white hover:bg-[#1b1926]'

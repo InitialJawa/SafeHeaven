@@ -1,6 +1,6 @@
 {
-  "name": "",
-  "description": "",
+  "name": "SafeHaven - Platform Analisis & AI Saham Indonesia (IDX)",
+  "description": "Platform analisis pasar saham Indonesia (IHSG/IDX) berbasis AI, menyajikan screener saham, skor fundamental, analisis teknikal, portfolio tracker, dan wawasan investasi pintar.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

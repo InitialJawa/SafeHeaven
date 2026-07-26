@@ -19,6 +19,7 @@ export const TickerLogo: React.FC<TickerLogoProps> = ({
   const [error, setError] = useState(false);
   
   const cleanSymbol = symbol ? symbol.trim().toUpperCase() : 'IHSG';
+  const rawSymbol = cleanSymbol.replace(/\.JK$/, '');
 
   useEffect(() => {
     setError(false);
@@ -66,7 +67,7 @@ export const TickerLogo: React.FC<TickerLogoProps> = ({
     );
   }
 
-  let logoUrl = `https://assets.stockbit.com/logos/companies/${cleanSymbol}.png`;
+  let logoUrl = `https://assets.stockbit.com/logos/companies/${rawSymbol}.png`;
 
   // Failover color mapping to keep visual variety if images fail to load
   const colors: Record<string, string> = {
@@ -85,14 +86,14 @@ export const TickerLogo: React.FC<TickerLogoProps> = ({
   };
 
   const defaultColor = 'bg-[#1b1926] text-[#ccff00] border-[#2a273b]';
-  const colorClass = colors[cleanSymbol] || defaultColor;
+  const colorClass = colors[rawSymbol] || defaultColor;
 
   if (error) {
-    const displayText = isIdx ? 'IDX' : cleanSymbol.slice(0, 4);
+    const displayText = isIdx ? 'IDX' : rawSymbol.slice(0, 4);
     return (
       <div 
         className={`${sizeClassName} rounded-xl border flex items-center justify-center shrink-0 font-extrabold text-[10px] font-mono tracking-tighter ${colorClass} ${className}`}
-        title={cleanSymbol}
+        title={rawSymbol}
       >
         {displayText}
       </div>

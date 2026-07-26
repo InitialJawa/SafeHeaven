@@ -25,7 +25,8 @@ if (typeof window !== 'undefined') {
       msgStr.includes('WebSocket') || 
       msgStr.includes('websocket') || 
       filename.includes('vite') ||
-      msgStr.includes('closed without opened')
+      msgStr.includes('closed without opened') ||
+      msgStr.includes('ResizeObserver')
     ) {
       event.preventDefault();
       event.stopPropagation();

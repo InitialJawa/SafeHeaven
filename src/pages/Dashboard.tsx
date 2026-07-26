@@ -33,7 +33,8 @@ import {
   BarChart2,
   Gauge,
   LayoutList,
-  ChevronRight
+  ChevronRight,
+  Filter
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -271,40 +272,42 @@ export const Dashboard: React.FC = () => {
                       />
                     </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-1 gap-2.5 md:col-span-5 lg:col-span-4 w-full">
+                    <div className="grid grid-cols-2 lg:grid-cols-1 gap-2.5 md:col-span-5 lg:col-span-4 w-full">
                       <button
-                        id="action-quick-transfer"
+                        id="action-quick-screener"
                         onClick={() => {
-                          toast.success('Modul Transfer Instan (IDR/USD) dibuka.');
-                          setLocation('/portfolio');
+                          toast.success('Modul Screener AI & Saring Saham dibuka.');
+                          setLocation('/universe');
                         }}
                         className="flex items-center justify-between p-2.5 rounded-xl bg-[#111018] border border-[#1b1926] hover:border-[#ccff00]/40 text-[#9f9bac] hover:text-white transition-all cursor-pointer group w-full"
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="w-8 h-8 rounded-lg bg-[#00f5a0]/10 border border-[#00f5a0]/20 flex items-center justify-center shrink-0">
-                            <Send className="w-4 h-4 text-[#00f5a0] group-hover:-translate-y-0.5 transition-transform" />
+                          <div className="w-8 h-8 rounded-lg bg-[#ccff00]/10 border border-[#ccff00]/20 flex items-center justify-center shrink-0">
+                            <Filter className="w-4 h-4 text-[#ccff00] group-hover:scale-110 transition-transform" />
                           </div>
                           <div className="text-left min-w-0">
-                            <span className="text-xs font-bold text-white block truncate">Kirim Dana</span>
-                            <span className="text-[10px] text-[#686477] block truncate">Transfer & top-up RDN</span>
+                            <span className="text-xs font-bold text-white block truncate">Screener AI</span>
+                            <span className="text-[10px] text-[#686477] block truncate">Saring Saham</span>
                           </div>
                         </div>
                         <ChevronRight className="w-4 h-4 text-[#686477] group-hover:text-[#ccff00] group-hover:translate-x-0.5 transition-all shrink-0 ml-1 hidden sm:block" />
                       </button>
 
                       <button
-                        id="action-quick-rebalance"
-                        onClick={handleQuickRebalance}
-                        disabled={rebalancing}
-                        className="flex items-center justify-between p-2.5 rounded-xl bg-[#111018] border border-[#1b1926] hover:border-[#ccff00]/40 text-[#9f9bac] hover:text-white transition-all cursor-pointer group disabled:opacity-55 w-full"
+                        id="action-quick-backtest"
+                        onClick={() => {
+                          toast.success('Modul Backtest Strategy dibuka.');
+                          setLocation('/backtest');
+                        }}
+                        className="flex items-center justify-between p-2.5 rounded-xl bg-[#111018] border border-[#1b1926] hover:border-[#ccff00]/40 text-[#9f9bac] hover:text-white transition-all cursor-pointer group w-full"
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
                           <div className="w-8 h-8 rounded-lg bg-[#00f0ff]/10 border border-[#00f0ff]/20 flex items-center justify-center shrink-0">
-                            <RefreshCw className={`w-4 h-4 text-[#00f0ff] group-hover:rotate-180 transition-all ${rebalancing ? 'animate-spin' : ''}`} />
+                            <LineChart className="w-4 h-4 text-[#00f0ff] group-hover:scale-110 transition-transform" />
                           </div>
                           <div className="text-left min-w-0">
-                            <span className="text-xs font-bold text-white block truncate">Rebalance</span>
-                            <span className="text-[10px] text-[#686477] block truncate">Optimalisasi alokasi</span>
+                            <span className="text-xs font-bold text-white block truncate">Backtest Strategy</span>
+                            <span className="text-[10px] text-[#686477] block truncate">Simulasi historis & alpha</span>
                           </div>
                         </div>
                         <ChevronRight className="w-4 h-4 text-[#686477] group-hover:text-[#ccff00] group-hover:translate-x-0.5 transition-all shrink-0 ml-1 hidden sm:block" />

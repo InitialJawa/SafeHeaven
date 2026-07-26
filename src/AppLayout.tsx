@@ -33,7 +33,9 @@ import {
   ChevronRight,
   Search,
   Activity,
-  Newspaper
+  LineChart,
+  Newspaper,
+  Globe
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -70,6 +72,8 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
       category: 'HOME',
       items: [
         { name: 'Market Cockpit', path: '/', icon: LayoutDashboard },
+        { name: 'IHSG Chart', path: '/full-chart/IHSG', icon: LineChart },
+        { name: 'Landing Page', path: '/landing', icon: Globe },
       ]
     },
     {
@@ -118,6 +122,10 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
     if (location.startsWith('/ticker/')) {
       const parts = location.split('/');
       return `Analisis Ticker: ${parts[parts.length - 1].toUpperCase()}`;
+    }
+    if (location.startsWith('/full-chart/')) {
+      const parts = location.split('/');
+      return `Full Chart: ${parts[parts.length - 1].toUpperCase()}`;
     }
     for (const group of menuGroups) {
       const matching = group.items.find(m => m.path === location);

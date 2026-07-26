@@ -604,7 +604,7 @@ export const Backtest: React.FC = () => {
   };
 
   return (
-    <div id="backtest-view" className="flex flex-col h-[calc(100vh-6rem)] min-h-[600px] w-full overflow-hidden bg-[#0a090f] -mt-6">
+    <div id="backtest-view" className="flex flex-col min-h-[calc(100vh-6rem)] lg:h-[calc(100vh-6rem)] w-full overflow-y-auto lg:overflow-hidden bg-[#0a090f] -mt-6">
       {/* Title Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-6 pt-5 pb-4 shrink-0 border-b border-[#1b1926] bg-[#060608]">
         <div className="flex items-center gap-3">
@@ -689,7 +689,7 @@ export const Backtest: React.FC = () => {
           )}
         </div>
       </div>
-      <div className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden">
+      <div className="flex-1 flex flex-col lg:flex-row min-h-0 lg:overflow-hidden">
         {/* Left Column: Config (Collapsible) */}
         <div className={`w-full shrink-0 bg-[#060608] border-b lg:border-b-0 lg:border-r border-[#1b1926] flex flex-col transition-all duration-300 ${
           isConfigCollapsed ? 'lg:w-16' : 'lg:w-80'
@@ -774,7 +774,7 @@ export const Backtest: React.FC = () => {
 
           {/* Form Body */}
           {!isConfigCollapsed && (
-            <div className="p-4 lg:p-5 overflow-y-auto custom-scrollbar flex-1">
+            <div className="p-4 lg:p-5 lg:overflow-y-auto custom-scrollbar lg:flex-1">
               <form onSubmit={runBacktest} className="space-y-4 lg:space-y-5">
                 <div>
                   <div className="flex items-center gap-1.5 mb-2">

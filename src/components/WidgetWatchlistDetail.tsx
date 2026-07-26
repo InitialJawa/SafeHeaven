@@ -55,7 +55,7 @@ export const WidgetWatchlistDetail: React.FC<WidgetWatchlistDetailProps> = ({
     fetchTickerData(selectedSymbol);
   }, [selectedSymbol]);
 
-  const fetchTickerData = async (symbol: string) => {
+  const fetchTickerData = async (symbol: string, retries = 1) => {
     setLoading(true);
     try {
       const base = window.location.origin;
@@ -64,10 +64,15 @@ export const WidgetWatchlistDetail: React.FC<WidgetWatchlistDetailProps> = ({
         const json = await res.json();
         setData(json);
       }
-    } catch (err) {
-      console.error('Failed to fetch ticker details:', err);
+    } catch (err: any) {
+      if (retries > 0) {
+        setTimeout(() => fetchTickerData(symbol, retries - 1), 1000);
+        return;
+      }
+      console.warn('Failed to fetch ticker details after retries:', err?.message || err);
     } finally {
-      setLoading(false);
+      if (retries === 0) setLoading(false);
+      else if (data) setLoading(false); // only disable loading if we're not retrying or already have data
     }
   };
 

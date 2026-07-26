@@ -12,6 +12,7 @@ import { Toaster } from 'sonner';
 import { PageLoader } from './components/PageLoader';
 
 // Lazy-loaded Page Modules
+const LandingPage = lazy(() => import('./pages/LandingPage').then(m => ({ default: m.LandingPage })));
 const Login = lazy(() => import('./pages/Login').then(m => ({ default: m.Login })));
 const Dashboard = lazy(() => import('./pages/Dashboard').then(m => ({ default: m.Dashboard })));
 const Portfolio = lazy(() => import('./pages/Portfolio').then(m => ({ default: m.Portfolio })));
@@ -28,14 +29,13 @@ const Alerts = lazy(() => import('./pages/Alerts').then(m => ({ default: m.Alert
 const Admin = lazy(() => import('./pages/Admin').then(m => ({ default: m.Admin })));
 const Settings = lazy(() => import('./pages/Settings').then(m => ({ default: m.Settings })));
 const TickerDetail = lazy(() => import('./pages/TickerDetail').then(m => ({ default: m.TickerDetail })));
+const FullChart = lazy(() => import('./pages/FullChart').then(m => ({ default: m.FullChart })));
 const NotFound = lazy(() => import('./pages/NotFound').then(m => ({ default: m.NotFound })));
 
 export default function App() {
   const { user, fetchInitialData, loginWithGoogle } = useAppStore();
 
   useEffect(() => {
-    testConnection();
-
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser && (!user || user.id !== firebaseUser.uid)) {
         loginWithGoogle(
@@ -60,12 +60,13 @@ export default function App() {
       <Toaster position="top-right" theme="dark" closeButton />
       <Suspense fallback={<PageLoader />}>
         <Switch>
-          {/* Unauthenticated Auth Path */}
+          {/* Public & Landing Pages */}
+          <Route path="/landing" component={LandingPage} />
           <Route path="/login" component={Login} />
 
-          {/* Authenticated Paths Group with guards */}
+          {/* Root Path: LandingPage for visitors, Dashboard for logged in users */}
           <Route path="/">
-            {!user ? <Redirect to="/login" /> : <AppLayout><Dashboard /></AppLayout>}
+            {!user ? <LandingPage /> : <AppLayout><Dashboard /></AppLayout>}
           </Route>
           <Route path="/portfolio">
             {!user ? <Redirect to="/login" /> : <AppLayout><Portfolio /></AppLayout>}
@@ -110,6 +111,11 @@ export default function App() {
           {/* Dynamic ticker detail route */}
           <Route path="/ticker/:symbol">
             {(params) => !user ? <Redirect to="/login" /> : <AppLayout><TickerDetail params={params} /></AppLayout>}
+          </Route>
+
+          {/* Dedicated Standalone Full Chart Workspace Route */}
+          <Route path="/full-chart/:symbol">
+            {(params) => !user ? <Redirect to="/login" /> : <AppLayout><FullChart params={params} /></AppLayout>}
           </Route>
 
           {/* Catch-all 404 Route */}

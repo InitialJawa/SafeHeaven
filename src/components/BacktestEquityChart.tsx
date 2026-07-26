@@ -170,15 +170,22 @@ export const BacktestEquityChart: React.FC<BacktestEquityChartProps> = ({
     }
 
     if (data && data.length > 0 && areaSeriesRef.current && ihsgSeriesRef.current && goldSeriesRef.current) {
-      const areaData = data.map(item => ({ time: item.date, value: item.value }));
-      const ihsgData = data.map(item => ({ time: item.date, value: item.ihsg }));
-      const goldData = data.map(item => ({ time: item.date, value: item.gold }));
+      const validData = data.filter(item => 
+        item && item.date && 
+        Number.isFinite(item.value) && 
+        Number.isFinite(item.ihsg) && 
+        Number.isFinite(item.gold)
+      );
+
+      const areaData = validData.map(item => ({ time: item.date, value: item.value }));
+      const ihsgData = validData.map(item => ({ time: item.date, value: item.ihsg }));
+      const goldData = validData.map(item => ({ time: item.date, value: item.gold }));
 
       areaSeriesRef.current.setData(areaData);
       ihsgSeriesRef.current.setData(ihsgData);
       goldSeriesRef.current.setData(goldData);
 
-      chartRef.current?.timeScale().fitContent();
+      if (validData.length > 0) chartRef.current?.timeScale().fitContent();
     }
 
   }, [data]);

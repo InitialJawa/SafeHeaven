@@ -215,13 +215,15 @@ export const PortfolioGrowthChart: React.FC<PortfolioGrowthChartProps> = ({
 
     // Set Data on series whenever filteredData changes
     if (filteredData.length > 0 && areaSeriesRef.current && baselineSeriesRef.current) {
+      const validFilteredData = filteredData.filter(item => item && item.time && Number.isFinite(item.balance));
+
       // Map to TradingView lightweight-charts data format
-      const formattedAreaPoints = filteredData.map((item) => ({
+      const formattedAreaPoints = validFilteredData.map((item) => ({
         time: item.time,
         value: item.balance,
       }));
 
-      const formattedBaselinePoints = filteredData.map((item) => ({
+      const formattedBaselinePoints = validFilteredData.map((item) => ({
         time: item.time,
         value: baseVal,
       }));
