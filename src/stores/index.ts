@@ -6,12 +6,14 @@
 import { create } from 'zustand';
 import { db, auth, handleFirestoreError, OperationType, firebaseSignOut } from '../lib/firebase';
 import { doc, setDoc, getDoc, collection, getDocs, deleteDoc } from 'firebase/firestore';
+import { toast } from 'sonner';
 import { 
   TickerInfo, 
   PortfolioConfig, 
   StockPick, 
   AlertRule, 
   AlertHistory, 
+  PriceAlert,
   Strategy, 
   Universe, 
   UserInfo, 
@@ -58,6 +60,9 @@ interface AppState {
   // Alerts
   alerts: AlertHistory[];
   alertRules: AlertRule[];
+  priceAlerts: PriceAlert[];
+  addPriceAlert: (alert: Omit<PriceAlert, 'id' | 'createdAt' | 'status'>) => Promise<void>;
+  deletePriceAlert: (id: string) => Promise<void>;
   
   // Backtest History
   backtestHistory: BacktestHistoryItem[];
@@ -281,6 +286,35 @@ export const useAppStore = create<AppState>((set, get) => ({
     { id: 'ar-2', name: 'Peringatan Crash GOTO', type: 'Price', condition: '<=', threshold: 120, ticker: 'GOTO', status: 'ON' },
     { id: 'ar-3', name: 'Batas Momentum LQ45', type: 'Momentum', condition: '<=', threshold: 40, status: 'OFF' }
   ],
+  priceAlerts: [],
+
+  addPriceAlert: async (alertData) => {
+    const id = `p-alert-${Date.now()}`;
+    const newAlert: PriceAlert = {
+      ...alertData,
+      id,
+      userId: get().user?.id || 'usr-1',
+      status: 'active',
+      createdAt: new Date().toISOString()
+    };
+    set((state) => ({ priceAlerts: [newAlert, ...state.priceAlerts] }));
+    try {
+      await setDoc(doc(db, 'priceAlerts', id), newAlert);
+      toast.success(`Target alert harga ${alertData.symbol} di Rp ${alertData.targetPrice.toLocaleString('id-ID')} berhasil disimpan.`);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.WRITE, `priceAlerts/${id}`);
+    }
+  },
+
+  deletePriceAlert: async (id) => {
+    set((state) => ({ priceAlerts: state.priceAlerts.filter(a => a.id !== id) }));
+    try {
+      await deleteDoc(doc(db, 'priceAlerts', id));
+      toast.info('Price alert berhasil dihapus.');
+    } catch (err) {
+      handleFirestoreError(err, OperationType.DELETE, `priceAlerts/${id}`);
+    }
+  },
   users: [
     { id: 'usr-1', email: 'imamnasrulloh02@gmail.com', name: 'Imam Nasrulloh', role: 'admin', registeredAt: '2026-01-01' },
     { id: 'usr-2', email: 'advisor1@safeheaven.id', name: 'Budi Santoso', role: 'advisor', registeredAt: '2026-02-15' },
@@ -395,11 +429,33 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   setTickers: (tickers) => set({ tickers }),
   updateTickerPrice: (symbol, price, changePercent) => {
-    set((state) => ({
-      tickers: state.tickers.map((t) => 
+    set((state) => {
+      const tickers = state.tickers.map((t) => 
         t.symbol === symbol ? { ...t, price, changePercent } : t
-      )
-    }));
+      );
+
+      // Check active price alerts
+      state.priceAlerts.forEach(alert => {
+        if (alert.symbol === symbol && alert.status === 'active') {
+          const reached = alert.condition === 'above' ? price >= alert.targetPrice : price <= alert.targetPrice;
+          if (reached) {
+            toast.success("PRICE ALERT: " + symbol + " mencapai target Rp " + alert.targetPrice.toLocaleString('id-ID') + " (Harga: Rp " + price.toLocaleString('id-ID') + ")");
+            alert.status = 'triggered';
+            const newHistoryItem: AlertHistory = {
+              id: `alert-hist-${Date.now()}`,
+              time: new Date().toISOString(),
+              type: 'Price',
+              message: "Harga " + symbol + " menyentuh target " + (alert.condition === 'above' ? '>=' : '<=') + " Rp " + alert.targetPrice.toLocaleString('id-ID') + " (Aktual: Rp " + price.toLocaleString('id-ID') + ")",
+              status: 'unread'
+            };
+            set(s => ({ alerts: [newHistoryItem, ...s.alerts] }));
+            setDoc(doc(db, 'priceAlerts', alert.id), { ...alert, status: 'triggered' }).catch(() => {});
+          }
+        }
+      });
+
+      return { tickers };
+    });
   },
 
   fetchInitialData: async () => {
@@ -464,6 +520,19 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (keysData) stateUpdates.apiKeys = keysData;
       if (usersData) stateUpdates.users = usersData;
       if (clientData) stateUpdates.clients = clientData;
+
+      try {
+        const querySnapshot = await getDocs(collection(db, 'priceAlerts'));
+        const loadedAlerts: PriceAlert[] = [];
+        querySnapshot.forEach((docSnap) => {
+          loadedAlerts.push(docSnap.data() as PriceAlert);
+        });
+        if (loadedAlerts.length > 0) {
+          stateUpdates.priceAlerts = loadedAlerts;
+        }
+      } catch (err) {
+        // ignore if offline or not found
+      }
 
       set(stateUpdates);
 

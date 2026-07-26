@@ -58,6 +58,16 @@ export interface AlertRule {
   lastTriggered?: string;
 }
 
+export interface PriceAlert {
+  id: string;
+  userId?: string;
+  symbol: string;
+  targetPrice: number;
+  condition: 'above' | 'below';
+  status: 'active' | 'triggered' | 'cancelled';
+  createdAt: string;
+}
+
 export interface AlertHistory {
   id: string;
   time: string;

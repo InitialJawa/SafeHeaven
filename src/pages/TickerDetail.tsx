@@ -1,13 +1,14 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useLocation } from 'wouter';
 import { TickerLogo } from '../components/TickerLogo';
-import { ArrowLeft, Bot, Brain, Info, Layers, LineChart, Activity, PieChart, LayoutDashboard, TrendingUp, Download, ChevronDown, SlidersHorizontal, Check, Newspaper, Maximize2, Minimize2, X } from 'lucide-react';
+import { ArrowLeft, Bot, Brain, Info, Layers, LineChart, Activity, PieChart, LayoutDashboard, TrendingUp, Download, ChevronDown, SlidersHorizontal, Check, Newspaper, Maximize2, Minimize2, X, Bell } from 'lucide-react';
 import { createChart, IChartApi, ISeriesApi, CandlestickSeries, HistogramSeries, LineSeries, ColorType, LineStyle, createSeriesMarkers } from 'lightweight-charts';
 import { toast } from 'sonner';
 import { downloadPDF } from '../lib/pdfUtils';
 import { IndicatorModal } from '../components/IndicatorModal';
 import { calculateIndicators, INDICATORS_REGISTRY } from '../lib/indicators';
 import { Skeleton, SkeletonCard, SkeletonChart, SkeletonText } from '../components/Skeleton';
+import { useAppStore } from '../stores';
 import { 
   WidgetKinerja, 
   WidgetMusiman, 
@@ -73,6 +74,14 @@ interface SectorData {
 export const TickerDetail: React.FC<{ params: TickerParams }> = ({ params }) => {
   const symbol = params.symbol.toUpperCase();
   const [, setLocation] = useLocation();
+
+  const priceAlerts = useAppStore(state => state.priceAlerts);
+  const addPriceAlert = useAppStore(state => state.addPriceAlert);
+  const deletePriceAlert = useAppStore(state => state.deletePriceAlert);
+
+  const [isAlertModalOpen, setIsAlertModalOpen] = useState(false);
+  const [targetPriceInput, setTargetPriceInput] = useState('');
+  const [alertCondition, setAlertCondition] = useState<'above' | 'below'>('above');
 
   const [details, setDetails] = useState<TickerDetails | null>(null);
   const [scores, setScores] = useState<ScoreBreakdown | null>(null);
@@ -848,6 +857,106 @@ export const TickerDetail: React.FC<{ params: TickerParams }> = ({ params }) => 
         onToggleIndicator={toggleIndicator}
         onClearAll={clearAllIndicators}
       />
+
+      {isAlertModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-[#111018] border border-[#221f30] rounded-2xl p-6 w-full max-w-md shadow-2xl relative">
+            <button 
+              onClick={() => setIsAlertModalOpen(false)}
+              className="absolute top-4 right-4 text-[#9f9bac] hover:text-white bg-transparent border-0 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-[#ccff00]/10 flex items-center justify-center text-[#ccff00]">
+                <Bell className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-white">Set Price Alert ({symbol})</h3>
+                <p className="text-xs text-[#9f9bac]">Dapatkan notifikasi realtime saat harga menyentuh target.</p>
+              </div>
+            </div>
+
+            <div className="space-y-4 py-2">
+              <div>
+                <label className="text-xs font-bold text-[#9f9bac] block mb-1">Harga Saat Ini</label>
+                <div className="text-base font-mono font-bold text-white bg-[#181622] px-3 py-2 rounded-xl border border-[#2a273b]">
+                  Rp {details.price.toLocaleString('id-ID')}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-[#9f9bac] block mb-1">Kondisi Trigger</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setAlertCondition('above')}
+                    className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                      alertCondition === 'above' 
+                        ? 'bg-[#00f5a0]/10 border-[#00f5a0] text-[#00f5a0]' 
+                        : 'bg-[#181622] border-[#2a273b] text-[#9f9bac]'
+                    }`}
+                  >
+                    Naik Di Atas (&gt;=)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAlertCondition('below')}
+                    className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                      alertCondition === 'below' 
+                        ? 'bg-[#ff3366]/10 border-[#ff3366] text-[#ff3366]' 
+                        : 'bg-[#181622] border-[#2a273b] text-[#9f9bac]'
+                    }`}
+                  >
+                    Turun Di Bawah (&lt;=)
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-[#9f9bac] block mb-1">Target Harga (Rp)</label>
+                <input
+                  type="number"
+                  value={targetPriceInput}
+                  onChange={(e) => setTargetPriceInput(e.target.value)}
+                  placeholder={`Contoh: ${details.price}`}
+                  className="w-full bg-[#181622] border border-[#2a273b] rounded-xl px-3.5 py-2.5 text-white font-mono text-sm focus:outline-none focus:border-[#ccff00]"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 mt-6">
+              <button
+                type="button"
+                onClick={() => setIsAlertModalOpen(false)}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-[#9f9bac] hover:text-white bg-transparent border border-[#2a273b] cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  const val = parseFloat(targetPriceInput);
+                  if (isNaN(val) || val <= 0) {
+                    toast.error('Masukkan target harga yang valid.');
+                    return;
+                  }
+                  await addPriceAlert({
+                    symbol,
+                    targetPrice: val,
+                    condition: alertCondition
+                  });
+                  setTargetPriceInput('');
+                  setIsAlertModalOpen(false);
+                }}
+                className="px-5 py-2 rounded-xl text-xs font-bold bg-[#ccff00] hover:bg-[#b3e600] text-black transition-colors cursor-pointer"
+              >
+                Simpan Alert
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Navigation and Name Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -933,6 +1042,20 @@ export const TickerDetail: React.FC<{ params: TickerParams }> = ({ params }) => 
                   <span className="bg-[#ccff00] text-black px-1.5 py-0.5 rounded-md text-[10px] font-extrabold leading-none">
                     {activeIndicatorIds.length}
                   </span>
+                </button>
+
+                {/* Set Price Alert Button */}
+                <button
+                  onClick={() => setIsAlertModalOpen(true)}
+                  className="px-4 py-2 flex items-center gap-2 text-[11px] font-bold text-white bg-[#111018] border border-[#1b1926] hover:border-[#ccff00]/40 rounded-xl transition-colors cursor-pointer select-none h-[36px]"
+                >
+                  <Bell className="w-3.5 h-3.5 text-[#ccff00]" />
+                  <span className="font-mono tracking-wide">SET ALERT</span>
+                  {priceAlerts.filter(a => a.symbol === symbol && a.status === 'active').length > 0 && (
+                    <span className="bg-[#ccff00] text-black px-1.5 py-0.5 rounded-md text-[10px] font-extrabold leading-none">
+                      {priceAlerts.filter(a => a.symbol === symbol && a.status === 'active').length}
+                    </span>
+                  )}
                 </button>
 
                 {/* Time Controls Group */}
@@ -1061,6 +1184,47 @@ export const TickerDetail: React.FC<{ params: TickerParams }> = ({ params }) => 
         <div className="lg:col-span-4 flex flex-col gap-5">
             {/* Detail Ringkasan Pasar & Statistik Key Widget (Yahoo Finance) */}
             <WidgetWatchlistDetail symbol={details.symbol || symbol} showDropdown={false} />
+
+            {/* Active Price Alerts for this Ticker */}
+            <div className="card card-elevated p-5 flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Bell className="w-4 h-4 text-[#ccff00]" />
+                  <h4 className="text-xs font-bold text-white uppercase tracking-wider">Alert Harga Aktif</h4>
+                </div>
+                <button
+                  onClick={() => setIsAlertModalOpen(true)}
+                  className="text-[10px] font-bold text-[#ccff00] hover:underline bg-transparent border-0 cursor-pointer"
+                >
+                  + Set Baru
+                </button>
+              </div>
+
+              {priceAlerts.filter(a => a.symbol === symbol && a.status === 'active').length === 0 ? (
+                <p className="text-xs text-[#686477] py-2 text-center">Belum ada alert harga aktif untuk {symbol}.</p>
+              ) : (
+                <div className="space-y-2">
+                  {priceAlerts.filter(a => a.symbol === symbol && a.status === 'active').map(alert => (
+                    <div key={alert.id} className="flex items-center justify-between bg-[#181622] border border-[#2a273b] p-3 rounded-xl">
+                      <div>
+                        <div className="text-xs font-mono font-bold text-white flex items-center gap-1.5">
+                          <span>{alert.condition === 'above' ? '>= (Naik)' : '<= (Turun)'}</span>
+                          <span className="text-[#ccff00]">Rp {alert.targetPrice.toLocaleString('id-ID')}</span>
+                        </div>
+                        <span className="text-[10px] text-[#686477] mt-0.5 block">Dibuat: {new Date(alert.createdAt).toLocaleDateString('id-ID')}</span>
+                      </div>
+                      <button
+                        onClick={() => deletePriceAlert(alert.id)}
+                        className="text-xs text-[#ff3366] hover:text-white bg-transparent border-0 cursor-pointer p-1"
+                        title="Hapus Alert"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
         </div>
       </div>
 
