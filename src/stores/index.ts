@@ -445,7 +445,7 @@ export const useAppStore = create<AppState>((set, get) => {
       id: uid,
       email,
       name,
-      photoURL,
+      ...(photoURL ? { photoURL } : {}),
       role: userRole,
       isPremium,
       tier: isPremium ? 'Platinum' : 'Perunggu',
@@ -454,9 +454,13 @@ export const useAppStore = create<AppState>((set, get) => {
     localStorage.setItem('safehaven_user', JSON.stringify(userInfo));
     set({ user: userInfo, isAuthenticated: true, isDemoMode: false, tier: userInfo.tier || 'Perunggu' });
 
-    // Sync user record with Firestore
+    // Sync user record with Firestore (filter out undefined values to prevent Firestore error)
+    const firestorePayload = Object.fromEntries(
+      Object.entries(userInfo).filter(([_, v]) => v !== undefined)
+    );
+
     try {
-      await setDoc(doc(db, 'users', uid), userInfo, { merge: true });
+      await setDoc(doc(db, 'users', uid), firestorePayload, { merge: true });
     } catch (err) {
       handleFirestoreError(err, OperationType.WRITE, `users/${uid}`);
     }
@@ -941,15 +945,15 @@ export const useAppStore = create<AppState>((set, get) => {
     if (!firebaseUid) return;
 
     try {
-      const docRef = doc(db, `users/${userId}/memory/default`);
+      const docRef = doc(db, `users/${firebaseUid}/memory/default`);
       await setDoc(docRef, {
-        userId,
+        userId: firebaseUid,
         memoryContext: newContext,
         lastUpdated: new Date().toISOString()
       }, { merge: true });
       set({ userMemoryContext: newContext });
     } catch (error) {
-      handleFirestoreError(error, OperationType.WRITE, `users/${userId}/memory/default`);
+      handleFirestoreError(error, OperationType.WRITE, `users/${firebaseUid}/memory/default`);
     }
   },
 
