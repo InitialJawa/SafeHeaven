@@ -42,6 +42,7 @@ import {
   UserCheck
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { GoogleIcon, GmailIcon } from './components/AppLogos';
 
 export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [location, setLocation] = useLocation();
@@ -107,10 +108,9 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
       ]
     },
     {
-      category: 'RISK',
+      category: 'ALERTS',
       items: [
         { name: 'Alerts', path: '/alerts', icon: Bell, isPublic: false },
-        { name: 'Risk Control', path: '/risk', icon: Shield, isPublic: false },
       ]
     },
     {
@@ -118,6 +118,7 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
       items: [
         { name: 'AI Manager', path: '/ai', icon: Bot, isPublic: false },
         { name: 'Settings', path: '/settings', icon: Settings, isPublic: false },
+        { name: 'Admin Console', path: '/admin', icon: Shield, isPublic: false },
       ]
     }
   ];
@@ -230,31 +231,52 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
           <div className={`p-4 border-t border-[#1b1926] bg-[#111018]/45 flex items-center justify-between gap-2 text-xs transition-all duration-300 ${isCollapsed ? 'justify-center px-0' : 'px-4'}`}>
             {isCollapsed ? (
               <div 
-                className="w-8 h-8 rounded-full bg-[#ccff00]/10 border border-[#ccff00]/25 flex items-center justify-center text-[#ccff00] font-bold font-mono cursor-pointer shrink-0 hover:border-[#ff3366]/40 transition-colors overflow-hidden"
+                className="w-8 h-8 rounded-full bg-[#ccff00]/10 border border-[#ccff00]/25 flex items-center justify-center text-[#ccff00] font-bold font-mono cursor-pointer shrink-0 hover:border-[#ff3366]/40 transition-colors relative"
                 onClick={handleLogout}
                 title={`Keluar (${user.name})`}
               >
                 {user.photoURL ? (
-                  <img src={user.photoURL} alt={user.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  <img src={user.photoURL} alt={user.name} className="w-full h-full object-cover rounded-full" referrerPolicy="no-referrer" />
                 ) : (
                   user.name.charAt(0).toUpperCase()
+                )}
+                {(user.email?.toLowerCase().includes('gmail') || user.photoURL) && (
+                  <span className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 border border-[#1b1926] shadow-md z-10" title="Akun Gmail / Google">
+                    <GoogleIcon className="w-2.5 h-2.5" />
+                  </span>
                 )}
               </div>
             ) : (
               <>
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-full bg-[#ccff00]/10 border border-[#ccff00]/25 flex items-center justify-center text-[#ccff00] shrink-0 font-bold font-mono overflow-hidden">
+                  <div className="w-8 h-8 rounded-full bg-[#ccff00]/10 border border-[#ccff00]/25 flex items-center justify-center text-[#ccff00] shrink-0 font-bold font-mono relative">
                     {user.photoURL ? (
-                      <img src={user.photoURL} alt={user.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                      <img src={user.photoURL} alt={user.name} className="w-full h-full object-cover rounded-full" referrerPolicy="no-referrer" />
                     ) : (
                       user.name.charAt(0).toUpperCase()
                     )}
+                    {(user.email?.toLowerCase().includes('gmail') || user.photoURL) && (
+                      <span className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 border border-[#1b1926] shadow-md z-10" title="Akun Gmail / Google">
+                        <GoogleIcon className="w-2.5 h-2.5" />
+                      </span>
+                    )}
                   </div>
                   <div className="min-w-0">
-                    <p className="font-semibold text-white truncate">{user.name}</p>
-                    <span className="text-[10px] text-[#ccff00] uppercase font-mono font-bold block truncate">
-                      {user.isPremium || user.tier === 'Platinum' ? '⭐ Platinum Member' : user.role}
-                    </span>
+                    <p className="font-semibold text-white truncate flex items-center gap-1">
+                      <span>{user.name}</span>
+                    </p>
+                    <div className="flex items-center gap-1 text-[10px] text-[#9f9bac] truncate">
+                      {user.email?.toLowerCase().includes('gmail') ? (
+                        <span className="inline-flex items-center gap-1 text-[#00f0ff] font-mono text-[9.5px]">
+                          <GoogleIcon className="w-2.5 h-2.5 shrink-0" />
+                          <span className="truncate">{user.email}</span>
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-[#ccff00] uppercase font-mono font-bold block truncate">
+                          {user.isPremium || user.tier === 'Platinum' ? '⭐ Platinum Member' : user.role}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <button
@@ -357,18 +379,30 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
             {/* Header User Actions */}
             {isAuth ? (
               <div className="hidden sm:flex items-center gap-2 pl-2 sm:pl-3 border-l border-[#1b1926] shrink-0">
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#111018] border-2 border-[#ccff00]/40 flex items-center justify-center text-[#ccff00] relative overflow-hidden shrink-0">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#111018] border-2 border-[#ccff00]/40 flex items-center justify-center text-[#ccff00] relative shrink-0">
                   {user?.photoURL ? (
-                    <img src={user.photoURL} alt={user.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                    <img src={user.photoURL} alt={user.name} className="w-full h-full object-cover rounded-full" referrerPolicy="no-referrer" />
                   ) : (
                     <span className="font-bold text-xs font-sans text-white">{user ? user.name.charAt(0).toUpperCase() : 'D'}</span>
                   )}
+                  {(user?.email?.toLowerCase().includes('gmail') || user?.photoURL) && (
+                    <span className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 border border-[#1b1926] shadow-sm z-10" title="Akun Gmail / Google">
+                      <GoogleIcon className="w-2.5 h-2.5" />
+                    </span>
+                  )}
                 </div>
-                <div className="text-left hidden md:block max-w-[100px] lg:max-w-[140px]">
+                <div className="text-left hidden md:block max-w-[120px] lg:max-w-[160px]">
                   <p className="text-[10px] font-bold text-white leading-tight font-sans truncate">{user ? user.name : 'Demo User'}</p>
-                  <span className="text-[9px] text-[#ccff00] font-mono block truncate">
-                    {isPremium ? '⭐ Premium Active' : 'Demo Active'}
-                  </span>
+                  {user?.email?.toLowerCase().includes('gmail') ? (
+                    <span className="text-[9px] text-[#00f0ff] font-mono flex items-center gap-1 truncate">
+                      <GoogleIcon className="w-2.5 h-2.5 shrink-0" />
+                      <span className="truncate">{user.email}</span>
+                    </span>
+                  ) : (
+                    <span className="text-[9px] text-[#ccff00] font-mono block truncate">
+                      {isPremium ? '⭐ Premium Active' : 'Demo Active'}
+                    </span>
+                  )}
                 </div>
               </div>
             ) : (
@@ -485,18 +519,30 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
             {isAuth ? (
               <div className="p-4 border-t border-[#1b1926] bg-[#111018]/45 flex items-center justify-between gap-2 text-xs">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-7.5 h-7.5 rounded-full bg-[#ccff00]/10 flex items-center justify-center text-[#ccff00] font-bold font-mono shrink-0 overflow-hidden">
+                  <div className="w-7.5 h-7.5 rounded-full bg-[#ccff00]/10 flex items-center justify-center text-[#ccff00] font-bold font-mono shrink-0 relative">
                     {user?.photoURL ? (
-                      <img src={user.photoURL} alt={user.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                      <img src={user.photoURL} alt={user.name} className="w-full h-full object-cover rounded-full" referrerPolicy="no-referrer" />
                     ) : (
                       user ? user.name.charAt(0).toUpperCase() : 'D'
+                    )}
+                    {(user?.email?.toLowerCase().includes('gmail') || user?.photoURL) && (
+                      <span className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 border border-[#1b1926] shadow-sm z-10" title="Akun Gmail / Google">
+                        <GoogleIcon className="w-2.5 h-2.5" />
+                      </span>
                     )}
                   </div>
                   <div className="min-w-0">
                     <p className="font-semibold text-white truncate">{user ? user.name : 'Demo User'}</p>
-                    <span className="text-[9px] text-[#ccff00] uppercase font-mono font-bold block truncate">
-                      {isPremium ? '⭐ Premium Member' : 'Demo Active'}
-                    </span>
+                    {user?.email?.toLowerCase().includes('gmail') ? (
+                      <span className="text-[9px] text-[#00f0ff] font-mono flex items-center gap-1 truncate">
+                        <GoogleIcon className="w-2.5 h-2.5 shrink-0" />
+                        <span className="truncate">{user.email}</span>
+                      </span>
+                    ) : (
+                      <span className="text-[9px] text-[#ccff00] uppercase font-mono font-bold block truncate">
+                        {isPremium ? '⭐ Premium Member' : 'Demo Active'}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <button

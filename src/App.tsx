@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, Suspense, lazy } from 'react';
-import { Route, Switch } from 'wouter';
+import { Route, Switch, Redirect } from 'wouter';
 import { useAppStore } from './stores';
 import { AppLayout } from './AppLayout';
 import { auth, onAuthStateChanged } from './lib/firebase';
@@ -109,7 +109,7 @@ export default function App() {
             {!isRegisteredUser ? <AppLayout><AuthGuardView featureName="Peringatan Alert & Signal" /></AppLayout> : <AppLayout><Alerts /></AppLayout>}
           </Route>
           <Route path="/risk">
-            {!isRegisteredUser ? <AppLayout><AuthGuardView featureName="Kontrol Risiko & Crash Shield" /></AppLayout> : <AppLayout><Risk /></AppLayout>}
+            <Redirect to="/admin" />
           </Route>
           <Route path="/settings">
             {!isRegisteredUser ? <AppLayout><AuthGuardView featureName="Pengaturan Sistem" /></AppLayout> : <AppLayout><Settings /></AppLayout>}

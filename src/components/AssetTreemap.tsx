@@ -350,14 +350,6 @@ export const AssetTreemap: React.FC<AssetTreemapProps> = ({ capital = 500000000,
       
       <div className="flex justify-between items-start mb-4 z-10">
         <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold text-[#686477] tracking-widest uppercase font-sans">
-              HTML5 Canvas & SVG Treemap
-            </span>
-            <span className="text-[9px] font-mono bg-[#ccff00]/10 text-[#ccff00] px-1.5 py-0.2 rounded border border-[#ccff00]/20 flex items-center gap-1">
-              60 FPS
-            </span>
-          </div>
           <h2 className="text-xl font-extrabold text-white tracking-tight leading-none font-sans mt-1">
             {portfolioConfig?.strategyName || 'IMAM NASRULLOH'}
           </h2>
@@ -421,18 +413,15 @@ export const AssetTreemap: React.FC<AssetTreemapProps> = ({ capital = 500000000,
       </div>
 
       <div className="mt-4 pt-3 border-t border-[#1b1926]/40 flex flex-col items-center">
-        <p className="text-[#686477] text-[8px] font-mono uppercase tracking-[0.1em] text-center mb-1">
-          Rendered via HTML5 Canvas & SVG high-performance vector pipeline.
-        </p>
         <div className="flex items-center gap-2 text-[8px] text-[#686477] font-mono uppercase tracking-[0.1em]">
-          SafeHeaven Tactic Model v1.4
+          SafeHaven Tactic Model v1.4
           <span className="inline-block w-1 h-1 bg-[#ccff00] rounded-full"></span>
           <span className="flex items-center gap-1 text-[#1ae88e]">
             <span className="relative flex h-1.5 w-1.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#1ae88e] opacity-75"></span>
               <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#1ae88e]"></span>
             </span>
-            60 FPS Canvas Active
+            Live Data Active
           </span>
         </div>
       </div>

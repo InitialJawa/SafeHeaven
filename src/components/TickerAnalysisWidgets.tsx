@@ -668,15 +668,25 @@ export const CanvasGauge: React.FC<CanvasGaugeProps> = ({
 };
 
 
+const formatRatingText = (rating: string) => {
+  if (!rating) return 'Netral';
+  const r = rating.trim();
+  if (r === 'Pembelian Kuat' || r === 'Sangat Beli') return 'Beli Kuat';
+  if (r === 'Pembelian') return 'Beli';
+  if (r === 'Penjualan Kuat' || r === 'Sangat Jual') return 'Jual Kuat';
+  if (r === 'Penjualan') return 'Jual';
+  return r;
+};
+
 const getRatingBadgeClass = (rating: string) => {
   const r = (rating || '').toLowerCase();
-  if (r.includes('pembelian kuat') || r.includes('beli kuat') || (r.includes('kuat') && (r.includes('pembelian') || r.includes('beli')))) {
+  if (r.includes('pembelian kuat') || r.includes('beli kuat') || r.includes('sangat beli') || (r.includes('kuat') && (r.includes('pembelian') || r.includes('beli')))) {
     return 'text-[#00f5a0] border-[#00f5a0]/40 shadow-[0_0_12px_rgba(0,245,160,0.15)]';
   }
   if (r.includes('pembelian') || r.includes('beli') || r.includes('positif')) {
     return 'text-[#00f5a0] border-[#00f5a0]/30';
   }
-  if (r.includes('penjualan kuat') || r.includes('jual kuat') || (r.includes('kuat') && (r.includes('penjualan') || r.includes('jual')))) {
+  if (r.includes('penjualan kuat') || r.includes('jual kuat') || r.includes('sangat jual') || (r.includes('kuat') && (r.includes('penjualan') || r.includes('jual')))) {
     return 'text-[#ff3366] border-[#ff3366]/40 shadow-[0_0_12px_rgba(255,51,102,0.15)]';
   }
   if (r.includes('penjualan') || r.includes('jual') || r.includes('negatif')) {
@@ -751,7 +761,7 @@ export const WidgetGauges: React.FC<WidgetGaugesProps> = ({ symbol }) => {
               RSI (14): {data.technical.rsi || 50} • {data.technical.maSignal || 'MA Bullish'}
             </span>
             <span className={`text-xs font-extrabold px-3.5 py-1 bg-[#111018] border rounded-full font-sans tracking-wide inline-block ${getRatingBadgeClass(data.technical.rating)}`}>
-              {data.technical.rating}
+              {formatRatingText(data.technical.rating)}
             </span>
           </div>
         </div>
@@ -769,11 +779,14 @@ export const WidgetGauges: React.FC<WidgetGaugesProps> = ({ symbol }) => {
           <CanvasGauge value={data.analyst.value} width={210} height={115} radius={65} />
 
           <div className="text-center mt-0.5">
-            <span className={`text-[11px] font-bold block mb-1 font-sans ${isUpside ? 'text-[#00f5a0]' : 'text-[#ff3366]'}`}>
-              Target Harga 1 Thn: Rp {data.analyst.targetPrice.toLocaleString('id-ID')} ({isUpside ? '+' : ''}{data.analyst.upsidePct}%)
+            <span className="text-[11px] font-bold block mb-1 font-sans text-[#9f9bac]">
+              Target Harga 1 Thn:{' '}
+              <span className={isUpside ? 'text-[#00f5a0]' : 'text-[#ff3366]'}>
+                Rp {data.analyst.targetPrice.toLocaleString('id-ID')} ({isUpside ? '+' : ''}{data.analyst.upsidePct}%)
+              </span>
             </span>
             <span className={`text-xs font-extrabold px-3.5 py-1 bg-[#111018] border rounded-full font-sans tracking-wide inline-block ${getRatingBadgeClass(data.analyst.rating)}`}>
-              {data.analyst.rating}
+              {formatRatingText(data.analyst.rating)}
             </span>
           </div>
         </div>

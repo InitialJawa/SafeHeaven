@@ -21,6 +21,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { GoogleIcon, GmailIcon } from '../components/AppLogos';
 
 interface UserManagementConsoleProps {
   addLog: (msg: string) => void;
@@ -186,19 +187,41 @@ export const UserManagementConsole: React.FC<UserManagementConsoleProps> = ({ ad
                       </td>
                     </tr>
                   ) : (
-                    filteredUsers.map((u) => (
-                      <tr key={u.id} className="hover:bg-[#111018]/40">
-                        <td className="px-4 py-3 font-bold text-white flex items-center gap-2">
-                          {u.role === 'admin' ? (
-                            <ShieldCheck className="w-4 h-4 text-[#ccff00]" />
-                          ) : u.role === 'advisor' ? (
-                            <Crown className="w-4 h-4 text-amber-400" />
-                          ) : (
-                            <UserCheck className="w-4 h-4 text-[#9f9bac]" />
-                          )}
-                          {u.name}
-                        </td>
-                        <td className="px-4 py-3 font-mono text-white">{u.email}</td>
+                    filteredUsers.map((u) => {
+                      const isGmail = u.email.toLowerCase().includes('gmail') || u.email.toLowerCase().endsWith('@gmail.com');
+                      return (
+                        <tr key={u.id} className="hover:bg-[#111018]/40">
+                          <td className="px-4 py-3 font-bold text-white flex items-center gap-2">
+                            <div className="relative">
+                              {u.photoURL ? (
+                                <img src={u.photoURL} alt={u.name} className="w-6 h-6 rounded-full object-cover border border-[#2d2943]" referrerPolicy="no-referrer" />
+                              ) : u.role === 'admin' ? (
+                                <ShieldCheck className="w-4 h-4 text-[#ccff00]" />
+                              ) : u.role === 'advisor' ? (
+                                <Crown className="w-4 h-4 text-amber-400" />
+                              ) : (
+                                <UserCheck className="w-4 h-4 text-[#9f9bac]" />
+                              )}
+                              {isGmail && (
+                                <span className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 border border-[#1b1926] shadow-sm" title="Akun Gmail / Google">
+                                  <GoogleIcon className="w-2.5 h-2.5" />
+                                </span>
+                              )}
+                            </div>
+                            <span>{u.name}</span>
+                          </td>
+                          <td className="px-4 py-3 font-mono text-white">
+                            <div className="flex items-center gap-1.5">
+                              {isGmail ? (
+                                <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-white text-[11px]" title="Akun Gmail / Google">
+                                  <GoogleIcon className="w-3.5 h-3.5 shrink-0" />
+                                  <span>{u.email}</span>
+                                </span>
+                              ) : (
+                                <span>{u.email}</span>
+                              )}
+                            </div>
+                          </td>
                         <td className="px-4 py-3 font-mono">
                           <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold uppercase ${
                             u.role === 'admin' ? 'bg-[#ccff00]/15 text-[#ccff00] border border-[#ccff00]/30' :
@@ -238,8 +261,9 @@ export const UserManagementConsole: React.FC<UserManagementConsoleProps> = ({ ad
                           )}
                         </td>
                       </tr>
-                    ))
-                  )}
+                    );
+                  })
+                )}
                 </tbody>
               </table>
             </div>

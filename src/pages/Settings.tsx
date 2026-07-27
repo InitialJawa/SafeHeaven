@@ -40,7 +40,7 @@ import {
   Rocket
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { WhatsappIcon, TelegramIcon, DiscordIcon, GoogleGeminiIcon, OpenAIIcon, AnthropicIcon, DeepSeekIcon } from '../components/AppLogos';
+import { WhatsappIcon, TelegramIcon, DiscordIcon, GoogleGeminiIcon, OpenAIIcon, AnthropicIcon, DeepSeekIcon, GmailIcon, GoogleIcon } from '../components/AppLogos';
 import { NotificationChannelConfig, GlobalSystemConfig, AiApiConfig, AiProvider } from '../types';
 import { NotificationTestInspectorModal, TestResultData } from '../components/NotificationTestInspectorModal';
 
@@ -656,8 +656,8 @@ export const Settings: React.FC = () => {
                 <div className="p-4 rounded-2xl bg-[#111018]/60 border border-[#1b1926] space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
-                        <Mail className="w-5 h-5" />
+                      <div className="w-9 h-9 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 relative">
+                        <GmailIcon className="w-5 h-5" />
                       </div>
                       <div>
                         <h4 className="text-xs font-bold text-white">Notifikasi Email (Laporan & Alert)</h4>

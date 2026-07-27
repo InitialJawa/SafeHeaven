@@ -1192,7 +1192,7 @@ export const LandingPage: React.FC = () => {
               <li><Link href="/portfolio" className="hover:text-white transition-colors">Portfolio Tracker</Link></li>
               <li><Link href="/backtest" className="hover:text-white transition-colors">Backtest Strategy</Link></li>
               <li><Link href="/universe" className="hover:text-white transition-colors">Universe Builder</Link></li>
-              <li><Link href="/risk" className="hover:text-white transition-colors">Risk Control</Link></li>
+              <li><Link href="/admin" className="hover:text-white transition-colors">Risk Control (Admin)</Link></li>
             </ul>
           </div>
 

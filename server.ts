@@ -4992,23 +4992,23 @@ app.get('/api/widgets/gauges', async (req, res) => {
     const upsidePct = currentPrice > 0 ? ((targetPrice - currentPrice) / currentPrice) * 100 : 0;
     
     const recKey = finData.recommendationKey || 'buy';
-    let analystRating = 'Pembelian';
+    let analystRating = 'Beli';
     let analystValue = 65;
     
     if (recKey.includes('strong_buy')) {
-      analystRating = 'Pembelian Kuat';
+      analystRating = 'Beli Kuat';
       analystValue = 90;
     } else if (recKey.includes('buy')) {
-      analystRating = 'Pembelian';
+      analystRating = 'Beli';
       analystValue = 75;
     } else if (recKey.includes('hold')) {
       analystRating = 'Netral';
       analystValue = 50;
     } else if (recKey.includes('strong_sell')) {
-      analystRating = 'Penjualan Kuat';
+      analystRating = 'Jual Kuat';
       analystValue = 10;
     } else if (recKey.includes('sell')) {
-      analystRating = 'Penjualan';
+      analystRating = 'Jual';
       analystValue = 30;
     }
     
@@ -5059,14 +5059,14 @@ app.get('/api/widgets/gauges', async (req, res) => {
       else score -= 10;
       
       techValue = Math.min(100, Math.max(0, score));
-      if (techValue >= 80) techRating = 'Pembelian Kuat';
-      else if (techValue >= 60) techRating = 'Pembelian';
+      if (techValue >= 80) techRating = 'Beli Kuat';
+      else if (techValue >= 60) techRating = 'Beli';
       else if (techValue >= 40) techRating = 'Netral';
-      else if (techValue >= 20) techRating = 'Penjualan';
-      else techRating = 'Penjualan Kuat';
+      else if (techValue >= 20) techRating = 'Jual';
+      else techRating = 'Jual Kuat';
     } else {
       techValue = isIndex ? 72 : 60;
-      techRating = isIndex ? 'Pembelian' : 'Netral';
+      techRating = isIndex ? 'Beli' : 'Netral';
     }
     
     const gaugeRes = {
@@ -5092,13 +5092,13 @@ app.get('/api/widgets/gauges', async (req, res) => {
       symbol,
       technical: {
         value: 72,
-        rating: 'Pembelian',
+        rating: 'Beli',
         rsi: 58,
         maSignal: 'MA Bullish'
       },
       analyst: {
         value: 88,
-        rating: 'Pembelian Kuat',
+        rating: 'Beli Kuat',
         targetPrice: symbol.toUpperCase() === 'IHSG' || symbol.includes('^') ? 7850 : 10850,
         upsidePct: 15.42
       }

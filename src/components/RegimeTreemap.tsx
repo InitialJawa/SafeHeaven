@@ -455,7 +455,7 @@ export const RegimeTreemap: React.FC<RegimeTreemapProps> = ({ distribution = [],
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#1ae88e] opacity-75"></span>
             <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#1ae88e]"></span>
           </span>
-          Live Data • 60 FPS Canvas Active
+          Live Data Active
         </span>
       </div>
 

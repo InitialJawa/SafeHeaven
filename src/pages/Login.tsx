@@ -9,6 +9,7 @@ import { useAppStore } from '../stores';
 import { auth, googleProvider, signInWithPopup } from '../lib/firebase';
 import { ShieldCheck, ArrowRight, UserPlus, LogIn, Lock, Mail, User, TrendingUp, Landmark, Shield } from 'lucide-react';
 import { SafeHavenLogo } from '../components/SafeHavenLogo';
+import { GoogleIcon, GmailIcon } from '../components/AppLogos';
 
 export const Login: React.FC = () => {
   const [, setLocation] = useLocation();
@@ -271,6 +272,51 @@ export const Login: React.FC = () => {
                   </>
                 )}
               </button>
+
+              {/* Quick Account Selector Options with Gmail Logos */}
+              <div className="pt-2 border-t border-[#1b1926]/80 space-y-1.5 text-left">
+                <span className="text-[10px] font-mono font-bold text-[#686477] uppercase tracking-wider block mb-1">
+                  Pilih Akun Instan (Gmail / Admin / Demo)
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      login('client1@gmail.com', 'Amir Nasution');
+                      setLocation('/dashboard');
+                    }}
+                    className="p-2 rounded-xl bg-[#111018] hover:bg-[#1b1926] border border-[#2d2943] hover:border-[#00f0ff]/40 text-left transition-all cursor-pointer flex items-center gap-2 group"
+                  >
+                    <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center shrink-0">
+                      <GoogleIcon className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-bold text-white group-hover:text-[#00f0ff] truncate">Amir Nasution</p>
+                      <p className="text-[9px] font-mono text-[#9f9bac] truncate flex items-center gap-1">
+                        <GmailIcon className="w-2.5 h-2.5 shrink-0" />
+                        <span>client1@gmail.com</span>
+                      </p>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      login('admin@safehaven.id', 'SafeHaven Admin');
+                      setLocation('/dashboard');
+                    }}
+                    className="p-2 rounded-xl bg-[#111018] hover:bg-[#1b1926] border border-[#2d2943] hover:border-[#ccff00]/40 text-left transition-all cursor-pointer flex items-center gap-2 group"
+                  >
+                    <div className="w-6 h-6 rounded-full bg-[#ccff00]/10 border border-[#ccff00]/25 flex items-center justify-center text-[#ccff00] font-bold text-[10px] shrink-0 font-mono">
+                      A
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-bold text-white group-hover:text-[#ccff00] truncate">SafeHaven Admin</p>
+                      <p className="text-[9px] font-mono text-[#9f9bac] truncate">admin@safehaven.id</p>
+                    </div>
+                  </button>
+                </div>
+              </div>
 
               {/* Demo Mode Instant Access Button */}
               <button
