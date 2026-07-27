@@ -4,13 +4,14 @@
  */
 
 import React, { useEffect, Suspense, lazy } from 'react';
-import { Route, Switch, Redirect } from 'wouter';
+import { Route, Switch } from 'wouter';
 import { useAppStore } from './stores';
 import { AppLayout } from './AppLayout';
-import { testConnection, auth, onAuthStateChanged } from './lib/firebase';
+import { auth, onAuthStateChanged } from './lib/firebase';
 import { Toaster } from 'sonner';
 import { PageLoader } from './components/PageLoader';
 import { AdminProtectedRoute } from './admin/AdminProtectedRoute';
+import { AuthGuardView, PremiumGuardView } from './components/AccessGuards';
 
 // Lazy-loaded Page Modules
 const LandingPage = lazy(() => import('./pages/LandingPage').then(m => ({ default: m.LandingPage })));
@@ -35,7 +36,10 @@ const FullChart = lazy(() => import('./pages/FullChart').then(m => ({ default: m
 const NotFound = lazy(() => import('./pages/NotFound').then(m => ({ default: m.NotFound })));
 
 export default function App() {
-  const { user, fetchInitialData, loginWithGoogle } = useAppStore();
+  const { user, isDemoMode, fetchInitialData, loginWithGoogle } = useAppStore();
+
+  const isAuth = !!user || isDemoMode;
+  const isPremium = user?.isPremium || user?.tier === 'Platinum' || user?.role === 'admin';
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
@@ -52,82 +56,101 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (user) {
-      fetchInitialData();
-    }
-  }, [user]);
+    fetchInitialData();
+  }, []);
 
   return (
     <>
       <Toaster position="top-right" theme="dark" closeButton />
       <Suspense fallback={<PageLoader />}>
         <Switch>
-          {/* Public & Landing Pages */}
+          {/* Landing Page explicitly */}
           <Route path="/landing" component={LandingPage} />
           <Route path="/login" component={Login} />
 
-          {/* Root Path: LandingPage for visitors, Dashboard for logged in users */}
+          {/* 1. PUBLIC TABS (Terbuka untuk Umum - Cockpit, Charts, Analytics, News) */}
           <Route path="/">
-            {!user ? <LandingPage /> : <AppLayout><Dashboard /></AppLayout>}
+            {!user && !isDemoMode ? <LandingPage /> : <AppLayout><Dashboard /></AppLayout>}
           </Route>
-          <Route path="/portfolio">
-            {!user ? <Redirect to="/login" /> : <AppLayout><Portfolio /></AppLayout>}
-          </Route>
-          <Route path="/compare">
-            {!user ? <Redirect to="/login" /> : <AppLayout><Compare /></AppLayout>}
-          </Route>
-          <Route path="/backtest">
-            {!user ? <Redirect to="/login" /> : <AppLayout><Backtest /></AppLayout>}
-          </Route>
-          <Route path="/optimize">
-            {!user ? <Redirect to="/login" /> : <AppLayout><Optimizer /></AppLayout>}
-          </Route>
-          <Route path="/strategies">
-            {!user ? <Redirect to="/login" /> : <AppLayout><Strategies /></AppLayout>}
+          <Route path="/dashboard">
+            <AppLayout><Dashboard /></AppLayout>
           </Route>
           <Route path="/analytics">
-            {!user ? <Redirect to="/login" /> : <AppLayout><Analytics /></AppLayout>}
+            <AppLayout><Analytics /></AppLayout>
           </Route>
           <Route path="/stock-analysis">
-            {!user ? <Redirect to="/login" /> : <AppLayout><StockAnalysis /></AppLayout>}
+            <AppLayout><StockAnalysis /></AppLayout>
           </Route>
           <Route path="/news">
-            {!user ? <Redirect to="/login" /> : <AppLayout><MarketNews /></AppLayout>}
+            <AppLayout><MarketNews /></AppLayout>
+          </Route>
+          <Route path="/full-chart/:symbol">
+            {(params) => <AppLayout><FullChart params={params} /></AppLayout>}
+          </Route>
+          <Route path="/ticker/:symbol">
+            {(params) => <AppLayout><TickerDetail params={params} /></AppLayout>}
+          </Route>
+
+          {/* 2. LOGIN-REQUIRED TABS (Portfolio, Compare, Universe, Strategies, Alerts, Risk, Settings, AI) */}
+          <Route path="/portfolio">
+            {!isAuth ? <AppLayout><AuthGuardView featureName="Manajemen Portofolio" /></AppLayout> : <AppLayout><Portfolio /></AppLayout>}
+          </Route>
+          <Route path="/compare">
+            {!isAuth ? <AppLayout><AuthGuardView featureName="Komparasi Portofolio" /></AppLayout> : <AppLayout><Compare /></AppLayout>}
           </Route>
           <Route path="/universe">
-            {!user ? <Redirect to="/login" /> : <AppLayout><UniversePage /></AppLayout>}
+            {!isAuth ? <AppLayout><AuthGuardView featureName="Universe Builder" /></AppLayout> : <AppLayout><UniversePage /></AppLayout>}
           </Route>
-          <Route path="/risk">
-            {!user ? <Redirect to="/login" /> : <AppLayout><Risk /></AppLayout>}
+          <Route path="/strategies">
+            {!isAuth ? <AppLayout><AuthGuardView featureName="Strategy Builder" /></AppLayout> : <AppLayout><Strategies /></AppLayout>}
           </Route>
           <Route path="/alerts">
-            {!user ? <Redirect to="/login" /> : <AppLayout><Alerts /></AppLayout>}
+            {!isAuth ? <AppLayout><AuthGuardView featureName="Peringatan Alert & Signal" /></AppLayout> : <AppLayout><Alerts /></AppLayout>}
           </Route>
-          <Route path="/admin">
-            <AdminProtectedRoute>
-              <AppLayout><Admin /></AppLayout>
-            </AdminProtectedRoute>
+          <Route path="/risk">
+            {!isAuth ? <AppLayout><AuthGuardView featureName="Kontrol Risiko & Crash Shield" /></AppLayout> : <AppLayout><Risk /></AppLayout>}
           </Route>
           <Route path="/settings">
-            {!user ? <Redirect to="/login" /> : <AppLayout><Settings /></AppLayout>}
+            {!isAuth ? <AppLayout><AuthGuardView featureName="Pengaturan Sistem" /></AppLayout> : <AppLayout><Settings /></AppLayout>}
           </Route>
           <Route path="/ai">
-            {!user ? <Redirect to="/login" /> : <AppLayout><AiManager /></AppLayout>}
+            {!isAuth ? <AppLayout><AuthGuardView featureName="AI Manager Assistant" /></AppLayout> : <AppLayout><AiManager /></AppLayout>}
           </Route>
 
-          {/* Dynamic ticker detail route */}
-          <Route path="/ticker/:symbol">
-            {(params) => !user ? <Redirect to="/login" /> : <AppLayout><TickerDetail params={params} /></AppLayout>}
+          {/* Admin Protected Route */}
+          <Route path="/admin">
+            {!isAuth ? (
+              <AppLayout><AuthGuardView featureName="Admin Console" /></AppLayout>
+            ) : (
+              <AdminProtectedRoute>
+                <AppLayout><Admin /></AppLayout>
+              </AdminProtectedRoute>
+            )}
           </Route>
 
-          {/* Dedicated Standalone Full Chart Workspace Route */}
-          <Route path="/full-chart/:symbol">
-            {(params) => !user ? <Redirect to="/login" /> : <AppLayout><FullChart params={params} /></AppLayout>}
+          {/* 3. QUANT LAB TABS (Khusus Member Premium - Backtest & Walk Forward Optimizer) */}
+          <Route path="/backtest">
+            {!isAuth ? (
+              <AppLayout><AuthGuardView featureName="Quant Lab - Backtest Strategi" /></AppLayout>
+            ) : !isPremium ? (
+              <AppLayout><PremiumGuardView featureName="Quant Lab - Backtest Strategi" /></AppLayout>
+            ) : (
+              <AppLayout><Backtest /></AppLayout>
+            )}
+          </Route>
+          <Route path="/optimize">
+            {!isAuth ? (
+              <AppLayout><AuthGuardView featureName="Quant Lab - Walk Forward Optimizer" /></AppLayout>
+            ) : !isPremium ? (
+              <AppLayout><PremiumGuardView featureName="Quant Lab - Walk Forward Optimizer" /></AppLayout>
+            ) : (
+              <AppLayout><Optimizer /></AppLayout>
+            )}
           </Route>
 
           {/* Catch-all 404 Route */}
           <Route>
-            {!user ? <Redirect to="/login" /> : <AppLayout><NotFound /></AppLayout>}
+            <AppLayout><NotFound /></AppLayout>
           </Route>
         </Switch>
       </Suspense>

@@ -185,28 +185,39 @@ export const LandingPage: React.FC = () => {
           </nav>
 
           {/* Action CTAs */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Link 
+              href="/dashboard"
+              className="px-3 py-1.5 sm:px-4 sm:py-2 bg-[#171522] border border-[#2d2943] text-white rounded-xl text-xs font-bold hover:bg-[#201d2f] transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <span>Market Cockpit</span>
+              <ChevronRight className="w-3.5 h-3.5 text-[#ccff00]" />
+            </Link>
+
             {user ? (
               <Link 
-                href="/"
+                href="/dashboard"
                 className="px-4 py-2 bg-[#ccff00] text-black rounded-xl text-xs font-bold hover:bg-[#b8e600] transition-all flex items-center gap-1.5 shadow-[0_0_20px_rgba(204,255,0,0.2)] cursor-pointer"
               >
-                <span>Buka Cockpit Saya</span>
+                <span>Console Saya</span>
                 <ChevronRight className="w-4 h-4" />
               </Link>
             ) : (
               <>
-                <Link 
-                  href="/login" 
-                  className="px-3.5 py-2 text-xs font-semibold text-white hover:text-[#ccff00] transition-colors cursor-pointer"
+                <button 
+                  onClick={() => {
+                    loginDemoUser(false);
+                    setLocation('/dashboard');
+                  }}
+                  className="px-3.5 py-2 text-xs font-semibold text-white hover:text-[#ccff00] transition-colors cursor-pointer hidden sm:block"
                 >
-                  Masuk
-                </Link>
+                  Coba Demo
+                </button>
                 <Link 
                   href="/login"
                   className="px-4 py-2 bg-[#ccff00] text-black rounded-xl text-xs font-bold hover:bg-[#b8e600] transition-all flex items-center gap-1.5 shadow-[0_0_20px_rgba(204,255,0,0.2)] cursor-pointer"
                 >
-                  <span>Coba Gratis</span>
+                  <span>Masuk / Login</span>
                   <ArrowRight className="w-4 h-4" />
                 </Link>
               </>

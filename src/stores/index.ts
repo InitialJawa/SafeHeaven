@@ -34,9 +34,12 @@ interface AppState {
   // Auth State
   user: UserInfo | null;
   isAuthenticated: boolean;
+  isDemoMode: boolean;
   isLoadingData: boolean;
   login: (email: string, name: string) => void;
   loginWithGoogle: (email: string, name: string, uid: string) => Promise<void>;
+  loginDemoUser: (asPremium?: boolean) => void;
+  upgradeDemoToPremium: () => void;
   logout: () => void;
   register: (email: string, password: string, name: string) => Promise<void>;
   
@@ -141,17 +144,16 @@ const getApiUrl = (path: string) => {
   return `${base}${path}`;
 };
 
-export const useAppStore = create<AppState>((set, get) => ({
-  // Dummy Default User
-  user: {
-    id: 'usr-1',
-    email: 'imamnasrulloh02@gmail.com',
-    name: 'Imam Nasrulloh',
-    role: 'admin', // Default to admin for full-view dashboard access
-    registeredAt: '2026-01-01'
-  },
-  isAuthenticated: true,
-  isLoadingData: true,
+export const useAppStore = create<AppState>((set, get) => {
+  const savedUserJson = typeof window !== 'undefined' ? localStorage.getItem('safehaven_user') : null;
+  const savedUser = savedUserJson ? JSON.parse(savedUserJson) : null;
+
+  return {
+    // Auth State - Default to null unless restored from storage
+    user: savedUser,
+    isAuthenticated: !!savedUser,
+    isDemoMode: false,
+    isLoadingData: false,
 
   tickers: [],
   marketRegime: 'neutral',
@@ -403,28 +405,36 @@ export const useAppStore = create<AppState>((set, get) => ({
   login: (email, name) => {
     const normalizedEmail = (email || '').toLowerCase();
     const role = (normalizedEmail === 'imamnasrulloh02@gmail.com' || normalizedEmail.includes('admin')) ? 'admin' : normalizedEmail.includes('advisor') ? 'advisor' : 'user';
-    set({
-      user: {
-        id: `usr-${Date.now()}`,
-        email,
-        name,
-        role,
-        registeredAt: new Date().toISOString().split('T')[0]
-      },
-      isAuthenticated: true
-    });
+    const isPremium = role === 'admin' || normalizedEmail.includes('premium') || normalizedEmail === 'imamnasrulloh02@gmail.com';
+    const userInfo: UserInfo = {
+      id: `usr-${Date.now()}`,
+      email,
+      name,
+      role,
+      isPremium,
+      tier: isPremium ? 'Platinum' : 'Perunggu',
+      registeredAt: new Date().toISOString().split('T')[0]
+    };
+    localStorage.setItem('safehaven_user', JSON.stringify(userInfo));
+    set({ user: userInfo, isAuthenticated: true, isDemoMode: false, tier: userInfo.tier || 'Perunggu' });
+    toast.success(`Selamat datang kembali, ${name}!`);
   },
   loginWithGoogle: async (email, name, uid) => {
     const normalizedEmail = (email || '').toLowerCase();
     let userRole: 'admin' | 'advisor' | 'user' = (normalizedEmail === 'imamnasrulloh02@gmail.com' || normalizedEmail.includes('admin')) ? 'admin' : normalizedEmail.includes('advisor') ? 'advisor' : 'user';
     
-    // Check if user record exists in Firestore to preserve explicitly set admin/advisor roles
+    let isPremium = userRole === 'admin' || normalizedEmail === 'imamnasrulloh02@gmail.com';
+
+    // Check if user record exists in Firestore
     try {
       const userDocSnap = await getDoc(doc(db, 'users', uid));
       if (userDocSnap.exists()) {
         const existingData = userDocSnap.data();
         if (existingData?.role === 'admin' || existingData?.role === 'advisor') {
           userRole = existingData.role;
+        }
+        if (existingData?.isPremium) {
+          isPremium = true;
         }
       }
     } catch (e) {
@@ -436,9 +446,12 @@ export const useAppStore = create<AppState>((set, get) => ({
       email,
       name,
       role: userRole,
+      isPremium,
+      tier: isPremium ? 'Platinum' : 'Perunggu',
       registeredAt: new Date().toISOString().split('T')[0]
     };
-    set({ user: userInfo, isAuthenticated: true });
+    localStorage.setItem('safehaven_user', JSON.stringify(userInfo));
+    set({ user: userInfo, isAuthenticated: true, isDemoMode: false, tier: userInfo.tier || 'Perunggu' });
 
     // Sync user record with Firestore
     try {
@@ -446,24 +459,56 @@ export const useAppStore = create<AppState>((set, get) => ({
     } catch (err) {
       handleFirestoreError(err, OperationType.WRITE, `users/${uid}`);
     }
+    toast.success(`Berhasil masuk sebagai ${name}`);
+  },
+  loginDemoUser: (asPremium = false) => {
+    const demoUser: UserInfo = {
+      id: 'demo-user-123',
+      email: 'demo@safehaven.id',
+      name: asPremium ? 'Demo Investor (Premium)' : 'Demo Trader (Guest)',
+      role: 'user',
+      isPremium: asPremium,
+      tier: asPremium ? 'Platinum' : 'Perunggu',
+      registeredAt: new Date().toISOString().split('T')[0]
+    };
+    set({ user: demoUser, isAuthenticated: true, isDemoMode: true, tier: demoUser.tier || 'Perunggu' });
+    toast.success(`Sesi Akun Demo aktif (${asPremium ? 'Member Premium' : 'Free Demo'}).`);
+  },
+  upgradeDemoToPremium: () => {
+    const currentUser = get().user;
+    if (currentUser) {
+      const updatedUser: UserInfo = {
+        ...currentUser,
+        isPremium: true,
+        tier: 'Platinum'
+      };
+      localStorage.setItem('safehaven_user', JSON.stringify(updatedUser));
+      set({ user: updatedUser, tier: 'Platinum' });
+      toast.success('Selamat! Status akun Anda berhasil ditingkatkan ke Member Premium (Platinum Tier).');
+    } else {
+      get().loginDemoUser(true);
+    }
   },
   logout: () => {
     firebaseSignOut(auth).catch(() => {});
-    set({ user: null, isAuthenticated: false });
+    localStorage.removeItem('safehaven_user');
+    set({ user: null, isAuthenticated: false, isDemoMode: false });
   },
   register: async (email, password, name) => {
     const normalizedEmail = (email || '').toLowerCase();
     const role = (normalizedEmail === 'imamnasrulloh02@gmail.com' || normalizedEmail.includes('admin')) ? 'admin' : normalizedEmail.includes('advisor') ? 'advisor' : 'user';
-    set({
-      user: {
-        id: `usr-${Date.now()}`,
-        email,
-        name,
-        role,
-        registeredAt: new Date().toISOString().split('T')[0]
-      },
-      isAuthenticated: true
-    });
+    const userInfo: UserInfo = {
+      id: `usr-${Date.now()}`,
+      email,
+      name,
+      role,
+      isPremium: role === 'admin',
+      tier: role === 'admin' ? 'Platinum' : 'Perunggu',
+      registeredAt: new Date().toISOString().split('T')[0]
+    };
+    localStorage.setItem('safehaven_user', JSON.stringify(userInfo));
+    set({ user: userInfo, isAuthenticated: true, isDemoMode: false, tier: userInfo.tier || 'Perunggu' });
+    toast.success(`Akun berhasil dibuat. Selamat datang, ${name}!`);
   },
 
   setTickers: (tickers) => set({ tickers }),
@@ -1247,4 +1292,5 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
     }
   }
-}));
+};
+});

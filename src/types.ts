@@ -107,6 +107,8 @@ export interface UserInfo {
   name: string;
   role: 'user' | 'advisor' | 'admin';
   registeredAt: string;
+  isPremium?: boolean;
+  tier?: string;
 }
 
 export interface ClientInfo {

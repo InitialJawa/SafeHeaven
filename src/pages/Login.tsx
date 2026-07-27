@@ -271,6 +271,19 @@ export const Login: React.FC = () => {
                   </>
                 )}
               </button>
+
+              {/* Demo Mode Instant Access Button */}
+              <button
+                id="login-demo-btn"
+                type="button"
+                onClick={() => {
+                  useAppStore.getState().loginDemoUser(false);
+                  setLocation('/dashboard');
+                }}
+                className="w-full mt-2 bg-[#111018] hover:bg-[#181624] border border-[#ccff00]/30 text-[#ccff00] text-xs font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer shadow-[0_0_15px_rgba(204,255,0,0.1)]"
+              >
+                <span>Coba Langsung dengan Akun Demo</span>
+              </button>
             </form>
 
             {/* Toggle Mode */}
