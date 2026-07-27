@@ -9,6 +9,8 @@ import { useLocation } from 'wouter';
 import { 
   Search, 
   ArrowUpDown, 
+  ArrowUp,
+  ArrowDown,
   Table, 
   Grid, 
   Download, 
@@ -411,176 +413,144 @@ export const StockAnalysis: React.FC = () => {
   const ActiveIcon = scoringConfig.icon;
 
   return (
-    <div id="stock-analysis-view" className="px-4 sm:px-6 space-y-6">
+    <div id="stock-analysis-view" className="px-4 sm:px-6 space-y-4">
       
-      {/* STREAMLINED UNIFIED COMPACT HEADER & METRICS BANNER */}
-      <div className="card bg-[#0b0a10] border border-[#1b1926] rounded-2xl p-3.5 md:p-4 space-y-3 shadow-lg">
-        {/* Row 1: Title & Live Sync Button */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <span className="w-1.5 h-6 bg-[#ccff00] rounded-full shrink-0"></span>
-            <h1 className="text-xl font-black text-white tracking-tight font-sans">Stock Analysis Matrix</h1>
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-[10px] font-mono font-bold">
+      {/* STREAMLINED UNIFIED 1-ROW COMPACT HEADER & METRICS BAR */}
+      <div className="card bg-[#0b0a10] border border-[#1b1926] rounded-xl p-2.5 md:p-3 shadow-lg flex flex-col md:flex-row items-center justify-between gap-2.5 overflow-x-auto">
+        {/* Title & Live Status */}
+        <div className="flex items-center gap-2 shrink-0 w-full md:w-auto justify-between md:justify-start">
+          <div className="flex items-center gap-2">
+            <span className="w-1.5 h-5 bg-[#ccff00] rounded-full shrink-0"></span>
+            <h1 className="text-base font-black text-white tracking-tight font-sans whitespace-nowrap">Stock Matrix</h1>
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-[9px] font-mono font-bold">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              Live API
+              Live
             </span>
           </div>
-
-          <div className="flex items-center gap-2.5 self-end sm:self-auto">
+          
+          <div className="flex items-center gap-2 md:hidden">
             {lastSyncedTime && (
-              <span className="text-[10px] text-[#686477] font-mono">Update: {lastSyncedTime}</span>
+              <span className="text-[9px] text-[#686477] font-mono">{lastSyncedTime}</span>
             )}
             <button
               onClick={() => fetchStocks(true)}
               disabled={isSyncingApi}
-              className="px-3 py-1 rounded-xl bg-[#ccff00]/10 hover:bg-[#ccff00]/20 border border-[#ccff00]/30 text-[#ccff00] text-xs font-bold font-sans flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+              className="p-1.5 rounded-lg bg-[#ccff00]/10 hover:bg-[#ccff00]/20 border border-[#ccff00]/30 text-[#ccff00] transition-all cursor-pointer disabled:opacity-50"
+              title="Sinkronkan Live"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isSyncingApi ? 'animate-spin' : ''}`} />
-              <span>{isSyncingApi ? 'Menyinkronkan...' : 'Sinkronkan Live'}</span>
             </button>
           </div>
         </div>
 
-        {/* Row 2: Compact Metrics Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 pt-2.5 border-t border-[#1b1926]/70">
-          {/* Metric 1: Profil Strategi Dropdown */}
-          <div className="bg-[#111018] border border-[#1b1926] rounded-xl p-2.5 flex items-center justify-between gap-2">
-            <div className="min-w-0 flex-1">
-              <span className="text-[9px] font-extrabold uppercase tracking-wider text-[#686477] font-mono block">Profil Strategi</span>
-              <div className="relative inline-flex items-center mt-1 w-full">
-                <select
-                  value={activeSelectValue}
-                  onChange={(e) => { 
-                    const val = e.target.value;
-                    setCurrentPage(1); 
-                    if (val.startsWith('custom:')) {
-                      const stratId = val.replace('custom:', '');
-                      const strat = strategies.find(s => s.id === stratId);
-                      if (strat && updatePortfolioConfig) {
-                        updatePortfolioConfig({ 
-                          strategyProfile: 'custom',
-                          strategyTemplate: stratId, 
-                          strategyName: strat.name 
-                        });
-                        toast.success(`Strategi: ${strat.name}`);
-                      }
-                    } else {
-                      if (updatePortfolioConfig) {
-                        const nameMap: Record<string, string> = {
-                          auto: 'Auto Regime',
-                          aggressive_momentum: 'Aggressive Momentum',
-                          defensive_value: 'Defensive Value'
-                        };
-                        updatePortfolioConfig({
-                          strategyProfile: val as any,
-                          strategyName: nameMap[val] || 'Auto Regime'
-                        });
-                        toast.success(`Profil: ${nameMap[val] || val}`);
-                      }
+        {/* Metrics & Strategy Controls in 1 horizontal strip */}
+        <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto py-0.5">
+          {/* Strategy Profile Dropdown */}
+          <div className="bg-[#111018] border border-[#1b1926] rounded-lg px-2 py-1 flex items-center gap-1.5 shrink-0">
+            <span className="text-[9px] font-extrabold uppercase text-[#686477] font-mono hidden sm:inline">PROFIL:</span>
+            <div className="relative inline-flex items-center">
+              <select
+                value={activeSelectValue}
+                onChange={(e) => { 
+                  const val = e.target.value;
+                  setCurrentPage(1); 
+                  if (val.startsWith('custom:')) {
+                    const stratId = val.replace('custom:', '');
+                    const strat = strategies.find(s => s.id === stratId);
+                    if (strat && updatePortfolioConfig) {
+                      updatePortfolioConfig({ 
+                        strategyProfile: 'custom',
+                        strategyTemplate: stratId, 
+                        strategyName: strat.name 
+                      });
+                      toast.success(`Strategi: ${strat.name}`);
                     }
-                  }}
-                  className="w-full bg-[#1b1926] hover:bg-[#232032] border border-[#2d2940] focus:border-[#ccff00] text-xs font-bold text-[#ccff00] rounded-lg pl-2 pr-6 py-1 appearance-none cursor-pointer focus:outline-none transition-all truncate"
-                >
-                  <optgroup label="PROFIL DINAMIS" className="bg-[#111018] text-amber-400 font-bold">
-                    <option value="auto" className="bg-[#111018] text-white">
-                      Auto Regime (IHSG)
+                  } else {
+                    if (updatePortfolioConfig) {
+                      const nameMap: Record<string, string> = {
+                        auto: 'Auto Regime',
+                        aggressive_momentum: 'Aggressive Momentum',
+                        defensive_value: 'Defensive Value'
+                      };
+                      updatePortfolioConfig({
+                        strategyProfile: val as any,
+                        strategyName: nameMap[val] || 'Auto Regime'
+                      });
+                      toast.success(`Profil: ${nameMap[val] || val}`);
+                    }
+                  }
+                }}
+                className="bg-[#1b1926] hover:bg-[#232032] border border-[#2d2940] focus:border-[#ccff00] text-[11px] font-bold text-[#ccff00] rounded pl-2 pr-5 py-0.5 appearance-none cursor-pointer focus:outline-none transition-all truncate max-w-[140px]"
+              >
+                <optgroup label="PROFIL DINAMIS" className="bg-[#111018] text-amber-400 font-bold">
+                  <option value="auto" className="bg-[#111018] text-white">Auto Regime (IHSG)</option>
+                  <option value="aggressive_momentum" className="bg-[#111018] text-white">Aggressive Momentum</option>
+                  <option value="defensive_value" className="bg-[#111018] text-white">Defensive Value</option>
+                </optgroup>
+                <optgroup label="TEMPLATE KUSTOM" className="bg-[#111018] text-[#ccff00] font-bold">
+                  {strategies.map((strat) => (
+                    <option key={strat.id} value={`custom:${strat.id}`} className="bg-[#111018] text-white">
+                      {strat.name}
                     </option>
-                    <option value="aggressive_momentum" className="bg-[#111018] text-white">
-                      Aggressive Momentum
-                    </option>
-                    <option value="defensive_value" className="bg-[#111018] text-white">
-                      Defensive Value
-                    </option>
-                  </optgroup>
-                  <optgroup label="TEMPLATE KUSTOM" className="bg-[#111018] text-[#ccff00] font-bold">
-                    {strategies.map((strat) => (
-                      <option key={strat.id} value={`custom:${strat.id}`} className="bg-[#111018] text-white">
-                        {strat.name}
-                      </option>
-                    ))}
-                  </optgroup>
-                </select>
-                <ChevronDown className="w-3.5 h-3.5 text-[#ccff00] absolute right-2 pointer-events-none" />
-              </div>
+                  ))}
+                </optgroup>
+              </select>
+              <ChevronDown className="w-3 h-3 text-[#ccff00] absolute right-1.5 pointer-events-none" />
             </div>
-            <SlidersHorizontal className="w-4 h-4 text-[#ccff00] shrink-0 opacity-80" />
           </div>
 
-          {/* Metric 2: Bobot Faktor */}
-          <div className="bg-[#111018] border border-[#1b1926] rounded-xl p-2.5 flex items-center justify-between gap-2">
-            <div className="min-w-0">
-              <span className="text-[9px] font-extrabold uppercase tracking-wider text-[#686477] font-mono block">Bobot Faktor</span>
-              <span className="text-xs font-extrabold text-[#ccff00] font-mono block mt-1 tracking-tight truncate">
-                {scoringConfig.weightsDisplay}
-              </span>
-            </div>
-            <Activity className="w-4 h-4 text-[#00f0ff] shrink-0 opacity-80" />
+          {/* Factor Weights Display */}
+          <div className="bg-[#111018] border border-[#1b1926] rounded-lg px-2.5 py-1 flex items-center gap-1.5 shrink-0" title="Bobot Faktor Scoring">
+            <span className="text-[9px] font-extrabold uppercase text-[#686477] font-mono hidden sm:inline">BOBOT:</span>
+            <span className="text-[11px] font-extrabold text-[#00f0ff] font-mono whitespace-nowrap">
+              {scoringConfig.weightsDisplay}
+            </span>
           </div>
 
-          {/* Metric 3: Rata-Rata Top 5 */}
-          <div className="bg-[#111018] border border-[#1b1926] rounded-xl p-2.5 flex items-center justify-between gap-2">
-            <div>
-              <span className="text-[9px] font-extrabold uppercase tracking-wider text-[#686477] font-mono block">Rata-Rata Top 5</span>
-              <div className="flex items-baseline gap-1 mt-0.5">
-                <span className="text-base font-black text-[#ccff00] font-mono tracking-tight">
-                  {topFiveAverage}
-                </span>
-                <span className="text-[10px] text-[#686477] font-bold">/ 100</span>
-              </div>
-            </div>
-            <TrendingUp className="w-4 h-4 text-[#00f5a0] shrink-0 opacity-80" />
+          {/* Top 5 Average */}
+          <div className="bg-[#111018] border border-[#1b1926] rounded-lg px-2.5 py-1 flex items-center gap-1.5 shrink-0" title="Rata-rata Top 5 Skor">
+            <span className="text-[9px] font-extrabold uppercase text-[#686477] font-mono hidden sm:inline">TOP 5:</span>
+            <span className="text-xs font-black text-[#ccff00] font-mono">{topFiveAverage}</span>
+            <span className="text-[9px] text-[#686477] font-bold">/100</span>
+          </div>
+
+          {/* Desktop Sync Button */}
+          <div className="hidden md:flex items-center gap-2 shrink-0">
+            {lastSyncedTime && (
+              <span className="text-[9px] text-[#686477] font-mono">{lastSyncedTime}</span>
+            )}
+            <button
+              onClick={() => fetchStocks(true)}
+              disabled={isSyncingApi}
+              className="px-2.5 py-1 rounded-lg bg-[#ccff00]/10 hover:bg-[#ccff00]/20 border border-[#ccff00]/30 text-[#ccff00] text-xs font-bold font-sans flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 shrink-0"
+            >
+              <RefreshCw className={`w-3 h-3 ${isSyncingApi ? 'animate-spin' : ''}`} />
+              <span>{isSyncingApi ? 'Sync...' : 'Sync Live'}</span>
+            </button>
           </div>
         </div>
       </div>
 
-      {/* 3. Filters & Control Bar */}
-      <div className="bg-[#0b0a10]/45 border border-[#1b1926] p-4.5 rounded-xl space-y-4">
-        <div className="flex flex-col lg:flex-row gap-3.5">
-          {/* Search bar */}
-          <div className="relative flex-1 flex flex-col gap-2">
-            <div className="relative">
-              <Search className="absolute left-3.5 top-3 w-4 h-4 text-[#686477]" />
-              <input
-                type="text"
-                placeholder="Cari emiten ticker..."
-                value={searchQuery}
-                onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-                className="w-full bg-[#111018]/60 border border-[#1b1926] text-white text-xs pl-10 pr-4 py-2.5 rounded-xl font-sans font-medium focus:outline-none focus:border-[#ccff00] focus:ring-1 focus:ring-[#ccff00]/10 transition-all placeholder:text-[#686477]"
-              />
-            </div>
-            {recentSearches.length > 0 && (
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-extrabold text-[#686477] font-mono uppercase tracking-wider">Terakhir:</span>
-                <div className="flex flex-wrap gap-1.5">
-                  {recentSearches.map(symbol => (
-                    <button
-                      key={symbol}
-                      onClick={() => handleStockClick(symbol)}
-                      className="px-2 py-1 rounded bg-[#111018] border border-[#1b1926] hover:border-[#ccff00]/30 text-[10px] font-mono font-bold text-[#9f9bac] hover:text-[#ccff00] transition-colors cursor-pointer"
-                    >
-                      {symbol}
-                    </button>
-                  ))}
-                  <button
-                    onClick={() => {
-                      setRecentSearches([]);
-                      localStorage.removeItem('recent_searches');
-                    }}
-                    className="px-2 py-1 rounded bg-transparent text-[10px] font-sans font-bold text-rose-500/70 hover:text-rose-500 transition-colors cursor-pointer"
-                  >
-                    Hapus
-                  </button>
-                </div>
-              </div>
-            )}
+      {/* 1-LAYER FILTERS & SEARCH CONTROL BAR */}
+      <div className="bg-[#0b0a10]/60 border border-[#1b1926] p-2.5 rounded-xl space-y-2.5">
+        {/* Single Layer Row: Search Input + Index + Board + Sector */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          {/* Search Input */}
+          <div className="relative flex-1 min-w-[140px]">
+            <Search className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-[#686477]" />
+            <input
+              type="text"
+              placeholder="Cari emiten ticker..."
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+              className="w-full bg-[#111018]/80 border border-[#1b1926] text-white text-xs pl-8 pr-3 py-1.5 rounded-lg font-sans font-medium focus:outline-none focus:border-[#ccff00] focus:ring-1 focus:ring-[#ccff00]/10 transition-all placeholder:text-[#686477]"
+            />
           </div>
 
-          {/* Quick Filter Selection */}
-          <div className="flex flex-wrap items-center gap-2">
-            
-            {/* Index Filter dropdown/pill */}
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-extrabold text-[#686477] font-mono uppercase tracking-wider">Index:</span>
+          {/* Filter Dropdowns aligned in 1 layer */}
+          <div className="grid grid-cols-3 sm:flex items-center gap-1.5 shrink-0">
+            {/* Index Filter */}
+            <div className="relative flex items-center">
               <select
                 value={selectedIndex}
                 onChange={(e) => { 
@@ -591,36 +561,37 @@ export const StockAnalysis: React.FC = () => {
                     updatePortfolioConfig({ universe: universeId });
                   }
                 }}
-                className="bg-[#111018]/80 border border-[#1b1926] text-white text-xs px-3 py-2 rounded-xl focus:outline-none focus:border-[#ccff00] font-sans font-bold cursor-pointer"
+                className="w-full sm:w-auto bg-[#111018]/90 border border-[#1b1926] hover:border-[#38334a] text-white text-[11px] px-2 py-1.5 rounded-lg focus:outline-none focus:border-[#ccff00] font-sans font-bold cursor-pointer truncate max-w-[130px]"
+                title="Filter Index"
               >
-                <option value="SEMUA">Semua Saham</option>
+                <option value="SEMUA">Semua Index</option>
                 {universes.map(u => (
                   <option key={u.id} value={u.name}>{u.name}</option>
                 ))}
               </select>
             </div>
 
-            {/* Board Filter dropdown/pill */}
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-extrabold text-[#686477] font-mono uppercase tracking-wider">Board:</span>
+            {/* Board Filter */}
+            <div className="relative flex items-center">
               <select
                 value={selectedBoard}
                 onChange={(e) => { setSelectedBoard(e.target.value); setCurrentPage(1); }}
-                className="bg-[#111018]/80 border border-[#1b1926] text-white text-xs px-3 py-2 rounded-xl focus:outline-none focus:border-[#ccff00] font-sans font-bold cursor-pointer"
+                className="w-full sm:w-auto bg-[#111018]/90 border border-[#1b1926] hover:border-[#38334a] text-white text-[11px] px-2 py-1.5 rounded-lg focus:outline-none focus:border-[#ccff00] font-sans font-bold cursor-pointer truncate max-w-[120px]"
+                title="Filter Board"
               >
                 <option value="SEMUA">Semua Board</option>
-                <option value="BOARD UTAMA">Board Utama</option>
-                <option value="BOARD PENGEMBANGAN">Board Pengembangan</option>
+                <option value="BOARD UTAMA">Utama</option>
+                <option value="BOARD PENGEMBANGAN">Pengembangan</option>
               </select>
             </div>
 
-            {/* Sector Filter dropdown/pill */}
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-extrabold text-[#686477] font-mono uppercase tracking-wider">Sektor:</span>
+            {/* Sector Filter */}
+            <div className="relative flex items-center">
               <select
                 value={selectedSector}
                 onChange={(e) => { setSelectedSector(e.target.value); setCurrentPage(1); }}
-                className="bg-[#111018]/80 border border-[#1b1926] text-white text-xs px-3 py-2 rounded-xl focus:outline-none focus:border-[#ccff00] font-sans font-bold max-w-[150px] truncate cursor-pointer"
+                className="w-full sm:w-auto bg-[#111018]/90 border border-[#1b1926] hover:border-[#38334a] text-white text-[11px] px-2 py-1.5 rounded-lg focus:outline-none focus:border-[#ccff00] font-sans font-bold cursor-pointer truncate max-w-[130px]"
+                title="Filter Sektor"
               >
                 <option value="SEMUA">Semua Sektor</option>
                 {sectorsList.map(sect => (
@@ -628,42 +599,45 @@ export const StockAnalysis: React.FC = () => {
                 ))}
               </select>
             </div>
-
           </div>
         </div>
 
-        {/* Sort & View Options */}
-        <div className="flex flex-wrap items-center justify-between gap-4 pt-3 border-t border-[#1b1926]/60">
-          
-          {/* Sorting Pills */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[10px] font-extrabold text-[#686477] font-mono uppercase tracking-wider mr-1">Urutkan:</span>
-            {[
-              { id: 'totalScore', label: 'TOTAL SCORE' },
-              { id: 'quality', label: 'QUALITY' },
-              { id: 'growth', label: 'GROWTH' },
-              { id: 'value', label: 'VALUE' },
-              { id: 'moment', label: 'MOMENT' },
-              { id: 'dividen', label: 'DIVIDEN' }
-            ].map((pill) => {
-              const isSorting = sortBy === pill.id;
-              return (
+        {/* Recent Searches (compact badge row if any exists) */}
+        {recentSearches.length > 0 && (
+          <div className="flex items-center gap-1.5 pt-1 border-t border-[#1b1926]/40 text-[10px]">
+            <span className="text-[#686477] font-mono font-bold shrink-0">Recent:</span>
+            <div className="flex items-center gap-1 overflow-x-auto py-0.5">
+              {recentSearches.map(symbol => (
                 <button
-                  key={pill.id}
-                  onClick={() => handleSort(pill.id)}
-                  className={`px-3 py-1.5 rounded-lg text-[10px] font-extrabold tracking-wider font-sans transition-colors cursor-pointer flex items-center gap-1 border ${
-                    isSorting 
-                      ? 'bg-[#ccff00]/10 border-[#ccff00]/30 text-[#ccff00]' 
-                      : 'bg-transparent border-[#1b1926] text-[#686477] hover:text-white hover:border-[#38334a]'
-                  }`}
+                  key={symbol}
+                  onClick={() => handleStockClick(symbol)}
+                  className="px-1.5 py-0.5 rounded bg-[#111018] border border-[#1b1926] hover:border-[#ccff00]/40 text-mono text-[9px] font-bold text-[#9f9bac] hover:text-[#ccff00] transition-colors cursor-pointer shrink-0"
                 >
-                  {pill.label}
-                  {isSorting && (
-                    <ArrowUpDown className="w-3 h-3 text-[#ccff00]" />
-                  )}
+                  {symbol}
                 </button>
-              );
-            })}
+              ))}
+              <button
+                onClick={() => {
+                  setRecentSearches([]);
+                  localStorage.removeItem('recent_searches');
+                }}
+                className="text-[9px] font-bold text-rose-500/70 hover:text-rose-500 transition-colors ml-1 shrink-0"
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* View Options & Download Sub-bar */}
+        <div className="flex items-center justify-between gap-4 pt-2 border-t border-[#1b1926]/60">
+          <div className="text-[11px] font-sans text-[#686477]">
+            Menampilkan <span className="text-white font-mono font-bold">{processedStocks.length}</span> emiten
+            {sortBy && (
+              <span className="ml-2 px-2 py-0.5 rounded bg-[#111018] border border-[#1b1926] text-[10px] text-[#ccff00] font-mono">
+                Urut: <strong className="uppercase">{sortBy}</strong> ({sortOrder === 'desc' ? 'Tinggi → Rendah' : 'Rendah → Tinggi'})
+              </span>
+            )}
           </div>
 
           {/* Toggle view and download */}
@@ -671,14 +645,14 @@ export const StockAnalysis: React.FC = () => {
             <div className="flex items-center gap-1 bg-[#111018] p-1 rounded-xl border border-[#1b1926]">
               <button
                 onClick={() => setViewMode('MATRIX')}
-                className={`p-1.5 rounded-lg cursor-pointer ${viewMode === 'MATRIX' ? 'bg-[#1b1926] text-[#ccff00]' : 'text-[#686477] hover:text-white'}`}
+                className={`p-1.5 rounded-lg cursor-pointer transition-colors ${viewMode === 'MATRIX' ? 'bg-[#1b1926] text-[#ccff00]' : 'text-[#686477] hover:text-white'}`}
                 title="Matrix View"
               >
                 <Table className="w-4 h-4" />
               </button>
               <button
                 onClick={() => setViewMode('CARDS')}
-                className={`p-1.5 rounded-lg cursor-pointer ${viewMode === 'CARDS' ? 'bg-[#1b1926] text-[#ccff00]' : 'text-[#686477] hover:text-white'}`}
+                className={`p-1.5 rounded-lg cursor-pointer transition-colors ${viewMode === 'CARDS' ? 'bg-[#1b1926] text-[#ccff00]' : 'text-[#686477] hover:text-white'}`}
                 title="Cards View"
               >
                 <Grid className="w-4 h-4" />
@@ -693,7 +667,6 @@ export const StockAnalysis: React.FC = () => {
               <span className="font-sans">CSV</span>
             </button>
           </div>
-
         </div>
       </div>
 
@@ -741,31 +714,170 @@ export const StockAnalysis: React.FC = () => {
           >
             <table className="w-full text-left border-collapse font-sans text-xs">
               <thead>
-                <tr className="border-b border-[#1b1926] bg-[#0c0b12]/50 text-[#686477]">
-                  <th className="py-3 px-4 font-bold text-[10px] uppercase tracking-wider font-mono text-center w-14" title="Rank (Berdasarkan Total Score)">
-                    {sortBy === 'totalScore' ? 'Rank' : 'Rank (Total Score)'}
+                <tr className="border-b border-[#1b1926] bg-[#0c0b12]/50 text-[#686477] select-none">
+                  <th className="py-3 px-3 font-bold text-[10px] uppercase tracking-wider font-mono text-center w-16">
+                    <button
+                      onClick={() => handleSort('totalScore')}
+                      className={`inline-flex items-center justify-center gap-1 font-mono hover:text-white transition-colors cursor-pointer w-full py-1 ${
+                        sortBy === 'totalScore' ? 'text-[#ccff00] font-extrabold' : ''
+                      }`}
+                      title="Klik untuk mengurutkan berdasarkan Rank / Total Score"
+                    >
+                      <span>RANK</span>
+                      {sortBy === 'totalScore' ? (
+                        sortOrder === 'asc' ? <ArrowUp className="w-3 h-3 text-[#ccff00]" /> : <ArrowDown className="w-3 h-3 text-[#ccff00]" />
+                      ) : (
+                        <ArrowUpDown className="w-2.5 h-2.5 opacity-30" />
+                      )}
+                    </button>
                   </th>
-                  <th className="py-3 px-4 font-bold text-[10px] uppercase tracking-wider">Emiten Saham</th>
-                  <th className="py-3 px-4 font-bold text-[10px] uppercase tracking-wider text-center" title="Skor Kualitas (Capitalization, ROE & MA200)">
-                    Quality
+
+                  <th className="py-3 px-4 font-bold text-[10px] uppercase tracking-wider">
+                    <button
+                      onClick={() => handleSort('symbol')}
+                      className={`inline-flex items-center gap-1 hover:text-white transition-colors cursor-pointer py-1 ${
+                        sortBy === 'symbol' ? 'text-[#ccff00] font-extrabold' : ''
+                      }`}
+                      title="Klik untuk mengurutkan berdasarkan Ticker Emiten"
+                    >
+                      <span>Emiten Saham</span>
+                      {sortBy === 'symbol' ? (
+                        sortOrder === 'asc' ? <ArrowUp className="w-3 h-3 text-[#ccff00]" /> : <ArrowDown className="w-3 h-3 text-[#ccff00]" />
+                      ) : (
+                        <ArrowUpDown className="w-2.5 h-2.5 opacity-30" />
+                      )}
+                    </button>
                   </th>
-                  <th className="py-3 px-4 font-bold text-[10px] uppercase tracking-wider text-center" title="Skor Pertumbuhan (Ekspansi 52-Minggu & MA50)">
-                    Growth
+
+                  <th className="py-3 px-3 font-bold text-[10px] uppercase tracking-wider text-center">
+                    <button
+                      onClick={() => handleSort('quality')}
+                      className={`inline-flex items-center justify-center gap-1 transition-all cursor-pointer px-2.5 py-1 rounded-lg ${
+                        sortBy === 'quality' 
+                          ? 'text-[#ccff00] bg-[#ccff00]/15 border border-[#ccff00]/40 font-black shadow-[0_0_10px_rgba(204,255,0,0.15)]' 
+                          : 'hover:text-white hover:bg-white/5 border border-transparent'
+                      }`}
+                      title="Klik untuk Mengurutkan berdasarkan Skor Quality"
+                    >
+                      <span>QUALITY</span>
+                      {sortBy === 'quality' ? (
+                        sortOrder === 'asc' ? <ArrowUp className="w-3 h-3 text-[#ccff00]" /> : <ArrowDown className="w-3 h-3 text-[#ccff00]" />
+                      ) : (
+                        <ArrowUpDown className="w-2.5 h-2.5 opacity-30" />
+                      )}
+                    </button>
                   </th>
-                  <th className="py-3 px-4 font-bold text-[10px] uppercase tracking-wider text-center" title="Skor Valuasi (Diskonto P/E & P/BV)">
-                    Value
+
+                  <th className="py-3 px-3 font-bold text-[10px] uppercase tracking-wider text-center">
+                    <button
+                      onClick={() => handleSort('growth')}
+                      className={`inline-flex items-center justify-center gap-1 transition-all cursor-pointer px-2.5 py-1 rounded-lg ${
+                        sortBy === 'growth' 
+                          ? 'text-[#ccff00] bg-[#ccff00]/15 border border-[#ccff00]/40 font-black shadow-[0_0_10px_rgba(204,255,0,0.15)]' 
+                          : 'hover:text-white hover:bg-white/5 border border-transparent'
+                      }`}
+                      title="Klik untuk Mengurutkan berdasarkan Skor Growth"
+                    >
+                      <span>GROWTH</span>
+                      {sortBy === 'growth' ? (
+                        sortOrder === 'asc' ? <ArrowUp className="w-3 h-3 text-[#ccff00]" /> : <ArrowDown className="w-3 h-3 text-[#ccff00]" />
+                      ) : (
+                        <ArrowUpDown className="w-2.5 h-2.5 opacity-30" />
+                      )}
+                    </button>
                   </th>
-                  <th className="py-3 px-4 font-bold text-[10px] uppercase tracking-wider text-center" title="Skor Momentum (Jarak Puncak 52-Minggu & MA50)">
-                    Moment
+
+                  <th className="py-3 px-3 font-bold text-[10px] uppercase tracking-wider text-center">
+                    <button
+                      onClick={() => handleSort('value')}
+                      className={`inline-flex items-center justify-center gap-1 transition-all cursor-pointer px-2.5 py-1 rounded-lg ${
+                        sortBy === 'value' 
+                          ? 'text-[#ccff00] bg-[#ccff00]/15 border border-[#ccff00]/40 font-black shadow-[0_0_10px_rgba(204,255,0,0.15)]' 
+                          : 'hover:text-white hover:bg-white/5 border border-transparent'
+                      }`}
+                      title="Klik untuk Mengurutkan berdasarkan Skor Value"
+                    >
+                      <span>VALUE</span>
+                      {sortBy === 'value' ? (
+                        sortOrder === 'asc' ? <ArrowUp className="w-3 h-3 text-[#ccff00]" /> : <ArrowDown className="w-3 h-3 text-[#ccff00]" />
+                      ) : (
+                        <ArrowUpDown className="w-2.5 h-2.5 opacity-30" />
+                      )}
+                    </button>
                   </th>
-                  <th className="py-3 px-4 font-bold text-[10px] uppercase tracking-wider text-center" title="Skor Dividen (Realized Yield %)">
-                    Dividen
+
+                  <th className="py-3 px-3 font-bold text-[10px] uppercase tracking-wider text-center">
+                    <button
+                      onClick={() => handleSort('moment')}
+                      className={`inline-flex items-center justify-center gap-1 transition-all cursor-pointer px-2.5 py-1 rounded-lg ${
+                        sortBy === 'moment' 
+                          ? 'text-[#ccff00] bg-[#ccff00]/15 border border-[#ccff00]/40 font-black shadow-[0_0_10px_rgba(204,255,0,0.15)]' 
+                          : 'hover:text-white hover:bg-white/5 border border-transparent'
+                      }`}
+                      title="Klik untuk Mengurutkan berdasarkan Skor Moment"
+                    >
+                      <span>MOMENT</span>
+                      {sortBy === 'moment' ? (
+                        sortOrder === 'asc' ? <ArrowUp className="w-3 h-3 text-[#ccff00]" /> : <ArrowDown className="w-3 h-3 text-[#ccff00]" />
+                      ) : (
+                        <ArrowUpDown className="w-2.5 h-2.5 opacity-30" />
+                      )}
+                    </button>
                   </th>
-                  <th className="py-3 px-4 font-bold text-[10px] uppercase tracking-wider" title="Rotasi & Arus Kas Sektor">
-                    Rotasi Sektor
+
+                  <th className="py-3 px-3 font-bold text-[10px] uppercase tracking-wider text-center">
+                    <button
+                      onClick={() => handleSort('dividen')}
+                      className={`inline-flex items-center justify-center gap-1 transition-all cursor-pointer px-2.5 py-1 rounded-lg ${
+                        sortBy === 'dividen' 
+                          ? 'text-[#ccff00] bg-[#ccff00]/15 border border-[#ccff00]/40 font-black shadow-[0_0_10px_rgba(204,255,0,0.15)]' 
+                          : 'hover:text-white hover:bg-white/5 border border-transparent'
+                      }`}
+                      title="Klik untuk Mengurutkan berdasarkan Skor Dividen"
+                    >
+                      <span>DIVIDEN</span>
+                      {sortBy === 'dividen' ? (
+                        sortOrder === 'asc' ? <ArrowUp className="w-3 h-3 text-[#ccff00]" /> : <ArrowDown className="w-3 h-3 text-[#ccff00]" />
+                      ) : (
+                        <ArrowUpDown className="w-2.5 h-2.5 opacity-30" />
+                      )}
+                    </button>
                   </th>
-                  <th className="py-3 px-4 font-bold text-[10px] uppercase tracking-wider text-right pr-6" title="Total Skor Multi-Faktor Strategi">
-                    Total Score
+
+                  <th className="py-3 px-4 font-bold text-[10px] uppercase tracking-wider">
+                    <button
+                      onClick={() => handleSort('sector')}
+                      className={`inline-flex items-center gap-1 hover:text-white transition-colors cursor-pointer py-1 ${
+                        sortBy === 'sector' ? 'text-[#ccff00] font-extrabold' : ''
+                      }`}
+                      title="Klik untuk mengurutkan berdasarkan Sektor"
+                    >
+                      <span>Rotasi Sektor</span>
+                      {sortBy === 'sector' ? (
+                        sortOrder === 'asc' ? <ArrowUp className="w-3 h-3 text-[#ccff00]" /> : <ArrowDown className="w-3 h-3 text-[#ccff00]" />
+                      ) : (
+                        <ArrowUpDown className="w-2.5 h-2.5 opacity-30" />
+                      )}
+                    </button>
+                  </th>
+
+                  <th className="py-3 px-4 font-bold text-[10px] uppercase tracking-wider text-right pr-6">
+                    <button
+                      onClick={() => handleSort('totalScore')}
+                      className={`inline-flex items-center justify-end gap-1 transition-all cursor-pointer px-2.5 py-1 rounded-lg ${
+                        sortBy === 'totalScore' 
+                          ? 'text-[#ccff00] bg-[#ccff00]/15 border border-[#ccff00]/40 font-black shadow-[0_0_10px_rgba(204,255,0,0.15)]' 
+                          : 'hover:text-white hover:bg-white/5 border border-transparent'
+                      }`}
+                      title="Klik untuk Mengurutkan berdasarkan Total Score"
+                    >
+                      <span>TOTAL SCORE</span>
+                      {sortBy === 'totalScore' ? (
+                        sortOrder === 'asc' ? <ArrowUp className="w-3 h-3 text-[#ccff00]" /> : <ArrowDown className="w-3 h-3 text-[#ccff00]" />
+                      ) : (
+                        <ArrowUpDown className="w-2.5 h-2.5 opacity-30" />
+                      )}
+                    </button>
                   </th>
                 </tr>
               </thead>
@@ -808,27 +920,27 @@ export const StockAnalysis: React.FC = () => {
                       </td>
 
                       {/* Metrics columns */}
-                      <td className="py-4 px-4 text-center font-mono font-bold text-[#9f9bac] group-hover:text-white transition-colors">
+                      <td className={`py-4 px-4 text-center font-mono font-bold transition-colors ${sortBy === 'quality' ? 'bg-[#ccff00]/5 text-[#ccff00] font-black' : 'text-[#9f9bac] group-hover:text-white'}`}>
                         <div className="flex flex-col items-center">
                           <span>{stock.quality.toFixed(1)}</span>
                         </div>
                       </td>
-                      <td className="py-4 px-4 text-center font-mono font-bold text-[#9f9bac] group-hover:text-white transition-colors">
+                      <td className={`py-4 px-4 text-center font-mono font-bold transition-colors ${sortBy === 'growth' ? 'bg-[#ccff00]/5 text-[#ccff00] font-black' : 'text-[#9f9bac] group-hover:text-white'}`}>
                         <div className="flex flex-col items-center">
                           <span>{stock.growth.toFixed(1)}</span>
                         </div>
                       </td>
-                      <td className="py-4 px-4 text-center font-mono font-bold text-[#9f9bac] group-hover:text-white transition-colors">
+                      <td className={`py-4 px-4 text-center font-mono font-bold transition-colors ${sortBy === 'value' ? 'bg-[#ccff00]/5 text-[#ccff00] font-black' : 'text-[#9f9bac] group-hover:text-white'}`}>
                         <div className="flex flex-col items-center">
                           <span>{stock.value.toFixed(1)}</span>
                         </div>
                       </td>
-                      <td className="py-4 px-4 text-center font-mono font-bold text-[#9f9bac] group-hover:text-white transition-colors">
+                      <td className={`py-4 px-4 text-center font-mono font-bold transition-colors ${sortBy === 'moment' ? 'bg-[#ccff00]/5 text-[#ccff00] font-black' : 'text-[#9f9bac] group-hover:text-white'}`}>
                         <div className="flex flex-col items-center">
                           <span>{stock.moment.toFixed(1)}</span>
                         </div>
                       </td>
-                      <td className="py-4 px-4 text-center font-mono font-bold text-[#9f9bac] group-hover:text-white transition-colors">
+                      <td className={`py-4 px-4 text-center font-mono font-bold transition-colors ${sortBy === 'dividen' ? 'bg-[#ccff00]/5 text-[#ccff00] font-black' : 'text-[#9f9bac] group-hover:text-white'}`}>
                         {stock.dividen > 0 ? (
                           <div className="flex flex-col items-center">
                             <span>{stock.dividen.toFixed(1)}</span>
@@ -906,19 +1018,35 @@ export const StockAnalysis: React.FC = () => {
                     {stock.name}
                   </p>
 
-                  <div className="grid grid-cols-5 gap-2 pt-3 border-t border-[#1b1926]">
+                  <div className="grid grid-cols-5 gap-1.5 pt-3 border-t border-[#1b1926]">
                     {[
-                      { l: 'QLTY', v: stock.quality, c: 'text-sky-400' },
-                      { l: 'GRW', v: stock.growth, c: 'text-pink-400' },
-                      { l: 'VAL', v: stock.value, c: 'text-amber-400' },
-                      { l: 'MOM', v: stock.moment, c: 'text-purple-400' },
-                      { l: 'DIV', v: stock.dividen, c: 'text-[#ccff00]' }
-                    ].map(stat => (
-                      <div key={stat.l} className="text-center flex flex-col items-center">
-                        <span className="text-[8px] text-[#686477] font-bold font-mono block mb-1">{stat.l}</span>
-                        <span className="text-[10px] font-mono font-bold text-white">{stat.v > 0 ? stat.v.toFixed(0) : '-'}</span>
-                      </div>
-                    ))}
+                      { id: 'quality', l: 'QLTY', v: stock.quality },
+                      { id: 'growth', l: 'GRW', v: stock.growth },
+                      { id: 'value', l: 'VAL', v: stock.value },
+                      { id: 'moment', l: 'MOM', v: stock.moment },
+                      { id: 'dividen', l: 'DIV', v: stock.dividen }
+                    ].map(stat => {
+                      const isActive = sortBy === stat.id;
+                      return (
+                        <button
+                          key={stat.l}
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSort(stat.id);
+                          }}
+                          className={`text-center flex flex-col items-center py-1 px-0.5 rounded-lg transition-all cursor-pointer ${
+                            isActive 
+                              ? 'bg-[#ccff00]/15 border border-[#ccff00]/40 shadow-[0_0_8px_rgba(204,255,0,0.15)]' 
+                              : 'hover:bg-white/5 border border-transparent'
+                          }`}
+                          title={`Klik untuk mengurutkan berdasarkan ${stat.l}`}
+                        >
+                          <span className={`text-[8px] font-bold font-mono block mb-0.5 ${isActive ? 'text-[#ccff00]' : 'text-[#686477]'}`}>{stat.l}</span>
+                          <span className={`text-[10px] font-mono font-bold ${isActive ? 'text-[#ccff00] font-black' : 'text-white'}`}>{stat.v > 0 ? stat.v.toFixed(0) : '-'}</span>
+                        </button>
+                      );
+                    })}
                   </div>
 
                   <div className="flex items-center justify-between pt-3 border-t border-[#1b1926]/70">

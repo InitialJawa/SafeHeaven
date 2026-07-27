@@ -38,8 +38,9 @@ const NotFound = lazy(() => import('./pages/NotFound').then(m => ({ default: m.N
 export default function App() {
   const { user, isDemoMode, fetchInitialData, loginWithGoogle } = useAppStore();
 
-  const isAuth = !!user || isDemoMode;
-  const isPremium = user?.isPremium || user?.tier === 'Platinum' || user?.role === 'admin';
+  // Only registered/logged-in users have full access; demo mode users are restricted to public views
+  const isRegisteredUser = !!user && !isDemoMode && user?.email !== 'demo@safehaven.id';
+  const isPremium = isRegisteredUser && (user?.isPremium || user?.tier === 'Platinum' || user?.role === 'admin');
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
@@ -93,33 +94,33 @@ export default function App() {
 
           {/* 2. LOGIN-REQUIRED TABS (Portfolio, Compare, Universe, Strategies, Alerts, Risk, Settings, AI) */}
           <Route path="/portfolio">
-            {!isAuth ? <AppLayout><AuthGuardView featureName="Manajemen Portofolio" /></AppLayout> : <AppLayout><Portfolio /></AppLayout>}
+            {!isRegisteredUser ? <AppLayout><AuthGuardView featureName="Manajemen Portofolio" /></AppLayout> : <AppLayout><Portfolio /></AppLayout>}
           </Route>
           <Route path="/compare">
-            {!isAuth ? <AppLayout><AuthGuardView featureName="Komparasi Portofolio" /></AppLayout> : <AppLayout><Compare /></AppLayout>}
+            {!isRegisteredUser ? <AppLayout><AuthGuardView featureName="Komparasi Portofolio" /></AppLayout> : <AppLayout><Compare /></AppLayout>}
           </Route>
           <Route path="/universe">
-            {!isAuth ? <AppLayout><AuthGuardView featureName="Universe Builder" /></AppLayout> : <AppLayout><UniversePage /></AppLayout>}
+            {!isRegisteredUser ? <AppLayout><AuthGuardView featureName="Universe Builder" /></AppLayout> : <AppLayout><UniversePage /></AppLayout>}
           </Route>
           <Route path="/strategies">
-            {!isAuth ? <AppLayout><AuthGuardView featureName="Strategy Builder" /></AppLayout> : <AppLayout><Strategies /></AppLayout>}
+            {!isRegisteredUser ? <AppLayout><AuthGuardView featureName="Strategy Builder" /></AppLayout> : <AppLayout><Strategies /></AppLayout>}
           </Route>
           <Route path="/alerts">
-            {!isAuth ? <AppLayout><AuthGuardView featureName="Peringatan Alert & Signal" /></AppLayout> : <AppLayout><Alerts /></AppLayout>}
+            {!isRegisteredUser ? <AppLayout><AuthGuardView featureName="Peringatan Alert & Signal" /></AppLayout> : <AppLayout><Alerts /></AppLayout>}
           </Route>
           <Route path="/risk">
-            {!isAuth ? <AppLayout><AuthGuardView featureName="Kontrol Risiko & Crash Shield" /></AppLayout> : <AppLayout><Risk /></AppLayout>}
+            {!isRegisteredUser ? <AppLayout><AuthGuardView featureName="Kontrol Risiko & Crash Shield" /></AppLayout> : <AppLayout><Risk /></AppLayout>}
           </Route>
           <Route path="/settings">
-            {!isAuth ? <AppLayout><AuthGuardView featureName="Pengaturan Sistem" /></AppLayout> : <AppLayout><Settings /></AppLayout>}
+            {!isRegisteredUser ? <AppLayout><AuthGuardView featureName="Pengaturan Sistem" /></AppLayout> : <AppLayout><Settings /></AppLayout>}
           </Route>
           <Route path="/ai">
-            {!isAuth ? <AppLayout><AuthGuardView featureName="AI Manager Assistant" /></AppLayout> : <AppLayout><AiManager /></AppLayout>}
+            {!isRegisteredUser ? <AppLayout><AuthGuardView featureName="AI Manager Assistant" /></AppLayout> : <AppLayout><AiManager /></AppLayout>}
           </Route>
 
           {/* Admin Protected Route */}
           <Route path="/admin">
-            {!isAuth ? (
+            {!isRegisteredUser ? (
               <AppLayout><AuthGuardView featureName="Admin Console" /></AppLayout>
             ) : (
               <AdminProtectedRoute>
@@ -130,7 +131,7 @@ export default function App() {
 
           {/* 3. QUANT LAB TABS (Khusus Member Premium - Backtest & Walk Forward Optimizer) */}
           <Route path="/backtest">
-            {!isAuth ? (
+            {!isRegisteredUser ? (
               <AppLayout><AuthGuardView featureName="Quant Lab - Backtest Strategi" /></AppLayout>
             ) : !isPremium ? (
               <AppLayout><PremiumGuardView featureName="Quant Lab - Backtest Strategi" /></AppLayout>
@@ -139,7 +140,7 @@ export default function App() {
             )}
           </Route>
           <Route path="/optimize">
-            {!isAuth ? (
+            {!isRegisteredUser ? (
               <AppLayout><AuthGuardView featureName="Quant Lab - Walk Forward Optimizer" /></AppLayout>
             ) : !isPremium ? (
               <AppLayout><PremiumGuardView featureName="Quant Lab - Walk Forward Optimizer" /></AppLayout>

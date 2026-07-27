@@ -18,7 +18,7 @@ import { detectMarketRegime, resolveWeights, MarketRegime, StrategyProfile } fro
 
 dotenv.config();
 
-const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+const PORT = 3000;
 const app = express();
 app.use(express.json());
 
@@ -49,7 +49,7 @@ async function executeQuery(sql: string, args: any[] = []): Promise<any> {
   const cfDatabaseId = process.env.CLOUDFLARE_D1_DATABASE_ID;
   const cfApiToken = process.env.CLOUDFLARE_API_TOKEN;
 
-  if (!cloudflareDisabled && process.env.USE_CLOUDFLARE_D1 === 'true' && cfAccountId && cfDatabaseId && cfApiToken && cfAccountId !== "" && cfDatabaseId !== "" && cfApiToken !== "" && cfApiToken !== 'cfut_nElv3u3E8ya1iIe6UpQJ8gYZ9AfhXFKoHf11kSmNcf878aba') {
+  if (!cloudflareDisabled && cfAccountId && cfDatabaseId && cfApiToken && cfAccountId !== "" && cfDatabaseId !== "" && cfApiToken !== "" && cfApiToken !== 'cfut_nElv3u3E8ya1iIe6UpQJ8gYZ9AfhXFKoHf11kSmNcf878aba') {
     try {
       const url = `https://api.cloudflare.com/client/v4/accounts/${cfAccountId}/d1/database/${cfDatabaseId}/query`;
       const response = await fetch(url, {
@@ -66,18 +66,19 @@ async function executeQuery(sql: string, args: any[] = []): Promise<any> {
 
       const data = await response.json() as any;
 
-      if (data.success && data.result && data.result[0]) {
-        const d1Result = data.result[0];
+      if (data.success && data.result) {
+        const d1Result = Array.isArray(data.result) ? data.result[data.result.length - 1] : data.result;
         return {
-          rows: d1Result.results || []
+          rows: d1Result?.results || []
         };
       } else {
-        console.warn('Cloudflare D1 query returned success=false, disabling D1 and falling back to local SQLite:', data.errors || data);
-        cloudflareDisabled = true;
+        console.warn('Cloudflare D1 query returned success=false, falling back to local SQLite for this query:', data.errors || data);
+        if (data.errors && data.errors.some(e => e.code === 10000 || e.code === 7003 || e.code === 9109)) {
+           cloudflareDisabled = true;
+        }
       }
     } catch (err) {
-      console.error('Cloudflare D1 HTTP connection error, disabling D1 and falling back to local SQLite:', err);
-      cloudflareDisabled = true;
+      console.warn('Cloudflare D1 HTTP connection error, falling back to local SQLite for this query:', err);
     }
   }
 
@@ -508,8 +509,8 @@ let apiKeys = [
 ];
 
 let users = [
-  { id: 'usr-1', email: 'imamnasrulloh02@gmail.com', name: 'Imam Nasrulloh', role: 'admin', registeredAt: '2026-01-01' },
-  { id: 'usr-2', email: 'advisor1@safeheaven.id', name: 'Budi Santoso', role: 'advisor', registeredAt: '2026-02-15' },
+  { id: 'usr-1', email: 'admin@safehaven.id', name: 'SafeHaven Admin', role: 'admin', registeredAt: '2026-01-01' },
+  { id: 'usr-2', email: 'advisor1@safehaven.id', name: 'Budi Santoso', role: 'advisor', registeredAt: '2026-02-15' },
   { id: 'usr-3', email: 'client1@gmail.com', name: 'Amir Nasution', role: 'user', registeredAt: '2026-04-20' }
 ];
 
@@ -527,7 +528,7 @@ let rebalanceConfig = {
 };
 
 let notificationConfig = {
-  email: 'imamnasrulloh02@gmail.com',
+  email: 'admin@safehaven.id',
   rotationAlert: true,
   signalAlert: true,
   dailyReport: false,
@@ -2033,7 +2034,7 @@ async function sendCourierNotification(title: string, message: string, type: str
   
   // Default recipient target
   const toPayload = recipientOverride || {
-    email: process.env.COURIER_RECIPIENT_EMAIL || 'imamnasrulloh02@gmail.com',
+    email: process.env.COURIER_RECIPIENT_EMAIL || 'admin@safehaven.id',
     ...(process.env.COURIER_RECIPIENT_PHONE ? { phone_number: process.env.COURIER_RECIPIENT_PHONE } : {})
   };
 
@@ -2084,7 +2085,7 @@ app.get('/api/admin/courier-status', (req, res) => {
   res.json({
     configured: Boolean(token),
     eventId: eventId,
-    recipientEmail: process.env.COURIER_RECIPIENT_EMAIL || 'imamnasrulloh02@gmail.com',
+    recipientEmail: process.env.COURIER_RECIPIENT_EMAIL || 'admin@safehaven.id',
     tokenPreview: token ? `${token.slice(0, 6)}...` : null
   });
 });
@@ -3913,7 +3914,7 @@ app.post('/api/market/analysis-matrix/sync', async (req, res) => {
 });
 
 let NOTIFICATION_CONFIG = {
-  email: 'imamnasrulloh02@gmail.com',
+  email: 'admin@safehaven.id',
   emailEnabled: true,
   whatsapp: '+6281234567890',
   whatsappEnabled: true,

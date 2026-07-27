@@ -36,7 +36,7 @@ export const AdminProtectedRoute: React.FC<AdminProtectedRouteProps> = ({ childr
 
       try {
         const userEmail = (user.email || '').toLowerCase();
-        const isAdminEmail = userEmail === 'imamnasrulloh02@gmail.com' || userEmail.includes('admin');
+        const isAdminEmail = userEmail.includes('admin') || userEmail.endsWith('@safehaven.id');
         // By default, allow user.role === 'admin' OR matching email OR auto-grant in applet preview
         let adminRole = user.role === 'admin' || isAdminEmail;
 

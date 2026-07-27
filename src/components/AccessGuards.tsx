@@ -31,7 +31,7 @@ export const AuthGuardView: React.FC<{ featureName?: string }> = ({ featureName 
           {featureName} Memerlukan Login
         </h2>
         <p className="text-xs text-[#9f9bac] leading-relaxed mb-6 max-w-sm mx-auto">
-          Silakan masuk dengan akun SafeHaven Anda atau gunakan Akun Demo untuk mencoba seluruh fitur analisis & pengelolaan portofolio.
+          Fitur <strong className="text-white">{featureName}</strong> memerlukan akun terdaftar. Mode Demo publik hanya dapat mengakses Market Cockpit, IHSG Chart, Market Analytics, Stock Analysis, dan Market News.
         </p>
 
         <div className="space-y-3">
@@ -39,16 +39,16 @@ export const AuthGuardView: React.FC<{ featureName?: string }> = ({ featureName 
             onClick={() => setLocation('/login')}
             className="w-full bg-[#ccff00] hover:bg-[#ddff33] text-black font-extrabold text-xs py-3.5 px-5 rounded-xl transition-all shadow-lg shadow-[#ccff00]/10 hover:shadow-[#ccff00]/20 flex items-center justify-center gap-2 cursor-pointer"
           >
-            <span>Masuk / Login Akun</span>
+            <span>Masuk / Buat Akun Baru</span>
             <ArrowRight className="w-4 h-4" />
           </button>
 
           <button
-            onClick={() => loginDemoUser(false)}
+            onClick={() => setLocation('/dashboard')}
             className="w-full bg-[#171522] hover:bg-[#201d2f] border border-[#2d2943] text-white font-bold text-xs py-3 px-5 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer"
           >
-            <UserCheck className="w-4 h-4 text-[#ccff00]" />
-            <span>Akses Instan dengan Akun Demo</span>
+            <LayoutDashboard className="w-4 h-4 text-[#ccff00]" />
+            <span>Kembali ke Market Cockpit (Publik)</span>
           </button>
 
           <button

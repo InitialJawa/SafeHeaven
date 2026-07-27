@@ -14,9 +14,9 @@ export const Login: React.FC = () => {
   const [, setLocation] = useLocation();
   const { login, register, loginWithGoogle } = useAppStore();
   const [isRegister, setIsRegister] = useState(false);
-  const [email, setEmail] = useState('imamnasrulloh02@gmail.com');
-  const [password, setPassword] = useState('password123');
-  const [name, setName] = useState('Imam Nasrulloh');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 

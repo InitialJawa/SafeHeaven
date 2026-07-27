@@ -335,8 +335,8 @@ export const useAppStore = create<AppState>((set, get) => {
     }
   },
   users: [
-    { id: 'usr-1', email: 'imamnasrulloh02@gmail.com', name: 'Imam Nasrulloh', role: 'admin', registeredAt: '2026-01-01' },
-    { id: 'usr-2', email: 'advisor1@safeheaven.id', name: 'Budi Santoso', role: 'advisor', registeredAt: '2026-02-15' },
+    { id: 'usr-1', email: 'admin@safehaven.id', name: 'SafeHaven Admin', role: 'admin', registeredAt: '2026-01-01' },
+    { id: 'usr-2', email: 'advisor1@safehaven.id', name: 'Budi Santoso', role: 'advisor', registeredAt: '2026-02-15' },
     { id: 'usr-3', email: 'client1@gmail.com', name: 'Amir Nasution', role: 'user', registeredAt: '2026-04-20' }
   ],
   clients: [
@@ -363,7 +363,7 @@ export const useAppStore = create<AppState>((set, get) => {
     type: 'full'
   },
   notificationConfig: {
-    email: 'imamnasrulloh02@gmail.com',
+    email: 'admin@safehaven.id',
     emailEnabled: true,
     whatsapp: '+6281234567890',
     whatsappEnabled: true,
@@ -404,8 +404,8 @@ export const useAppStore = create<AppState>((set, get) => {
   // Auth Operations
   login: (email, name) => {
     const normalizedEmail = (email || '').toLowerCase();
-    const role = (normalizedEmail === 'imamnasrulloh02@gmail.com' || normalizedEmail.includes('admin')) ? 'admin' : normalizedEmail.includes('advisor') ? 'advisor' : 'user';
-    const isPremium = role === 'admin' || normalizedEmail.includes('premium') || normalizedEmail === 'imamnasrulloh02@gmail.com';
+    const role = (normalizedEmail.includes('admin') || normalizedEmail.endsWith('@safehaven.id')) ? 'admin' : normalizedEmail.includes('advisor') ? 'advisor' : 'user';
+    const isPremium = role === 'admin' || normalizedEmail.includes('premium');
     const userInfo: UserInfo = {
       id: `usr-${Date.now()}`,
       email,
@@ -421,9 +421,9 @@ export const useAppStore = create<AppState>((set, get) => {
   },
   loginWithGoogle: async (email, name, uid) => {
     const normalizedEmail = (email || '').toLowerCase();
-    let userRole: 'admin' | 'advisor' | 'user' = (normalizedEmail === 'imamnasrulloh02@gmail.com' || normalizedEmail.includes('admin')) ? 'admin' : normalizedEmail.includes('advisor') ? 'advisor' : 'user';
+    let userRole: 'admin' | 'advisor' | 'user' = (normalizedEmail.includes('admin') || normalizedEmail.endsWith('@safehaven.id')) ? 'admin' : normalizedEmail.includes('advisor') ? 'advisor' : 'user';
     
-    let isPremium = userRole === 'admin' || normalizedEmail === 'imamnasrulloh02@gmail.com';
+    let isPremium = userRole === 'admin' || normalizedEmail.includes('premium');
 
     // Check if user record exists in Firestore
     try {
@@ -496,7 +496,7 @@ export const useAppStore = create<AppState>((set, get) => {
   },
   register: async (email, password, name) => {
     const normalizedEmail = (email || '').toLowerCase();
-    const role = (normalizedEmail === 'imamnasrulloh02@gmail.com' || normalizedEmail.includes('admin')) ? 'admin' : normalizedEmail.includes('advisor') ? 'advisor' : 'user';
+    const role = (normalizedEmail.includes('admin') || normalizedEmail.endsWith('@safehaven.id')) ? 'admin' : normalizedEmail.includes('advisor') ? 'advisor' : 'user';
     const userInfo: UserInfo = {
       id: `usr-${Date.now()}`,
       email,

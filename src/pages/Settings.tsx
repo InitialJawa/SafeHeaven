@@ -46,6 +46,7 @@ import { NotificationTestInspectorModal, TestResultData } from '../components/No
 
 export const Settings: React.FC = () => {
   const { 
+    user,
     portfolioConfig, 
     strategies, 
     universes, 
@@ -67,7 +68,7 @@ export const Settings: React.FC = () => {
 
   // 2. Notification Channel Config State
   const [notifState, setNotifState] = useState<NotificationChannelConfig>({
-    email: 'imamnasrulloh02@gmail.com',
+    email: user?.email || 'admin@safehaven.id',
     emailEnabled: true,
     whatsapp: '+6281234567890',
     whatsappEnabled: true,

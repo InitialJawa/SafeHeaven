@@ -290,215 +290,129 @@ export const MarketNews: React.FC = () => {
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-6 max-w-[1600px] mx-auto animate-in fade-in duration-300 font-sans">
-      {/* 1. Header & Title Section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#1b1926] pb-5">
-        <div>
-          <div className="flex items-center gap-2.5 mb-1">
-            <div className="p-2 bg-[#ccff00]/10 border border-[#ccff00]/20 rounded-xl text-[#ccff00]">
-              <Newspaper className="w-6 h-6" />
+    <div className="p-3 md:p-5 space-y-4 max-w-[1600px] mx-auto animate-in fade-in duration-300 font-sans">
+      {/* 1. COMPACT UNIFIED HEADER & AI SENTIMENT BANNER */}
+      <div className="card bg-[#0b0a10] border border-[#1b1926] rounded-xl p-2.5 md:p-3 shadow-lg flex flex-col md:flex-row items-center justify-between gap-2.5">
+        {/* Title & Live Status */}
+        <div className="flex items-center gap-2 shrink-0 w-full md:w-auto justify-between md:justify-start">
+          <div className="flex items-center gap-2">
+            <span className="w-1.5 h-5 bg-[#ccff00] rounded-full shrink-0"></span>
+            <div className="p-1 bg-[#ccff00]/10 border border-[#ccff00]/20 rounded-lg text-[#ccff00]">
+              <Newspaper className="w-4 h-4" />
             </div>
-            <h1 className="text-2xl font-extrabold tracking-tight text-white font-sans flex items-center gap-2">
-              Berita & Sentimen Pasar (Market News)
-              <span className="px-2.5 py-0.5 bg-[#ccff00]/10 text-[#ccff00] border border-[#ccff00]/30 rounded-full text-xs font-mono">
-                LIVE RSS
-              </span>
+            <h1 className="text-base font-black text-white tracking-tight font-sans whitespace-nowrap">
+              Market News
             </h1>
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border border-[#ccff00]/30 bg-[#ccff00]/10 text-[#ccff00] text-[9px] font-mono font-bold">
+              LIVE RSS
+            </span>
           </div>
-          <p className="text-xs text-[#9f9bac] font-sans">
-            Agregasi berita real-time dari Google News RSS, Bisnis.com, CNBC Indonesia, Bloomberg Technoz, dan portal keuangan terpercaya.
-          </p>
+
+          <div className="flex items-center gap-2 md:hidden">
+            <button
+              onClick={() => {
+                const activeQ = newsMode === 'my_tickers' && activeMyTicker !== 'ALL' ? activeMyTicker : activeSymbol;
+                fetchNews(activeQ, true);
+              }}
+              disabled={refreshing}
+              className="p-1.5 rounded-lg bg-[#ccff00]/10 hover:bg-[#ccff00]/20 border border-[#ccff00]/30 text-[#ccff00] transition-all cursor-pointer disabled:opacity-50"
+              title="Sintesis Berita Terkini"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        {/* Sentiment Badge & Refresh Action */}
+        <div className="flex items-center gap-2.5 w-full md:w-auto overflow-x-auto justify-between md:justify-end">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 bg-[#111018] border border-[#1b1926] rounded-lg text-xs shrink-0">
+            <Activity className="w-3.5 h-3.5 text-[#00f0ff]" />
+            <span className="text-[9px] text-[#686477] uppercase font-bold font-mono">Sentimen:</span>
+            <span className={`text-xs font-extrabold ${sentimentStats.sentimentColor}`}>
+              {sentimentStats.sentimentText} ({sentimentStats.positivePct}%)
+            </span>
+          </div>
+
           <button
             onClick={() => {
               const activeQ = newsMode === 'my_tickers' && activeMyTicker !== 'ALL' ? activeMyTicker : activeSymbol;
               fetchNews(activeQ, true);
             }}
             disabled={refreshing}
-            className="px-4 py-2 bg-[#171524] hover:bg-[#201c33] text-white font-bold rounded-xl border border-[#262338] hover:border-[#ccff00]/40 transition-all flex items-center gap-2 text-xs cursor-pointer shadow-sm"
+            className="hidden md:flex items-center gap-1.5 px-3 py-1 bg-[#171524] hover:bg-[#201c33] text-white font-bold rounded-lg border border-[#262338] hover:border-[#ccff00]/40 transition-all text-xs cursor-pointer shadow-sm shrink-0"
           >
-            <RefreshCw className={`w-4 h-4 text-[#ccff00] ${refreshing ? 'animate-spin' : ''}`} />
-            <span>Sintesis Berita Terkini</span>
+            <RefreshCw className={`w-3.5 h-3.5 text-[#ccff00] ${refreshing ? 'animate-spin' : ''}`} />
+            <span>Sintesis Berita</span>
           </button>
         </div>
       </div>
 
-      {/* 2. STREAMLINED UNIFIED NAVIGATION & SEARCH HEADER */}
-      <div className="card bg-[#0b0a10] border border-[#1b1926] rounded-2xl p-3 md:p-4 space-y-3 shadow-lg">
-        {/* Row 1: Mode Switcher + AI Sentiment + Search Bar */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+      {/* 2. STREAMLINED UNIFIED CONTROL & FILTER BAR */}
+      <div className="bg-[#0b0a10]/60 border border-[#1b1926] p-2.5 rounded-xl space-y-2">
+        {/* Row 1: Mode Switcher + Search Bar + Category Filters + View Mode */}
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-2">
+          
           {/* Main Segmented Mode Switcher */}
-          <div className="flex items-center p-1 bg-[#111018] border border-[#1b1926] rounded-xl shrink-0 overflow-x-auto no-scrollbar">
+          <div className="flex items-center p-1 bg-[#111018] border border-[#1b1926] rounded-lg shrink-0 overflow-x-auto no-scrollbar">
             <button
               onClick={() => handleModeChange('general')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+              className={`px-2.5 py-1 rounded text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
                 newsMode === 'general'
                   ? 'bg-[#ccff00] text-black font-black shadow-sm'
                   : 'text-[#9f9bac] hover:text-white'
               }`}
             >
-              <Globe className="w-3.5 h-3.5" />
+              <Globe className="w-3 h-3" />
               <span>Pasar Umum</span>
             </button>
 
             <button
               onClick={() => handleModeChange('ihsg')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+              className={`px-2.5 py-1 rounded text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
                 newsMode === 'ihsg'
                   ? 'bg-[#00f0ff] text-black font-black shadow-sm'
                   : 'text-[#9f9bac] hover:text-white'
               }`}
             >
-              <BarChart2 className="w-3.5 h-3.5" />
+              <BarChart2 className="w-3 h-3" />
               <span>IHSG & Makro</span>
             </button>
 
             <button
               onClick={() => handleModeChange('my_tickers')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+              className={`px-2.5 py-1 rounded text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
                 newsMode === 'my_tickers'
                   ? 'bg-[#00f5a0] text-black font-black shadow-sm'
                   : 'text-[#9f9bac] hover:text-white'
               }`}
             >
-              <Briefcase className="w-3.5 h-3.5" />
+              <Briefcase className="w-3 h-3" />
               <span>Saham Saya ({myTickers.length})</span>
             </button>
           </div>
 
-          {/* AI Sentiment Summary & Search */}
-          <div className="flex items-center gap-2.5 flex-1 max-w-xl justify-end">
-            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 bg-[#111018] border border-[#1b1926] rounded-xl text-xs shrink-0">
-              <Activity className="w-3.5 h-3.5 text-[#00f0ff]" />
-              <span className="text-[10px] text-[#686477] uppercase font-bold tracking-wider">Sentimen:</span>
-              <span className={`font-extrabold ${sentimentStats.sentimentColor}`}>
-                {sentimentStats.sentimentText} ({sentimentStats.positivePct}%)
-              </span>
-            </div>
-
-            {/* Search Bar Input */}
-            <form onSubmit={handleCustomSearchSubmit} className="relative flex-1 max-w-xs">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#686477]" />
+          {/* Right side controls: Search + Sentiment Filter + Layout View */}
+          <div className="flex flex-wrap items-center gap-2 flex-1 justify-between lg:justify-end min-w-0">
+            {/* Search Input */}
+            <form onSubmit={handleCustomSearchSubmit} className="relative flex-1 max-w-xs min-w-[140px]">
+              <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[#686477]" />
               <input
                 type="text"
                 value={customSearch}
                 onChange={e => setCustomSearch(e.target.value)}
                 placeholder="Cari berita / ticker..."
-                className="w-full bg-[#111018] border border-[#1b1926] focus:border-[#ccff00]/50 rounded-xl pl-8 pr-12 py-1.5 text-xs text-white placeholder-[#686477] outline-none transition-all font-sans"
+                className="w-full bg-[#111018] border border-[#1b1926] focus:border-[#ccff00]/50 rounded-lg pl-8 pr-12 py-1 text-xs text-white placeholder-[#686477] outline-none transition-all font-sans"
               />
               <button
                 type="submit"
-                className="absolute right-1 top-1/2 -translate-y-1/2 px-2 py-0.5 bg-[#ccff00] text-black font-black rounded-lg text-[10px] cursor-pointer hover:bg-[#b8e600]"
+                className="absolute right-1 top-1/2 -translate-y-1/2 px-2 py-0.5 bg-[#ccff00] text-black font-black rounded text-[10px] cursor-pointer hover:bg-[#b8e600]"
               >
                 Cari
               </button>
             </form>
-          </div>
-        </div>
 
-        {/* Row 2: Sub-Topics / Tickers List + Category Filter & Layout Switch */}
-        <div className="pt-2 border-t border-[#1b1926]/70 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2">
-          {/* Sub-Topics or Ticker Chips */}
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 flex-1 min-w-0">
-            {newsMode === 'general' && (
-              GENERAL_TOPICS.map(item => (
-                <button
-                  key={item.symbol}
-                  onClick={() => {
-                    setActiveSymbol(item.symbol);
-                    setCustomSearch('');
-                  }}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all whitespace-nowrap cursor-pointer ${
-                    activeSymbol === item.symbol
-                      ? 'bg-[#ccff00]/15 text-[#ccff00] border border-[#ccff00]/40 font-extrabold'
-                      : 'bg-[#111018] text-[#9f9bac] border border-[#1b1926] hover:text-white'
-                  }`}
-                >
-                  {item.name}
-                </button>
-              ))
-            )}
-
-            {newsMode === 'ihsg' && (
-              IHSG_TOPICS.map(item => (
-                <button
-                  key={item.symbol}
-                  onClick={() => {
-                    setActiveSymbol(item.symbol);
-                    setCustomSearch('');
-                  }}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all whitespace-nowrap cursor-pointer ${
-                    activeSymbol === item.symbol
-                      ? 'bg-[#00f0ff]/15 text-[#00f0ff] border border-[#00f0ff]/40 font-extrabold'
-                      : 'bg-[#111018] text-[#9f9bac] border border-[#1b1926] hover:text-white'
-                  }`}
-                >
-                  {item.name}
-                </button>
-              ))
-            )}
-
-            {newsMode === 'my_tickers' && (
-              <>
-                <button
-                  onClick={() => {
-                    setActiveMyTicker('ALL');
-                    if (myTickers.length > 0) setActiveSymbol(myTickers[0]);
-                  }}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-extrabold transition-all whitespace-nowrap cursor-pointer ${
-                    activeMyTicker === 'ALL'
-                      ? 'bg-[#00f5a0]/15 text-[#00f5a0] border border-[#00f5a0]/40'
-                      : 'bg-[#111018] text-[#9f9bac] border border-[#1b1926] hover:text-white'
-                  }`}
-                >
-                  Semua ({myTickers.length})
-                </button>
-
-                {myTickers.map(sym => {
-                  const active = activeMyTicker === sym;
-                  return (
-                    <div
-                      key={sym}
-                      onClick={() => {
-                        setActiveMyTicker(sym);
-                        setActiveSymbol(sym);
-                      }}
-                      className={`px-2 py-0.5 rounded-lg text-[11px] font-mono font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1 border ${
-                        active
-                          ? 'bg-[#00f5a0]/15 text-[#00f5a0] border-[#00f5a0]/40 font-extrabold'
-                          : 'bg-[#111018] text-[#9f9bac] border-[#1b1926] hover:text-white'
-                      }`}
-                    >
-                      <span>{sym}</span>
-                      <button
-                        type="button"
-                        onClick={(e) => handleRemoveMyTicker(sym, e)}
-                        title={`Hapus ${sym}`}
-                        className="hover:bg-red-500/20 p-0.5 rounded transition-colors text-[#686477] hover:text-red-400"
-                      >
-                        <X className="w-2.5 h-2.5" />
-                      </button>
-                    </div>
-                  );
-                })}
-
-                <button
-                  onClick={() => setShowAddTickerInput(!showAddTickerInput)}
-                  className="px-2 py-0.5 bg-[#00f5a0]/10 hover:bg-[#00f5a0]/20 text-[#00f5a0] border border-[#00f5a0]/30 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer shrink-0"
-                >
-                  <Plus className="w-3 h-3" />
-                  <span>Tambah Ticker</span>
-                </button>
-              </>
-            )}
-          </div>
-
-          {/* Filters & View Switcher Cluster */}
-          <div className="flex items-center gap-2 shrink-0 overflow-x-auto no-scrollbar">
             {/* Category Filter Pills */}
-            <div className="flex items-center gap-1 bg-[#111018] p-1 border border-[#1b1926] rounded-xl">
+            <div className="flex items-center gap-0.5 bg-[#111018] p-0.5 border border-[#1b1926] rounded-lg shrink-0">
               {[
                 { id: 'all', label: 'Semua' },
                 { id: 'positive', label: 'Positif' },
@@ -508,7 +422,7 @@ export const MarketNews: React.FC = () => {
                 <button
                   key={cat.id}
                   onClick={() => setCategory(cat.id as any)}
-                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer whitespace-nowrap ${
+                  className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer whitespace-nowrap ${
                     category === cat.id
                       ? 'bg-[#1b1926] text-white border border-[#ccff00]/50 font-extrabold'
                       : 'text-[#686477] hover:text-[#9f9bac]'
@@ -519,36 +433,129 @@ export const MarketNews: React.FC = () => {
               ))}
             </div>
 
-            {/* Layout Mode Switcher */}
-            <div className="flex items-center gap-1 bg-[#111018] p-1 border border-[#1b1926] rounded-xl shrink-0">
+            {/* View Layout Switcher */}
+            <div className="flex items-center gap-0.5 bg-[#111018] p-0.5 border border-[#1b1926] rounded-lg shrink-0">
               <button
                 type="button"
                 onClick={() => setViewLayout('grid')}
-                title="Tampilan Kartu Visual"
-                className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                title="Tampilan Visual"
+                className={`p-1 rounded text-xs font-bold transition-all cursor-pointer ${
                   viewLayout === 'grid' 
                     ? 'bg-[#ccff00] text-black font-extrabold' 
                     : 'text-[#686477] hover:text-white'
                 }`}
               >
                 <LayoutGrid className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline text-[10px]">Visual</span>
               </button>
               <button
                 type="button"
                 onClick={() => setViewLayout('compact')}
                 title="Tampilan Ringkas"
-                className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                className={`p-1 rounded text-xs font-bold transition-all cursor-pointer ${
                   viewLayout === 'compact' 
                     ? 'bg-[#ccff00] text-black font-extrabold' 
                     : 'text-[#686477] hover:text-white'
                 }`}
               >
                 <List className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline text-[10px]">Ringkas</span>
               </button>
             </div>
           </div>
+        </div>
+
+        {/* Row 2: Topic Chips / My Tickers Pills Bar */}
+        <div className="pt-1.5 border-t border-[#1b1926]/50 flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+          {newsMode === 'general' && (
+            GENERAL_TOPICS.map(item => (
+              <button
+                key={item.symbol}
+                onClick={() => {
+                  setActiveSymbol(item.symbol);
+                  setCustomSearch('');
+                }}
+                className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold transition-all whitespace-nowrap cursor-pointer ${
+                  activeSymbol === item.symbol
+                    ? 'bg-[#ccff00]/15 text-[#ccff00] border border-[#ccff00]/40 font-extrabold'
+                    : 'bg-[#111018] text-[#9f9bac] border border-[#1b1926] hover:text-white'
+                }`}
+              >
+                {item.name}
+              </button>
+            ))
+          )}
+
+          {newsMode === 'ihsg' && (
+            IHSG_TOPICS.map(item => (
+              <button
+                key={item.symbol}
+                onClick={() => {
+                  setActiveSymbol(item.symbol);
+                  setCustomSearch('');
+                }}
+                className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold transition-all whitespace-nowrap cursor-pointer ${
+                  activeSymbol === item.symbol
+                    ? 'bg-[#00f0ff]/15 text-[#00f0ff] border border-[#00f0ff]/40 font-extrabold'
+                    : 'bg-[#111018] text-[#9f9bac] border border-[#1b1926] hover:text-white'
+                }`}
+              >
+                {item.name}
+              </button>
+            ))
+          )}
+
+          {newsMode === 'my_tickers' && (
+            <>
+              <button
+                onClick={() => {
+                  setActiveMyTicker('ALL');
+                  if (myTickers.length > 0) setActiveSymbol(myTickers[0]);
+                }}
+                className={`px-2.5 py-0.5 rounded-md text-[10px] font-extrabold transition-all whitespace-nowrap cursor-pointer ${
+                  activeMyTicker === 'ALL'
+                    ? 'bg-[#00f5a0]/15 text-[#00f5a0] border border-[#00f5a0]/40'
+                    : 'bg-[#111018] text-[#9f9bac] border border-[#1b1926] hover:text-white'
+                }`}
+              >
+                Semua ({myTickers.length})
+              </button>
+
+              {myTickers.map(sym => {
+                const active = activeMyTicker === sym;
+                return (
+                  <div
+                    key={sym}
+                    onClick={() => {
+                      setActiveMyTicker(sym);
+                      setActiveSymbol(sym);
+                    }}
+                    className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1 border ${
+                      active
+                        ? 'bg-[#00f5a0]/15 text-[#00f5a0] border-[#00f5a0]/40 font-extrabold'
+                        : 'bg-[#111018] text-[#9f9bac] border-[#1b1926] hover:text-white'
+                    }`}
+                  >
+                    <span>{sym}</span>
+                    <button
+                      type="button"
+                      onClick={(e) => handleRemoveMyTicker(sym, e)}
+                      title={`Hapus ${sym}`}
+                      className="hover:bg-red-500/20 p-0.5 rounded transition-colors text-[#686477] hover:text-red-400"
+                    >
+                      <X className="w-2.5 h-2.5" />
+                    </button>
+                  </div>
+                );
+              })}
+
+              <button
+                onClick={() => setShowAddTickerInput(!showAddTickerInput)}
+                className="px-2 py-0.5 bg-[#00f5a0]/10 hover:bg-[#00f5a0]/20 text-[#00f5a0] border border-[#00f5a0]/30 rounded-md text-[9px] font-bold transition-all flex items-center gap-1 cursor-pointer shrink-0"
+              >
+                <Plus className="w-2.5 h-2.5" />
+                <span>Tambah Ticker</span>
+              </button>
+            </>
+          )}
         </div>
 
         {/* Add Ticker Input Drawer inline if opened */}

@@ -52,8 +52,9 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   const isCollapsed = isSidebarCollapsed && !isHovered;
-  const isAuth = !!user || isDemoMode;
-  const isPremium = user?.isPremium || user?.tier === 'Platinum' || user?.role === 'admin';
+  const isRegisteredUser = !!user && !isDemoMode && user?.email !== 'demo@safehaven.id';
+  const isAuth = !!user;
+  const isPremium = isRegisteredUser && (user?.isPremium || user?.tier === 'Platinum' || user?.role === 'admin');
 
   const handleLogout = () => {
     logout();
@@ -193,7 +194,7 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
                       key={item.path} 
                       href={item.path}
                       id={`nav-link-${item.path.replace('/', 'home')}`}
-                      title={isCollapsed ? `${item.name}${item.isPremiumOnly ? ' (PRO)' : !item.isPublic && !isAuth ? ' (Login)' : ''}` : undefined}
+                      title={isCollapsed ? `${item.name}${item.isPremiumOnly ? ' (PRO)' : !item.isPublic && !isRegisteredUser ? ' (Login Needed)' : ''}` : undefined}
                       className={`flex items-center gap-3 py-2 rounded-xl text-xs font-semibold transition-all group cursor-pointer ${
                         isCollapsed ? 'px-0 justify-center w-10 mx-auto' : 'px-3'
                       } ${
@@ -207,11 +208,12 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
                         <>
                           <span className="truncate flex-1 animate-[fadeIn_0.2s_ease-out]">{item.name}</span>
                           {item.isPremiumOnly ? (
-                            <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#ccff00]/10 text-[#ccff00] border border-[#ccff00]/30 shrink-0">
+                            <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#ccff00]/10 text-[#ccff00] border border-[#ccff00]/30 shrink-0 flex items-center gap-1">
+                              {!isRegisteredUser && <Lock className="w-2.5 h-2.5 text-[#ccff00]" />}
                               PRO
                             </span>
-                          ) : !item.isPublic && !isAuth ? (
-                            <Lock className="w-3 h-3 text-[#686477] shrink-0" />
+                          ) : !item.isPublic && !isRegisteredUser ? (
+                            <Lock className="w-3.5 h-3.5 text-[#686477] group-hover:text-[#ccff00] transition-colors shrink-0" />
                           ) : null}
                         </>
                       )}
@@ -452,11 +454,12 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
                           <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-[#ccff00]' : 'text-[#686477] group-hover:text-white transition-colors'}`} />
                           <span className="truncate flex-1">{item.name}</span>
                           {item.isPremiumOnly ? (
-                            <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#ccff00]/10 text-[#ccff00] border border-[#ccff00]/30 shrink-0">
+                            <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#ccff00]/10 text-[#ccff00] border border-[#ccff00]/30 shrink-0 flex items-center gap-1">
+                              {!isRegisteredUser && <Lock className="w-2.5 h-2.5 text-[#ccff00]" />}
                               PRO
                             </span>
-                          ) : !item.isPublic && !isAuth ? (
-                            <Lock className="w-3 h-3 text-[#686477] shrink-0" />
+                          ) : !item.isPublic && !isRegisteredUser ? (
+                            <Lock className="w-3.5 h-3.5 text-[#686477] group-hover:text-[#ccff00] transition-colors shrink-0" />
                           ) : null}
                         </Link>
                       );

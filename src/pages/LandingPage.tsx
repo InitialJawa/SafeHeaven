@@ -33,13 +33,16 @@ import {
   ExternalLink,
   ChevronRight,
   UserCheck,
-  LineChart
+  LineChart,
+  Menu,
+  X
 } from 'lucide-react';
 import { useAppStore } from '../stores';
 
 export const LandingPage: React.FC = () => {
   const [, setLocation] = useLocation();
-  const { user } = useAppStore();
+  const { user, loginDemoUser } = useAppStore();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Search preview state
   const [searchTicker, setSearchTicker] = useState('');
@@ -153,26 +156,26 @@ export const LandingPage: React.FC = () => {
     <div className="min-h-screen bg-[#060509] text-white font-sans selection:bg-[#ccff00] selection:text-black">
       
       {/* 1. TOP NAVIGATION BAR */}
-      <header className="sticky top-0 z-50 bg-[#0a090f]/90 backdrop-blur-md border-b border-[#1b1926]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+      <header className="sticky top-0 z-50 bg-[#0a090f]/95 backdrop-blur-md border-b border-[#1b1926]">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 h-16 flex items-center justify-between">
           
           {/* Brand Logo */}
-          <Link href="/" className="flex items-center gap-2.5 group cursor-pointer">
-            <div className="w-9 h-9 flex items-center justify-center group-hover:scale-105 transition-transform">
-              <SafeHavenLogo className="w-8 h-8 drop-shadow-[0_0_8px_rgba(244,184,71,0.4)]" />
+          <Link href="/" className="flex items-center gap-2 sm:gap-2.5 group cursor-pointer shrink-0">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center group-hover:scale-105 transition-transform">
+              <SafeHavenLogo className="w-7 h-7 sm:w-8 sm:h-8 drop-shadow-[0_0_8px_rgba(244,184,71,0.4)]" />
             </div>
             <div>
-              <span className="text-lg font-extrabold tracking-tight text-white font-sans">
+              <span className="text-base sm:text-lg font-extrabold tracking-tight text-white font-sans">
                 SafeHaven<span className="text-[#F4B847]">.</span>
               </span>
-              <span className="text-[9px] text-[#686477] block font-mono tracking-widest font-bold -mt-1">
+              <span className="text-[8px] sm:text-[9px] text-[#686477] block font-mono tracking-widest font-bold -mt-1">
                 IDX AI COCKPIT
               </span>
             </div>
           </Link>
 
-          {/* Nav Links */}
-          <nav className="hidden md:flex items-center gap-6 text-xs font-semibold text-[#9f9bac]">
+          {/* Nav Links - Shown on Desktop LG (1024px+) */}
+          <nav className="hidden lg:flex items-center gap-6 text-xs font-semibold text-[#9f9bac]">
             <a href="#fitur" className="hover:text-[#ccff00] transition-colors">Fitur Utama</a>
             <a href="#demo-ai" className="hover:text-[#ccff00] transition-colors">AI Intelligence</a>
             <Link href={user ? "/ai" : "/login"} className="hover:text-[#ccff00] transition-colors flex items-center gap-1">
@@ -185,10 +188,10 @@ export const LandingPage: React.FC = () => {
           </nav>
 
           {/* Action CTAs */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 shrink-0">
             <Link 
               href="/dashboard"
-              className="px-3 py-1.5 sm:px-4 sm:py-2 bg-[#171522] border border-[#2d2943] text-white rounded-xl text-xs font-bold hover:bg-[#201d2f] transition-all flex items-center gap-1.5 cursor-pointer"
+              className="px-2.5 py-1.5 sm:px-3.5 sm:py-2 bg-[#171522] border border-[#2d2943] text-white rounded-xl text-[11px] sm:text-xs font-bold hover:bg-[#201d2f] transition-all flex items-center gap-1 cursor-pointer"
             >
               <span>Market Cockpit</span>
               <ChevronRight className="w-3.5 h-3.5 text-[#ccff00]" />
@@ -197,7 +200,7 @@ export const LandingPage: React.FC = () => {
             {user ? (
               <Link 
                 href="/dashboard"
-                className="px-4 py-2 bg-[#ccff00] text-black rounded-xl text-xs font-bold hover:bg-[#b8e600] transition-all flex items-center gap-1.5 shadow-[0_0_20px_rgba(204,255,0,0.2)] cursor-pointer"
+                className="hidden sm:flex px-3.5 py-2 bg-[#ccff00] text-black rounded-xl text-xs font-bold hover:bg-[#b8e600] transition-all items-center gap-1.5 shadow-[0_0_20px_rgba(204,255,0,0.2)] cursor-pointer"
               >
                 <span>Console Saya</span>
                 <ChevronRight className="w-4 h-4" />
@@ -209,131 +212,237 @@ export const LandingPage: React.FC = () => {
                     loginDemoUser(false);
                     setLocation('/dashboard');
                   }}
-                  className="px-3.5 py-2 text-xs font-semibold text-white hover:text-[#ccff00] transition-colors cursor-pointer hidden sm:block"
+                  className="px-2.5 py-1.5 text-xs font-semibold text-white hover:text-[#ccff00] transition-colors cursor-pointer hidden md:block"
                 >
-                  Coba Demo
+                  Demo
                 </button>
                 <Link 
                   href="/login"
-                  className="px-4 py-2 bg-[#ccff00] text-black rounded-xl text-xs font-bold hover:bg-[#b8e600] transition-all flex items-center gap-1.5 shadow-[0_0_20px_rgba(204,255,0,0.2)] cursor-pointer"
+                  className="px-2.5 py-1.5 sm:px-4 sm:py-2 bg-[#ccff00] text-black rounded-xl text-[11px] sm:text-xs font-bold hover:bg-[#b8e600] transition-all flex items-center gap-1 shadow-[0_0_20px_rgba(204,255,0,0.2)] cursor-pointer"
                 >
-                  <span>Masuk / Login</span>
-                  <ArrowRight className="w-4 h-4" />
+                  <span>Masuk</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </>
             )}
+
+            {/* Mobile / Tablet Toggle Button */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="lg:hidden p-1.5 sm:p-2 text-[#9f9bac] hover:text-white bg-[#111018] border border-[#1b1926] rounded-xl cursor-pointer transition-colors"
+              aria-label="Toggle Menu"
+            >
+              {mobileMenuOpen ? <X className="w-5 h-5 text-[#ccff00]" /> : <Menu className="w-5 h-5" />}
+            </button>
           </div>
         </div>
+
+        {/* Mobile / Tablet Nav Drawer */}
+        {mobileMenuOpen && (
+          <div className="lg:hidden bg-[#0c0b12] border-b border-[#1b1926] px-4 py-3 space-y-2.5 shadow-2xl">
+            <nav className="flex flex-col space-y-1 text-xs font-semibold text-[#9f9bac]">
+              <a 
+                href="#fitur" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="py-2 px-3 rounded-xl hover:bg-[#171522] hover:text-[#ccff00] transition-all flex items-center justify-between"
+              >
+                <span>Fitur Utama</span>
+                <ChevronRight className="w-3.5 h-3.5 text-[#686477]" />
+              </a>
+              <a 
+                href="#demo-ai" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="py-2 px-3 rounded-xl hover:bg-[#171522] hover:text-[#ccff00] transition-all flex items-center justify-between"
+              >
+                <span>AI Intelligence</span>
+                <ChevronRight className="w-3.5 h-3.5 text-[#686477]" />
+              </a>
+              <Link 
+                href={user ? "/ai" : "/login"} 
+                onClick={() => setMobileMenuOpen(false)}
+                className="py-2 px-3 rounded-xl hover:bg-[#171522] hover:text-[#ccff00] transition-all flex items-center justify-between"
+              >
+                <div className="flex items-center gap-2">
+                  <Bot className="w-4 h-4 text-[#ccff00]" />
+                  <span>AI Manager Assistant</span>
+                </div>
+                <ChevronRight className="w-3.5 h-3.5 text-[#686477]" />
+              </Link>
+              <a 
+                href="#screener" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="py-2 px-3 rounded-xl hover:bg-[#171522] hover:text-[#ccff00] transition-all flex items-center justify-between"
+              >
+                <span>Live Market & Screener</span>
+                <ChevronRight className="w-3.5 h-3.5 text-[#686477]" />
+              </a>
+              <a 
+                href="#harga" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="py-2 px-3 rounded-xl hover:bg-[#171522] hover:text-[#ccff00] transition-all flex items-center justify-between"
+              >
+                <span>Paket Harga</span>
+                <ChevronRight className="w-3.5 h-3.5 text-[#686477]" />
+              </a>
+              <a 
+                href="#faq" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="py-2 px-3 rounded-xl hover:bg-[#171522] hover:text-[#ccff00] transition-all flex items-center justify-between"
+              >
+                <span>FAQ & Bantuan</span>
+                <ChevronRight className="w-3.5 h-3.5 text-[#686477]" />
+              </a>
+            </nav>
+
+            <div className="pt-2.5 border-t border-[#1b1926] grid grid-cols-2 gap-2">
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  loginDemoUser(false);
+                  setLocation('/dashboard');
+                }}
+                className="w-full bg-[#171522] hover:bg-[#201d2f] border border-[#2d2943] text-white text-xs font-bold py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+              >
+                <UserCheck className="w-3.5 h-3.5 text-[#ccff00]" />
+                <span>Coba Demo</span>
+              </button>
+              <Link
+                href="/login"
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-full bg-[#ccff00] text-black text-xs font-extrabold py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-md shadow-[#ccff00]/10 cursor-pointer"
+              >
+                <ArrowRight className="w-3.5 h-3.5" />
+                <span>Masuk / Login</span>
+              </Link>
+            </div>
+          </div>
+        )}
       </header>
 
-      {/* 2. HERO SECTION WITH 3D PHONE MOCKUP */}
-      <section className="relative pt-12 pb-24 overflow-hidden border-b border-[#1b1926]">
+      {/* 2. HERO SECTION WITH CLEAN ERGONOMIC LAYOUT & 3D MOCKUP */}
+      <section className="relative pt-16 md:pt-24 lg:pt-32 pb-20 md:pb-32 overflow-hidden border-b border-[#1b1926]">
         {/* Glow ambient background gradients */}
-        <div className="absolute top-1/4 left-1/3 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-[#ccff00]/10 blur-[130px] rounded-full pointer-events-none"></div>
-        <div className="absolute top-1/2 right-1/4 w-[400px] h-[400px] bg-[#00f0ff]/5 blur-[120px] rounded-full pointer-events-none"></div>
+        <div className="absolute top-1/4 left-1/3 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-[#ccff00]/10 blur-[120px] rounded-full pointer-events-none"></div>
+        <div className="absolute top-1/2 right-1/4 w-[400px] h-[400px] bg-[#00f0ff]/5 blur-[100px] rounded-full pointer-events-none"></div>
         
         {/* Grid Background Pattern */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#1b192615_1px,transparent_1px),linear-gradient(to_bottom,#1b192615_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_30%,#000_70%,transparent_100%)] pointer-events-none"></div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
             
-            {/* Left Column: Hero Text, Badge, CTA & Search */}
-            <div className="lg:col-span-7 text-left">
+            {/* Left Column: Hero Text, Badge, Search & CTAs */}
+            <div className="lg:col-span-7 text-left space-y-6 sm:space-y-8">
               
-              {/* Badge: Keep Your Money Safe */}
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#111018] border border-[#ccff00]/30 text-[#ccff00] text-xs font-mono font-bold tracking-wider uppercase mb-6 shadow-[0_0_15px_rgba(204,255,0,0.1)]">
-                <span className="w-2 h-2 rounded-full bg-[#ccff00] animate-pulse"></span>
-                <span>KEEP YOUR INVESTMENTS SAFE !</span>
+              {/* Compact Eyebrow Badge */}
+              <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-[#111018] border border-[#ccff00]/30 text-[#ccff00] text-xs font-mono font-bold tracking-wider uppercase shadow-[0_0_15px_rgba(204,255,0,0.1)]">
+                <span className="w-2 h-2 rounded-full bg-[#ccff00] animate-pulse shrink-0"></span>
+                <span>⚡ IDX AI ANALYTICS & GEMINI COCKPIT</span>
               </div>
 
               {/* Main Headline */}
-              <h1 className="text-4xl sm:text-6xl font-black tracking-tight text-white leading-[1.1] font-sans">
-                Best <span className="text-[#ccff00]">stock investing</span> platform for your future.
+              <h1 className="text-4xl sm:text-6xl lg:text-[4.5rem] font-black tracking-tight text-white leading-[1.1] font-sans">
+                Best <span className="text-[#ccff00] drop-shadow-[0_0_20px_rgba(204,255,0,0.25)]">stock investing</span><br className="hidden lg:block" /> platform for your future.
               </h1>
 
-              {/* Description */}
-              <p className="mt-5 text-sm sm:text-base text-[#9f9bac] leading-relaxed max-w-xl">
+              {/* Subtitle Description */}
+              <p className="text-base sm:text-lg text-[#9f9bac] leading-relaxed max-w-2xl font-medium">
                 SafeHaven menggabungkan analisis kuantitatif IHSG, Fair Value DCF, skor fundamental 0-100, dan kecerdasan AI Gemini untuk menjaga portofolio Anda tetap tumbuh secara konsisten.
               </p>
 
-              {/* User Avatar Stack & Metrics */}
-              <div className="mt-8 flex items-center gap-4 flex-wrap">
-                <div className="flex -space-x-3 overflow-hidden">
-                  <img className="inline-block h-10 w-10 rounded-full ring-2 ring-[#060509]" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" alt="User" />
-                  <img className="inline-block h-10 w-10 rounded-full ring-2 ring-[#060509]" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80" alt="User" />
-                  <img className="inline-block h-10 w-10 rounded-full ring-2 ring-[#060509]" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80" alt="User" />
-                  <img className="inline-block h-10 w-10 rounded-full ring-2 ring-[#060509]" src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80" alt="User" />
-                </div>
-                <div>
-                  <div className="text-base font-black text-white font-mono">168K+</div>
-                  <div className="text-xs text-[#686477] font-medium">Realtime Users & Investors</div>
-                </div>
+              {/* Hero Search Bar (Main User Interaction Point) */}
+              <div className="pt-2">
+                <form onSubmit={handleSearchSubmit} className="max-w-xl flex items-center bg-[#111018] border border-[#262436] focus-within:border-[#ccff00] rounded-2xl p-2 shadow-2xl transition-all">
+                  <div className="pl-4 text-[#686477]">
+                    <Search className="w-5 h-5" />
+                  </div>
+                  <input 
+                    type="text" 
+                    placeholder="Cari emiten IHSG (BBCA, BBRI, TLKM, AMMN)..."
+                    value={searchTicker}
+                    onChange={(e) => setSearchTicker(e.target.value)}
+                    className="flex-1 bg-transparent px-4 py-3 text-sm sm:text-base text-white focus:outline-none placeholder:text-[#686477]"
+                  />
+                  <button 
+                    type="submit"
+                    className="px-6 py-3 bg-[#ccff00] text-black font-extrabold rounded-xl text-sm hover:bg-[#b8e600] transition-colors flex items-center gap-2 shrink-0 cursor-pointer shadow-[0_0_15px_rgba(204,255,0,0.2)]"
+                  >
+                    <span>Analisis Ticker</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </form>
 
-                {/* Circular Arrow Action Button */}
-                <Link 
-                  href={user ? "/" : "/login"}
-                  className="ml-auto sm:ml-6 w-12 h-12 rounded-full bg-[#ccff00] text-black flex items-center justify-center hover:scale-110 transition-transform shadow-[0_0_25px_rgba(204,255,0,0.4)] cursor-pointer"
-                  title="Explore Platform"
-                >
-                  <ArrowUpRight className="w-6 h-6 stroke-[2.5]" />
-                </Link>
+                {/* Popular Ticker Quick Tags */}
+                <div className="mt-4 flex items-center gap-2.5 text-xs text-[#686477] flex-wrap">
+                  <span className="font-mono text-xs text-[#686477]">Populer:</span>
+                  {['BBCA', 'BBRI', 'TLKM', 'AMMN', 'ASII', 'GOTO'].map((sym) => (
+                    <button 
+                      key={sym} 
+                      type="button"
+                      onClick={() => {
+                        setSearchTicker(sym);
+                        setLocation(`/ticker/${sym}.JK`);
+                      }}
+                      className="px-2.5 py-1 rounded-md bg-[#111018] border border-[#1b1926] hover:border-[#ccff00]/40 text-[#9f9bac] hover:text-[#ccff00] font-mono text-[11px] font-bold transition-all cursor-pointer"
+                    >
+                      {sym}
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              {/* Hero Search Bar */}
-              <form onSubmit={handleSearchSubmit} className="mt-8 max-w-xl flex items-center bg-[#111018] border border-[#262436] focus-within:border-[#ccff00] rounded-2xl p-1.5 shadow-2xl transition-all">
-                <div className="pl-3.5 text-[#686477]">
-                  <Search className="w-5 h-5" />
-                </div>
-                <input 
-                  type="text" 
-                  placeholder="Cari emiten IHSG (contoh: BBCA, BBRI, TLKM, AMMN)..."
-                  value={searchTicker}
-                  onChange={(e) => setSearchTicker(e.target.value)}
-                  className="flex-1 bg-transparent px-3 py-2.5 text-sm text-white focus:outline-none placeholder:text-[#686477]"
-                />
-                <button 
-                  type="submit"
-                  className="px-5 py-2.5 bg-[#ccff00] text-black font-extrabold rounded-xl text-xs hover:bg-[#b8e600] transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer"
+              {/* CTAs & Social Proof Row */}
+              <div className="pt-6 sm:pt-8 mt-4 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-[#1b1926]/40">
+                
+                {/* Secondary Action - Left */}
+                <Link 
+                  href="/dashboard"
+                  className="px-5 py-3 bg-[#171522] hover:bg-[#201d2f] border border-[#2d2943] text-white text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer w-full sm:w-auto"
                 >
-                  <span>Analisis Ticker</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </form>
+                  <span>Live Market</span>
+                  <ArrowUpRight className="w-4 h-4 text-[#ccff00]" />
+                </Link>
 
-              {/* Popular Ticker Quick Tags */}
-              <div className="mt-3 flex items-center gap-2 text-xs text-[#686477] flex-wrap">
-                <span>Populer:</span>
-                {['BBCA', 'BBRI', 'TLKM', 'AMMN', 'ASII', 'GOTO'].map((sym) => (
-                  <button 
-                    key={sym} 
-                    type="button"
-                    onClick={() => setSearchTicker(sym)}
-                    className="hover:text-[#ccff00] underline font-mono cursor-pointer"
-                  >
-                    {sym}
-                  </button>
-                ))}
+                {/* Primary Action - Center */}
+                <button
+                  onClick={() => {
+                    loginDemoUser(false);
+                    setLocation('/dashboard');
+                  }}
+                  className="px-8 py-3.5 bg-[#ccff00] text-black font-extrabold text-sm sm:text-base rounded-xl hover:bg-[#b8e600] transition-all flex items-center justify-center gap-2 cursor-pointer shadow-[0_0_25px_rgba(204,255,0,0.25)] w-full sm:w-auto transform hover:scale-105"
+                >
+                  <Zap className="w-5 h-5 fill-black" />
+                  <span>Coba Cockpit Demo</span>
+                </button>
+
+                {/* Social Proof - Right */}
+                <div className="flex items-center gap-3 w-full sm:w-auto justify-center sm:justify-end">
+                  <div className="flex -space-x-3 overflow-hidden shrink-0">
+                    <img className="inline-block h-9 w-9 rounded-full ring-2 ring-[#060509]" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" alt="User" />
+                    <img className="inline-block h-9 w-9 rounded-full ring-2 ring-[#060509]" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80" alt="User" />
+                    <img className="inline-block h-9 w-9 rounded-full ring-2 ring-[#060509]" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80" alt="User" />
+                  </div>
+                  <div className="text-left">
+                    <div className="text-sm font-black text-white font-mono">168K+</div>
+                    <div className="text-[10px] text-[#686477] font-medium leading-tight">Investor<br/>Aktif</div>
+                  </div>
+                </div>
               </div>
 
             </div>
 
             {/* Right Column: 3D Floating Phone Mockup */}
-            <div className="lg:col-span-5 relative flex justify-center items-center py-6">
+            <div className="lg:col-span-5 relative flex justify-center items-center mt-12 lg:mt-0 py-8">
               
-              {/* Background 3D Glow Orbs */}
-              <div className="absolute w-72 h-72 bg-[#ccff00]/15 rounded-full blur-[90px] pointer-events-none"></div>
-              
-              {/* Floating Orbit Green Particles */}
-              <div className="absolute -top-4 right-10 w-6 h-6 rounded-full bg-[#ccff00] shadow-[0_0_20px_#ccff00] animate-bounce pointer-events-none z-20"></div>
-              <div className="absolute bottom-6 left-4 w-4 h-4 rounded-full bg-[#00f0ff] shadow-[0_0_15px_#00f0ff] animate-pulse pointer-events-none z-20"></div>
+              {/* Background 3D Soft Glow */}
+              <div className="absolute w-72 h-72 bg-[#ccff00]/10 rounded-full blur-[80px] pointer-events-none"></div>
 
               {/* 3D Tilted Phone Container */}
               <div className="relative group perspective-[1000px] w-full max-w-[320px]">
                 
                 {/* Secondary Background Phone (Angled behind) */}
-                <div className="absolute top-6 left-12 w-full h-[540px] bg-[#0c0b12] border-2 border-[#262436] rounded-[42px] p-3 shadow-2xl opacity-60 [transform:rotateY(-25deg)_rotateX(20deg)_translateZ(-60px)] pointer-events-none hidden sm:block">
-                  <div className="w-full h-full bg-[#111018] rounded-[32px] p-4 flex flex-col justify-between overflow-hidden opacity-50">
+                <div className="absolute top-6 left-10 w-full h-[500px] bg-[#0c0b12] border-2 border-[#262436] rounded-[38px] p-3 shadow-2xl opacity-40 [transform:rotateY(-25deg)_rotateX(20deg)_translateZ(-60px)] pointer-events-none hidden sm:block">
+                  <div className="w-full h-full bg-[#111018] rounded-[30px] p-4 flex flex-col justify-between overflow-hidden opacity-50">
                     <div className="flex justify-between items-center text-[10px] text-gray-500 font-mono">
                       <span>9:41</span>
                       <div className="w-12 h-3 bg-black rounded-full"></div>

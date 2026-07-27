@@ -1,32 +1,152 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="100%" height="100%">
   <defs>
-    <mask id="sh-logo-mask">
-      <rect x="0" y="0" width="1000" height="1000" fill="#FFFFFF" />
-      <g fill="#000000" stroke="#000000">
-        <path d="M 760 320 H 925 C 945 320 955 330 955 350 V 415 C 955 435 945 445 925 445 H 760 Z" fill="none" stroke="#000000" stroke-width="22" stroke-linejoin="round" />
-        <path d="M 760 555 H 925 C 945 555 955 565 955 585 V 650 C 955 670 945 680 925 680 H 760 Z" fill="none" stroke="#000000" stroke-width="22" stroke-linejoin="round" />
-        <path d="M 865 445 V 555" fill="none" stroke="#000000" stroke-width="22" stroke-linecap="square" />
-        <circle cx="450" cy="500" r="370" stroke="#000000" stroke-width="22" fill="none" />
-        <circle cx="450" cy="85" r="18" fill="#000000" stroke="none" />
-        <circle cx="683" cy="182" r="18" fill="#000000" stroke="none" />
-        <circle cx="683" cy="818" r="18" fill="#000000" stroke="none" />
-        <circle cx="450" cy="915" r="18" fill="#000000" stroke="none" />
-        <circle cx="217" cy="818" r="18" fill="#000000" stroke="none" />
-        <circle cx="120" cy="500" r="18" fill="#000000" stroke="none" />
-        <circle cx="217" cy="182" r="18" fill="#000000" stroke="none" />
-        <circle cx="450" cy="500" r="230" stroke="#000000" stroke-width="22" fill="none" />
-        <circle cx="450" cy="500" r="180" stroke="#000000" stroke-width="20" fill="none" />
-        <path d="M 450 500 L 323 373 A 180 180 0 0 1 577 373 Z" fill="#000000" stroke="none" />
-        <path d="M 450 500 L 577 627 A 180 180 0 0 1 323 627 Z" fill="#000000" stroke="none" />
-        <line x1="323" y1="373" x2="577" y2="627" stroke="#000000" stroke-width="30" stroke-linecap="round" />
-        <line x1="323" y1="627" x2="577" y2="373" stroke="#000000" stroke-width="30" stroke-linecap="round" />
-        <circle cx="450" cy="500" r="36" fill="#000000" stroke="none" />
-      </g>
-    </mask>
+    <!-- Dark Metallic Background Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1e1d26" />
+      <stop offset="45%" stop-color="#0e0d12" />
+      <stop offset="100%" stop-color="#050507" />
+    </linearGradient>
+
+    <!-- Outer App Icon Border Gradient -->
+    <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4a4756" />
+      <stop offset="50%" stop-color="#25232e" />
+      <stop offset="100%" stop-color="#121118" />
+    </linearGradient>
+
+    <!-- Gold Top Face Specular Gradient -->
+    <linearGradient id="goldTopGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFF2B3" />
+      <stop offset="25%" stop-color="#FCDA68" />
+      <stop offset="65%" stop-color="#E8AF30" />
+      <stop offset="100%" stop-color="#C78914" />
+    </linearGradient>
+
+    <!-- Gold Front Face Main Body Gradient -->
+    <linearGradient id="goldFrontGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFDC73" />
+      <stop offset="30%" stop-color="#F3B32B" />
+      <stop offset="75%" stop-color="#C9830E" />
+      <stop offset="100%" stop-color="#8A5203" />
+    </linearGradient>
+
+    <!-- Gold Front Face Metallic Luster -->
+    <linearGradient id="goldFrontLuster" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FFEBB0" stop-opacity="0.6" />
+      <stop offset="35%" stop-color="#FFF8E0" stop-opacity="0.85" />
+      <stop offset="70%" stop-color="#E5A01A" stop-opacity="0.2" />
+      <stop offset="100%" stop-color="#8A5203" stop-opacity="0.7" />
+    </linearGradient>
+
+    <!-- Left Shadow Facet -->
+    <linearGradient id="goldLeftGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#D99B1E" />
+      <stop offset="50%" stop-color="#9E690B" />
+      <stop offset="100%" stop-color="#543400" />
+    </linearGradient>
+
+    <!-- Right Shadow Facet -->
+    <linearGradient id="goldRightGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#A8720F" />
+      <stop offset="50%" stop-color="#694103" />
+      <stop offset="100%" stop-color="#301A00" />
+    </linearGradient>
+
+    <!-- Bevel Highlight Line Specular -->
+    <linearGradient id="bevelSpecular" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.9" />
+      <stop offset="50%" stop-color="#FFE899" stop-opacity="0.5" />
+      <stop offset="100%" stop-color="#D9961A" stop-opacity="0.1" />
+    </linearGradient>
+
+    <!-- Debossed Stamp Text Fill -->
+    <linearGradient id="stampGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#573300" />
+      <stop offset="100%" stop-color="#8C5708" />
+    </linearGradient>
+
+    <!-- Soft Drop Shadow Filter -->
+    <filter id="shadowFilter" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000000" flood-opacity="0.75" />
+    </filter>
+
+    <!-- Ambient Gold Glow Filter -->
+    <filter id="goldGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="24" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
   </defs>
-  <g fill="#F4B847" mask="url(#sh-logo-mask)">
-    <circle cx="450" cy="500" r="450" />
-    <path d="M 760 320 H 925 C 945 320 955 330 955 350 V 415 C 955 435 945 445 925 445 H 760 Z" />
-    <path d="M 760 555 H 925 C 945 555 955 565 955 585 V 650 C 955 670 945 680 925 680 H 760 Z" />
+
+  <!-- App Icon Card Background Frame -->
+  <rect x="30" y="30" width="940" height="940" rx="200" fill="url(#bgGrad)" stroke="url(#borderGrad)" stroke-width="12" />
+
+  <!-- Subtle Ambient Gold Glow beneath Gold Bars -->
+  <ellipse cx="500" cy="720" rx="380" ry="120" fill="#E8AF30" opacity="0.18" filter="url(#goldGlow)" />
+
+  <g filter="url(#shadowFilter)">
+    <!-- TOP GOLD BAR -->
+    <g id="top-bar">
+      <polygon points="310,250 690,250 720,290 280,290" fill="#000000" opacity="0.4" />
+      <polygon points="360,100 640,100 690,250 310,250" fill="url(#goldTopGrad)" />
+      <line x1="362" y1="102" x2="638" y2="102" stroke="#FFFFFF" stroke-width="3" opacity="0.8" />
+      <polygon points="360,100 310,250 330,410 375,250" fill="url(#goldLeftGrad)" />
+      <polygon points="640,100 690,250 670,410 625,250" fill="url(#goldRightGrad)" />
+      <polygon points="310,250 690,250 670,410 330,410" fill="url(#goldFrontGrad)" />
+      <polygon points="310,250 690,250 670,410 330,410" fill="url(#goldFrontLuster)" />
+      <line x1="310" y1="250" x2="690" y2="250" stroke="url(#bevelSpecular)" stroke-width="4" />
+      <line x1="310" y1="250" x2="330" y2="410" stroke="url(#bevelSpecular)" stroke-width="2.5" />
+      <line x1="690" y1="250" x2="670" y2="410" stroke="#694103" stroke-width="2" />
+      <line x1="330" y1="410" x2="670" y2="410" stroke="#543400" stroke-width="3" />
+    </g>
+
+    <!-- MIDDLE LEFT GOLD BAR -->
+    <g id="mid-left-bar">
+      <polygon points="200,260 450,260 470,420 150,420" fill="url(#goldTopGrad)" />
+      <line x1="202" y1="262" x2="448" y2="262" stroke="#FFFFFF" stroke-width="3" opacity="0.8" />
+      <polygon points="200,260 150,420 175,590 220,420" fill="url(#goldLeftGrad)" />
+      <polygon points="150,420 470,420 445,590 175,590" fill="url(#goldFrontGrad)" />
+      <polygon points="150,420 470,420 445,590 175,590" fill="url(#goldFrontLuster)" />
+      <line x1="150" y1="420" x2="470" y2="420" stroke="url(#bevelSpecular)" stroke-width="4" />
+      <line x1="150" y1="420" x2="175" y2="590" stroke="url(#bevelSpecular)" stroke-width="2.5" />
+      <line x1="470" y1="420" x2="445" y2="590" stroke="#694103" stroke-width="2" />
+      <line x1="175" y1="590" x2="445" y2="590" stroke="#543400" stroke-width="3" />
+    </g>
+
+    <!-- MIDDLE RIGHT GOLD BAR -->
+    <g id="mid-right-bar">
+      <polygon points="550,260 800,260 850,420 530,420" fill="url(#goldTopGrad)" />
+      <line x1="552" y1="262" x2="798" y2="262" stroke="#FFFFFF" stroke-width="3" opacity="0.8" />
+      <polygon points="800,260 850,420 825,590 780,420" fill="url(#goldRightGrad)" />
+      <polygon points="530,420 850,420 825,590 555,590" fill="url(#goldFrontGrad)" />
+      <polygon points="530,420 850,420 825,590 555,590" fill="url(#goldFrontLuster)" />
+      <line x1="530" y1="420" x2="850" y2="420" stroke="url(#bevelSpecular)" stroke-width="4" />
+      <line x1="530" y1="420" x2="555" y2="590" stroke="url(#bevelSpecular)" stroke-width="2.5" />
+      <line x1="850" y1="420" x2="825" y2="590" stroke="#694103" stroke-width="2" />
+      <line x1="555" y1="590" x2="825" y2="590" stroke="#543400" stroke-width="3" />
+    </g>
+
+    <!-- Shadow cast by middle bars onto bottom bar -->
+    <polygon points="120,600 880,600 900,635 100,635" fill="#000000" opacity="0.45" />
+
+    <!-- BOTTOM FRONT GOLD BAR (MAIN BASE INGOT) -->
+    <g id="bottom-main-bar">
+      <polygon points="175,590 825,590 885,635 115,635" fill="url(#goldTopGrad)" />
+      <line x1="177" y1="592" x2="823" y2="592" stroke="#FFFFFF" stroke-width="3.5" opacity="0.85" />
+      <polygon points="175,590 115,635 80,830 140,830" fill="url(#goldLeftGrad)" />
+      <polygon points="825,590 885,635 920,830 860,830" fill="url(#goldRightGrad)" />
+      <polygon points="115,635 885,635 860,830 140,830" fill="url(#goldFrontGrad)" />
+      <polygon points="115,635 885,635 860,830 140,830" fill="url(#goldFrontLuster)" />
+      <line x1="115" y1="635" x2="885" y2="635" stroke="url(#bevelSpecular)" stroke-width="5" />
+      <line x1="115" y1="635" x2="140" y2="830" stroke="url(#bevelSpecular)" stroke-width="3" />
+      <line x1="885" y1="635" x2="860" y2="830" stroke="#694103" stroke-width="2.5" />
+      <line x1="140" y1="830" x2="860" y2="830" stroke="#422800" stroke-width="4" />
+
+      <!-- STAMP ENGRAVING "FINE GOLD 999.9" -->
+      <text x="642" y="738" font-family="'Inter', 'Arial Black', sans-serif" font-weight="900" font-size="44" fill="#FFFFFF" opacity="0.35" letter-spacing="3">FINE GOLD</text>
+      <text x="640" y="736" font-family="'Inter', 'Arial Black', sans-serif" font-weight="900" font-size="44" fill="url(#stampGrad)" letter-spacing="3">FINE GOLD</text>
+
+      <text x="732" y="792" font-family="'Inter', 'Arial Black', sans-serif" font-weight="900" font-size="48" fill="#FFFFFF" opacity="0.35" letter-spacing="2">999.9</text>
+      <text x="730" y="790" font-family="'Inter', 'Arial Black', sans-serif" font-weight="900" font-size="48" fill="url(#stampGrad)" letter-spacing="2">999.9</text>
+    </g>
   </g>
 </svg>
