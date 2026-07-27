@@ -230,17 +230,25 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
           <div className={`p-4 border-t border-[#1b1926] bg-[#111018]/45 flex items-center justify-between gap-2 text-xs transition-all duration-300 ${isCollapsed ? 'justify-center px-0' : 'px-4'}`}>
             {isCollapsed ? (
               <div 
-                className="w-8 h-8 rounded-full bg-[#ccff00]/10 border border-[#ccff00]/25 flex items-center justify-center text-[#ccff00] font-bold font-mono cursor-pointer shrink-0 hover:border-[#ff3366]/40 transition-colors"
+                className="w-8 h-8 rounded-full bg-[#ccff00]/10 border border-[#ccff00]/25 flex items-center justify-center text-[#ccff00] font-bold font-mono cursor-pointer shrink-0 hover:border-[#ff3366]/40 transition-colors overflow-hidden"
                 onClick={handleLogout}
                 title={`Keluar (${user.name})`}
               >
-                {user.name.charAt(0).toUpperCase()}
+                {user.photoURL ? (
+                  <img src={user.photoURL} alt={user.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                ) : (
+                  user.name.charAt(0).toUpperCase()
+                )}
               </div>
             ) : (
               <>
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-full bg-[#ccff00]/10 border border-[#ccff00]/25 flex items-center justify-center text-[#ccff00] shrink-0 font-bold font-mono">
-                    {user.name.charAt(0).toUpperCase()}
+                  <div className="w-8 h-8 rounded-full bg-[#ccff00]/10 border border-[#ccff00]/25 flex items-center justify-center text-[#ccff00] shrink-0 font-bold font-mono overflow-hidden">
+                    {user.photoURL ? (
+                      <img src={user.photoURL} alt={user.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                    ) : (
+                      user.name.charAt(0).toUpperCase()
+                    )}
                   </div>
                   <div className="min-w-0">
                     <p className="font-semibold text-white truncate">{user.name}</p>
@@ -350,7 +358,11 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
             {isAuth ? (
               <div className="hidden sm:flex items-center gap-2 pl-2 sm:pl-3 border-l border-[#1b1926] shrink-0">
                 <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#111018] border-2 border-[#ccff00]/40 flex items-center justify-center text-[#ccff00] relative overflow-hidden shrink-0">
-                  <span className="font-bold text-xs font-sans text-white">{user ? user.name.charAt(0).toUpperCase() : 'D'}</span>
+                  {user?.photoURL ? (
+                    <img src={user.photoURL} alt={user.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  ) : (
+                    <span className="font-bold text-xs font-sans text-white">{user ? user.name.charAt(0).toUpperCase() : 'D'}</span>
+                  )}
                 </div>
                 <div className="text-left hidden md:block max-w-[100px] lg:max-w-[140px]">
                   <p className="text-[10px] font-bold text-white leading-tight font-sans truncate">{user ? user.name : 'Demo User'}</p>
@@ -473,8 +485,12 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
             {isAuth ? (
               <div className="p-4 border-t border-[#1b1926] bg-[#111018]/45 flex items-center justify-between gap-2 text-xs">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-7.5 h-7.5 rounded-full bg-[#ccff00]/10 flex items-center justify-center text-[#ccff00] font-bold font-mono shrink-0">
-                    {user ? user.name.charAt(0).toUpperCase() : 'D'}
+                  <div className="w-7.5 h-7.5 rounded-full bg-[#ccff00]/10 flex items-center justify-center text-[#ccff00] font-bold font-mono shrink-0 overflow-hidden">
+                    {user?.photoURL ? (
+                      <img src={user.photoURL} alt={user.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                    ) : (
+                      user ? user.name.charAt(0).toUpperCase() : 'D'
+                    )}
                   </div>
                   <div className="min-w-0">
                     <p className="font-semibold text-white truncate">{user ? user.name : 'Demo User'}</p>
@@ -517,7 +533,7 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
         </div>
 
       {/* 4. FLOATING CHATFAB FOR SERVER-SIDE GEMINI COMPANION ASSISTANT */}
-      <ChatFAB />
+      {!location.startsWith('/ai') && <ChatFAB />}
       <JumpToTopFAB />
       <GlobalSearch isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
 

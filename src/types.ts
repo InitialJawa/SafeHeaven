@@ -105,6 +105,7 @@ export interface UserInfo {
   id: string;
   email: string;
   name: string;
+  photoURL?: string;
   role: 'user' | 'advisor' | 'admin';
   registeredAt: string;
   isPremium?: boolean;

@@ -37,7 +37,7 @@ interface AppState {
   isDemoMode: boolean;
   isLoadingData: boolean;
   login: (email: string, name: string) => void;
-  loginWithGoogle: (email: string, name: string, uid: string) => Promise<void>;
+  loginWithGoogle: (email: string, name: string, uid: string, photoURL?: string) => Promise<void>;
   loginDemoUser: (asPremium?: boolean) => void;
   upgradeDemoToPremium: () => void;
   logout: () => void;
@@ -419,7 +419,7 @@ export const useAppStore = create<AppState>((set, get) => {
     set({ user: userInfo, isAuthenticated: true, isDemoMode: false, tier: userInfo.tier || 'Perunggu' });
     toast.success(`Selamat datang kembali, ${name}!`);
   },
-  loginWithGoogle: async (email, name, uid) => {
+  loginWithGoogle: async (email, name, uid, photoURL) => {
     const normalizedEmail = (email || '').toLowerCase();
     let userRole: 'admin' | 'advisor' | 'user' = (normalizedEmail.includes('admin') || normalizedEmail.endsWith('@safehaven.id')) ? 'admin' : normalizedEmail.includes('advisor') ? 'advisor' : 'user';
     
@@ -445,6 +445,7 @@ export const useAppStore = create<AppState>((set, get) => {
       id: uid,
       email,
       name,
+      photoURL,
       role: userRole,
       isPremium,
       tier: isPremium ? 'Platinum' : 'Perunggu',
@@ -915,11 +916,10 @@ export const useAppStore = create<AppState>((set, get) => {
 
   fetchUserMemoryContext: async () => {
     const firebaseUid = auth.currentUser?.uid;
-    const userId = firebaseUid || get().user?.id;
-    if (!userId) return;
+    if (!firebaseUid) return;
 
     try {
-      const docRef = doc(db, `users/${userId}/memory/default`);
+      const docRef = doc(db, `users/${firebaseUid}/memory/default`);
       const snapshot = await getDoc(docRef);
       if (snapshot.exists()) {
         const data = snapshot.data();
@@ -934,8 +934,11 @@ export const useAppStore = create<AppState>((set, get) => {
 
   updateUserMemoryContext: async (newContext: string) => {
     const firebaseUid = auth.currentUser?.uid;
-    const userId = firebaseUid || get().user?.id;
-    if (!userId) return;
+    
+    // Save locally
+    set({ userMemoryContext: newContext });
+
+    if (!firebaseUid) return;
 
     try {
       const docRef = doc(db, `users/${userId}/memory/default`);

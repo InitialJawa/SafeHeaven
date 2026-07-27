@@ -25,7 +25,7 @@ export const Login: React.FC = () => {
     try {
       const result = await signInWithPopup(auth, googleProvider);
       const u = result.user;
-      await loginWithGoogle(u.email || 'user@gmail.com', u.displayName || 'Google User', u.uid);
+      await loginWithGoogle(u.email || 'user@gmail.com', u.displayName || 'Google User', u.uid, u.photoURL || undefined);
       setLocation('/');
     } catch (err) {
       console.error('Google Auth Error:', err);
