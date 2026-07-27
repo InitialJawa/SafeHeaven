@@ -17,8 +17,7 @@ export const RebalanceConsole: React.FC<RebalanceConsoleProps> = ({ addLog }) =>
 
   const triggerPost = async (endpoint: string, body?: any, successMsg?: string) => {
     try {
-      const base = window.location.origin;
-      const res = await fetch(`${base}/api/admin/${endpoint}`, {
+      const res = await fetch(`/api/admin/${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: body ? JSON.stringify(body) : undefined

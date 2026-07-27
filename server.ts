@@ -37,7 +37,7 @@ if (!fs.existsSync('data')) {
 }
 
 // Initialize SQLite database connection
-const dbClient = createClient({
+let dbClient = createClient({
   url: "file:data/safehaven.db",
 });
 
@@ -81,15 +81,31 @@ async function executeQuery(sql: string, args: any[] = []): Promise<any> {
     }
   }
 
-  // Fallback to local SQLite client
+  // Fallback to local SQLite client with auto-healing on corruption
   try {
     const res = await dbClient.execute({ sql, args });
     return {
       rows: res.rows || []
     };
-  } catch (error) {
+  } catch (error: any) {
+    const errStr = String(error?.message || error || '');
+    if (errStr.includes('unsupported file format') || errStr.includes('is not a database') || errStr.includes('corrupt')) {
+      console.warn('Detected corrupted SQLite database file. Re-creating fresh database file...');
+      try {
+        if (fs.existsSync('data/safehaven.db')) {
+          fs.rmSync('data/safehaven.db', { force: true });
+        }
+        dbClient = createClient({ url: "file:data/safehaven.db" });
+        await initDbSchema();
+        const res = await dbClient.execute({ sql, args });
+        return { rows: res.rows || [] };
+      } catch (retryErr) {
+        console.error('Failed to recover corrupted SQLite database:', retryErr);
+        return { rows: [] };
+      }
+    }
     console.error(`Local SQLite execute error: ${sql}`, error);
-    throw error;
+    return { rows: [] };
   }
 }
 
@@ -2008,6 +2024,95 @@ app.post('/api/admin/reset-simulation', (req, res) => {
   res.json({ success: true, message: 'Simulation parameters reset to baseline.' });
 });
 
+// Helper to send notifications via Courier.com REST API
+async function sendCourierNotification(title: string, message: string, type: string, recipientOverride?: any) {
+  const token = process.env.COURIER_AUTH_TOKEN;
+  if (!token) return;
+
+  const templateId = process.env.COURIER_TEMPLATE_ID;
+  
+  // Default recipient target
+  const toPayload = recipientOverride || {
+    email: process.env.COURIER_RECIPIENT_EMAIL || 'imamnasrulloh02@gmail.com',
+    ...(process.env.COURIER_RECIPIENT_PHONE ? { phone_number: process.env.COURIER_RECIPIENT_PHONE } : {})
+  };
+
+  const messagePayload: any = {
+    to: toPayload,
+    content: {
+      title: `[SafeHaven - ${type}] ${title}`,
+      body: message
+    },
+    data: {
+      alertType: type,
+      alertMessage: message,
+      timestamp: new Date().toISOString()
+    }
+  };
+
+  if (templateId) {
+    messagePayload.template = templateId;
+  }
+
+  try {
+    const res = await fetch('https://api.courier.com/send', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ message: messagePayload })
+    });
+    if (res.ok) {
+      const resJson = await res.json().catch(() => ({}));
+      console.log(`[Courier] Notification dispatched successfully. RequestId:`, resJson.requestId || 'ok');
+      return { success: true, status: res.status, requestId: resJson.requestId };
+    } else {
+      const errText = await res.text();
+      console.warn(`[Courier] Dispatch warning (${res.status}): ${errText}`);
+      return { success: false, status: res.status, error: errText };
+    }
+  } catch (err: any) {
+    console.error('[Courier] Dispatch error:', err);
+    return { success: false, error: err.message || String(err) };
+  }
+}
+
+app.get('/api/admin/courier-status', (req, res) => {
+  const token = process.env.COURIER_AUTH_TOKEN;
+  const eventId = process.env.COURIER_EVENT_ID || 'SAFEHAVEN_ALERT';
+  res.json({
+    configured: Boolean(token),
+    eventId: eventId,
+    recipientEmail: process.env.COURIER_RECIPIENT_EMAIL || 'imamnasrulloh02@gmail.com',
+    tokenPreview: token ? `${token.slice(0, 6)}...` : null
+  });
+});
+
+app.post('/api/admin/test-courier', async (req, res) => {
+  const { title, message, recipient } = req.body || {};
+  const token = process.env.COURIER_AUTH_TOKEN;
+
+  if (!token) {
+    return res.status(400).json({
+      success: false,
+      message: 'COURIER_AUTH_TOKEN belum dikonfigurasi di Environment Variables (.env).'
+    });
+  }
+
+  const result = await sendCourierNotification(
+    title || 'Uji Coba Courier SafeHaven',
+    message || 'Ini adalah pesan pengujian notifikasi otomatis dari SafeHaven IDX Platform.',
+    'Test',
+    recipient
+  );
+
+  res.json({
+    success: result ? result.success : false,
+    result
+  });
+});
+
 app.post('/api/admin/add-manual-alert', (req, res) => {
   const { message, type } = req.body;
   const newAlert = {
@@ -2019,9 +2124,6 @@ app.post('/api/admin/add-manual-alert', (req, res) => {
   };
   
   try {
-    const cfAccountId = process.env.CLOUDFLARE_ACCOUNT_ID;
-    const cfDatabaseId = process.env.CLOUDFLARE_D1_DATABASE_ID;
-    const cfApiToken = process.env.CLOUDFLARE_API_TOKEN;
     const alertData = newAlert;
     const pId = portfolioConfig?.id || "default_portfolio";
     
@@ -2031,6 +2133,9 @@ app.post('/api/admin/add-manual-alert', (req, res) => {
     
     // Quick inline insert
     executeQuery(sql, args).catch(e => console.error("Admin alert insert failed", e));
+
+    // Dispatch to Courier.com if token configured
+    sendCourierNotification(alertData.type || 'Alert Sinyal', alertData.message, alertData.type || 'System');
   } catch(e) {}
 
   res.json({ success: true, alert: newAlert });

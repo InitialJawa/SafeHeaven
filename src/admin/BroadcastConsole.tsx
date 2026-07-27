@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../stores';
-import { Send, Play } from 'lucide-react';
+import { Send, Play, Radio, CheckCircle2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface BroadcastConsoleProps {
@@ -16,11 +16,45 @@ export const BroadcastConsole: React.FC<BroadcastConsoleProps> = ({ addLog }) =>
   const { fetchInitialData } = useAppStore();
   const [alertText, setAlertText] = useState('');
   const [alertType, setAlertType] = useState<'Score' | 'Price' | 'Crash' | 'Rebalance'>('Crash');
+  const [courierStatus, setCourierStatus] = useState<{ configured: boolean; eventId: string; tokenPreview: string | null } | null>(null);
+  const [isTestingCourier, setIsTestingCourier] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/admin/courier-status')
+      .then((res) => res.json())
+      .then((data) => setCourierStatus(data))
+      .catch(() => setCourierStatus(null));
+  }, []);
+
+  const handleTestCourier = async () => {
+    setIsTestingCourier(true);
+    try {
+      const res = await fetch('/api/admin/test-courier', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: 'Uji Coba Courier SafeHaven',
+          message: 'Ini adalah notifikasi uji coba langsung dari Admin Broadcast Console SafeHaven.'
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        toast.success('Notifikasi Courier berhasil terkirim!');
+        addLog('Courier Dispatch SUCCESS: Test payload delivered.');
+      } else {
+        toast.error(`Gagal mengirim via Courier: ${data.message || data.result?.error || 'Periksa API Key Courier.'}`);
+        addLog(`Courier Dispatch FAILED: ${data.message || data.result?.error}`);
+      }
+    } catch (err) {
+      toast.error('Gagal terhubung ke server untuk pengujian Courier.');
+    } finally {
+      setIsTestingCourier(false);
+    }
+  };
 
   const triggerPost = async (endpoint: string, body?: any, successMsg?: string) => {
     try {
-      const base = window.location.origin;
-      const res = await fetch(`${base}/api/admin/${endpoint}`, {
+      const res = await fetch(`/api/admin/${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: body ? JSON.stringify(body) : undefined
@@ -44,8 +78,7 @@ export const BroadcastConsole: React.FC<BroadcastConsoleProps> = ({ addLog }) =>
     if (!alertText.trim()) return;
 
     try {
-      const base = window.location.origin;
-      const res = await fetch(`${base}/api/admin/add-manual-alert`, {
+      const res = await fetch('/api/admin/add-manual-alert', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: alertText, type: alertType })
@@ -66,9 +99,46 @@ export const BroadcastConsole: React.FC<BroadcastConsoleProps> = ({ addLog }) =>
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
       {/* Broadcast Notification Sender */}
       <div className="card card-elevated p-6 bg-[#0b0a10]/45 border border-[#1b1926] space-y-4">
-        <h3 className="text-sm font-bold text-white tracking-tight font-sans flex items-center gap-2">
-          <Send className="w-4 h-4 text-[#ccff00]" /> Broadcast Sinyal Ke Seluruh Tab
-        </h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-bold text-white tracking-tight font-sans flex items-center gap-2">
+            <Send className="w-4 h-4 text-[#ccff00]" /> Broadcast Sinyal Ke Seluruh Tab
+          </h3>
+
+          {/* Courier Status Pill */}
+          <div className="flex items-center gap-2">
+            {courierStatus?.configured ? (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono bg-[#00f5a0]/10 text-[#00f5a0] border border-[#00f5a0]/20">
+                <CheckCircle2 className="w-3 h-3" /> Courier Active
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                <AlertCircle className="w-3 h-3" /> Courier Key Missing
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Courier Info / Test Bar */}
+        <div className="p-3 bg-[#111018] rounded-xl border border-[#1b1926] flex items-center justify-between text-xs">
+          <div className="space-y-0.5">
+            <div className="text-white font-bold flex items-center gap-1.5">
+              <Radio className="w-3.5 h-3.5 text-[#00f0ff]" /> Integration: Courier.com
+            </div>
+            <div className="text-[10px] text-[#8e8a9f]">
+              {courierStatus?.configured
+                ? `Token configured (${courierStatus.tokenPreview}) • Event: ${courierStatus.eventId}`
+                : 'COURIER_AUTH_TOKEN belum diisi di .env. Notifikasi tersimpan di UI internal.'}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleTestCourier}
+            disabled={isTestingCourier || !courierStatus?.configured}
+            className="px-3 py-1.5 bg-[#1b1926] hover:bg-[#252235] text-xs text-[#00f0ff] font-bold rounded-lg border border-[#00f0ff]/30 transition-all disabled:opacity-40 disabled:cursor-not-allowed shrink-0 cursor-pointer"
+          >
+            {isTestingCourier ? 'Mengirim...' : 'Test Courier'}
+          </button>
+        </div>
 
         <form onSubmit={handleSendManualAlert} className="space-y-3 text-xs font-sans">
           <div className="space-y-1">

@@ -104,14 +104,12 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
     {
       category: 'RISK',
       items: [
-        { name: 'Risk Control', path: '/risk', icon: Shield },
         { name: 'Alerts', path: '/alerts', icon: Bell },
       ]
     },
     {
       category: 'SYSTEM',
       items: [
-        { name: 'Admin Console', path: '/admin', icon: Terminal },
         { name: 'Settings', path: '/settings', icon: Settings },
       ]
     }
@@ -120,6 +118,8 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
   // Helper to resolve current path name for the Header title
   const getCurrentHeaderTitle = () => {
     if (location === '/') return 'Market Cockpit';
+    if (location === '/admin') return 'Admin Operations & Mission Control';
+    if (location === '/risk') return 'Risk Control & Protection';
     if (location.startsWith('/ticker/')) {
       const parts = location.split('/');
       return `Analisis Ticker: ${parts[parts.length - 1].toUpperCase()}`;

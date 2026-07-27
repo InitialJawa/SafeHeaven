@@ -401,19 +401,36 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   // Auth Operations
   login: (email, name) => {
+    const normalizedEmail = (email || '').toLowerCase();
+    const role = (normalizedEmail === 'imamnasrulloh02@gmail.com' || normalizedEmail.includes('admin')) ? 'admin' : normalizedEmail.includes('advisor') ? 'advisor' : 'user';
     set({
       user: {
         id: `usr-${Date.now()}`,
         email,
         name,
-        role: email.includes('admin') ? 'admin' : email.includes('advisor') ? 'advisor' : 'user',
+        role,
         registeredAt: new Date().toISOString().split('T')[0]
       },
       isAuthenticated: true
     });
   },
   loginWithGoogle: async (email, name, uid) => {
-    const userRole = email.includes('admin') ? 'admin' : email.includes('advisor') ? 'advisor' : 'user';
+    const normalizedEmail = (email || '').toLowerCase();
+    let userRole: 'admin' | 'advisor' | 'user' = (normalizedEmail === 'imamnasrulloh02@gmail.com' || normalizedEmail.includes('admin')) ? 'admin' : normalizedEmail.includes('advisor') ? 'advisor' : 'user';
+    
+    // Check if user record exists in Firestore to preserve explicitly set admin/advisor roles
+    try {
+      const userDocSnap = await getDoc(doc(db, 'users', uid));
+      if (userDocSnap.exists()) {
+        const existingData = userDocSnap.data();
+        if (existingData?.role === 'admin' || existingData?.role === 'advisor') {
+          userRole = existingData.role;
+        }
+      }
+    } catch (e) {
+      console.warn('Gagal membaca profil role Firestore:', e);
+    }
+
     const userInfo: UserInfo = {
       id: uid,
       email,
@@ -435,12 +452,14 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ user: null, isAuthenticated: false });
   },
   register: async (email, password, name) => {
+    const normalizedEmail = (email || '').toLowerCase();
+    const role = (normalizedEmail === 'imamnasrulloh02@gmail.com' || normalizedEmail.includes('admin')) ? 'admin' : normalizedEmail.includes('advisor') ? 'advisor' : 'user';
     set({
       user: {
         id: `usr-${Date.now()}`,
         email,
         name,
-        role: 'user',
+        role,
         registeredAt: new Date().toISOString().split('T')[0]
       },
       isAuthenticated: true

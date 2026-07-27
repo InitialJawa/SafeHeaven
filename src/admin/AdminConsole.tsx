@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../stores';
 import { 
   Shield, 
@@ -15,8 +15,10 @@ import {
   Terminal, 
   Activity, 
   Zap,
-  Lock
+  Lock,
+  LayoutDashboard
 } from 'lucide-react';
+import { OverviewConsole } from './OverviewConsole';
 import { StressTestConsole } from './StressTestConsole';
 import { RiskControlConsole } from './RiskControlConsole';
 import { RebalanceConsole } from './RebalanceConsole';
@@ -25,11 +27,13 @@ import { UserManagementConsole } from './UserManagementConsole';
 import { DatabaseConsole } from './DatabaseConsole';
 import { AuditTerminalConsole } from './AuditTerminalConsole';
 
+type AdminTab = 'overview' | 'stress' | 'risk' | 'rebalance' | 'broadcast' | 'users' | 'database' | 'audit';
+
 export const AdminConsole: React.FC = () => {
   const { marketRegime } = useAppStore();
-  const [activeTab, setActiveTab] = useState<'stress' | 'risk' | 'rebalance' | 'broadcast' | 'users' | 'database' | 'audit'>('stress');
+  const [activeTab, setActiveTab] = useState<AdminTab>('overview');
   const [auditLogs, setAuditLogs] = useState<string[]>([
-    `[${new Date().toLocaleTimeString()}] System initialized in High-Frequency Quant mode.`
+    `[${new Date().toLocaleTimeString()}] System Mission Control initialized.`
   ]);
 
   const addLog = (msg: string) => {
@@ -39,6 +43,28 @@ export const AdminConsole: React.FC = () => {
   const clearLogs = () => {
     setAuditLogs([]);
   };
+
+  // Optional keyboard shortcut listener (Keys 1-8 to switch tabs)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      const keyMap: Record<string, AdminTab> = {
+        '1': 'overview',
+        '2': 'stress',
+        '3': 'risk',
+        '4': 'rebalance',
+        '5': 'broadcast',
+        '6': 'users',
+        '7': 'database',
+        '8': 'audit'
+      };
+      if (keyMap[e.key]) {
+        setActiveTab(keyMap[e.key]);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   return (
     <div className="px-6 space-y-6 pb-20 animate-in fade-in duration-300 font-sans">
@@ -54,13 +80,13 @@ export const AdminConsole: React.FC = () => {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-xl font-extrabold text-white tracking-tight">Admin Console & Operational Control</h1>
+                <h1 className="text-xl font-extrabold text-white tracking-tight">Admin Operations & Mission Control</h1>
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-[#ccff00]/15 border border-[#ccff00]/30 text-[#ccff00]">
                   PROTECTED
                 </span>
               </div>
               <p className="text-xs text-[#9f9bac] mt-0.5">
-                Pusat kendali risiko, simulasi stres krisis, manajemen member VIP, dan observabilitas database lokal.
+                Pusat pengawasan sistem, krisis makro, risiko kuantitatif, broadcast sinyal VIP, dan manajemen database.
               </p>
             </div>
           </div>
@@ -86,30 +112,39 @@ export const AdminConsole: React.FC = () => {
         </div>
 
         {/* Tab Navigation Menu */}
-        <div className="mt-6 pt-5 border-t border-[#1b1926] flex items-center gap-1.5 overflow-x-auto">
+        <div className="mt-6 pt-5 border-t border-[#1b1926] flex items-center gap-1.5 overflow-x-auto scrollbar-none">
           {[
-            { id: 'stress', label: 'Stress Test & Crisis', icon: ShieldAlert, color: 'text-[#ff3366]' },
-            { id: 'risk', label: 'Risk Control Tab', icon: Shield, color: 'text-[#00f5a0]' },
-            { id: 'rebalance', label: 'Rebalance Lab', icon: Layers, color: 'text-[#ccff00]' },
-            { id: 'broadcast', label: 'Broadcast & Signals', icon: Send, color: 'text-[#00f0ff]' },
-            { id: 'users', label: 'Member & VIP Control', icon: Users, color: 'text-amber-400' },
-            { id: 'database', label: 'Database Console', icon: Database, color: 'text-purple-400' },
-            { id: 'audit', label: 'Audit Terminal', icon: Terminal, color: 'text-emerald-400' },
-          ].map((tab) => {
+            { id: 'overview', label: 'Overview', icon: LayoutDashboard, badge: 'Live' },
+            { id: 'stress', label: 'Stress & Crisis', icon: ShieldAlert, badge: undefined },
+            { id: 'risk', label: 'Risk Control', icon: Shield, badge: undefined },
+            { id: 'rebalance', label: 'Rebalance Lab', icon: Layers, badge: undefined },
+            { id: 'broadcast', label: 'Broadcast Signals', icon: Send, badge: undefined },
+            { id: 'users', label: 'User & VIP Control', icon: Users, badge: undefined },
+            { id: 'database', label: 'Database Console', icon: Database, badge: 'SQLite' },
+            { id: 'audit', label: 'Audit Terminal', icon: Terminal, badge: undefined },
+          ].map((tab, idx) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shrink-0 border ${
+                onClick={() => setActiveTab(tab.id as AdminTab)}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shrink-0 border ${
                   isActive
-                    ? 'bg-[#1b1926] text-white border-[#ccff00]/40 shadow-md shadow-[#ccff00]/5'
+                    ? 'bg-[#1b1926] text-[#ccff00] border-[#ccff00]/40 shadow-sm shadow-[#ccff00]/5'
                     : 'bg-[#111018]/60 text-[#9f9bac] border-[#1b1926] hover:bg-[#111018] hover:text-white'
                 }`}
               >
-                <Icon className={`w-3.5 h-3.5 ${tab.color}`} />
-                {tab.label}
+                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-[#ccff00]' : 'text-[#686477]'}`} />
+                <span>{tab.label}</span>
+                {tab.badge && (
+                  <span className={`px-1.5 py-0.2 rounded text-[9px] font-mono font-bold ${
+                    isActive ? 'bg-[#ccff00] text-black' : 'bg-[#1b1926] text-[#9f9bac]'
+                  }`}>
+                    {tab.badge}
+                  </span>
+                )}
+                <span className="text-[9px] text-[#686477] font-mono ml-0.5 opacity-60">[{idx + 1}]</span>
               </button>
             );
           })}
@@ -118,6 +153,7 @@ export const AdminConsole: React.FC = () => {
 
       {/* Active Tab View */}
       <div className="transition-all duration-200">
+        {activeTab === 'overview' && <OverviewConsole setActiveTab={setActiveTab} addLog={addLog} auditLogs={auditLogs} />}
         {activeTab === 'stress' && <StressTestConsole addLog={addLog} />}
         {activeTab === 'risk' && <RiskControlConsole addLog={addLog} />}
         {activeTab === 'rebalance' && <RebalanceConsole addLog={addLog} />}
@@ -130,3 +166,4 @@ export const AdminConsole: React.FC = () => {
     </div>
   );
 };
+
