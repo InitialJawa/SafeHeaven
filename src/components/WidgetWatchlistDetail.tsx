@@ -228,7 +228,7 @@ export const WidgetWatchlistDetail: React.FC<WidgetWatchlistDetailProps> = ({
 
             {/* Ticker selector dropdown menu */}
             {isDropdownOpen && (
-              <div className="absolute top-full left-0 mt-2 w-64 bg-[#13111c] border border-[#2a273b] rounded-xl shadow-2xl z-50 p-2 space-y-1 max-h-60 overflow-y-auto">
+              <div className="absolute top-full left-0 mt-2 w-64 bg-[#111018] border border-[#1b1926] rounded-xl shadow-2xl z-50 p-2 space-y-1 max-h-60 overflow-y-auto">
                 <div className="text-[10px] uppercase font-mono text-[#686477] px-2 py-1">Pilih Saham / Indeks</div>
                 {POPULAR_TICKERS.map((t) => (
                   <button
@@ -248,33 +248,7 @@ export const WidgetWatchlistDetail: React.FC<WidgetWatchlistDetailProps> = ({
         </div>
       )}
 
-      {/* 2. Ticker Main Info Header */}
-      <div className="space-y-1">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <TickerLogo symbol={data.symbol} sizeClassName="w-8 h-8" />
-            <span className="text-base font-black text-white font-mono tracking-tight">{data.symbol}</span>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-1.5 text-xs text-[#9f9bac]">
-          <span className="font-semibold text-white/90 truncate max-w-[200px]">{data.name}</span>
-          <a 
-            href={`https://www.idx.co.id/id/perusahaan-tercatat/profil-perusahaan-tercatat/${data.symbol}`} 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="text-[#686477] hover:text-[#ccff00] transition-colors"
-          >
-            <ExternalLink className="w-3 h-3 inline" />
-          </a>
-          <span>-</span>
-          <span className="font-mono text-[10px] text-[#686477]">{data.exchange}</span>
-        </div>
-
-        <div className="text-[11px] text-[#686477]">
-          {data.sector} · {data.subsector}
-        </div>
-      </div>
+      
 
       {/* 3. Big Price & Realtime Change Header */}
       <div className="space-y-1 pt-1">
@@ -441,7 +415,6 @@ export const WidgetWatchlistDetail: React.FC<WidgetWatchlistDetailProps> = ({
           <div className="bg-[#111018] border border-[#2a273b] rounded-2xl max-w-lg w-full p-5 space-y-4 shadow-2xl relative max-h-[85vh] flex flex-col">
             <div className="flex justify-between items-center pb-3 border-b border-[#1b1926]">
               <div className="flex items-center gap-2">
-                <Newspaper className="w-4 h-4 text-[#ccff00]" />
                 <h3 className="text-sm font-bold text-white font-sans">Berita Terkini ({data.symbol})</h3>
               </div>
               <button 

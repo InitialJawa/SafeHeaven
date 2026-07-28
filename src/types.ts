@@ -92,6 +92,11 @@ export interface Strategy {
   allocationUSD: number;
   crashThreshold: number;
   stopLoss: number;
+  autoAllocation?: boolean;
+  enableTacticalRotation?: boolean;
+  enableBearMarketGold?: boolean;
+  enableBearMarketUSD?: boolean;
+  enableDividendDefender?: boolean;
 }
 
 export interface Universe {

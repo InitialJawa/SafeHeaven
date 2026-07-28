@@ -377,7 +377,7 @@ export const Settings: React.FC = () => {
                 : 'text-[#9f9bac] hover:text-white hover:bg-[#1b1926]/60 border border-transparent'
             }`}
           >
-            <SettingsIcon className="w-4 h-4" /> Portfolio & Strategi
+            Portfolio & Strategi
           </button>
 
           <button
@@ -389,7 +389,7 @@ export const Settings: React.FC = () => {
                 : 'text-[#9f9bac] hover:text-white hover:bg-[#1b1926]/60 border border-transparent'
             }`}
           >
-            <Bell className="w-4 h-4" /> Notifikasi & Alert
+            Notifikasi & Alert
             <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 ml-0.5">
               {[notifState.whatsappEnabled, notifState.emailEnabled, notifState.telegramEnabled, notifState.discordEnabled, notifState.webhookEnabled].filter(Boolean).length} Aktif
             </span>
@@ -404,7 +404,7 @@ export const Settings: React.FC = () => {
                 : 'text-[#9f9bac] hover:text-white hover:bg-[#1b1926]/60 border border-transparent'
             }`}
           >
-            <SlidersHorizontal className="w-4 h-4" /> Sistem Global
+            Sistem Global
           </button>
 
           <button
@@ -416,7 +416,7 @@ export const Settings: React.FC = () => {
                 : 'text-[#9f9bac] hover:text-white hover:bg-[#1b1926]/60 border border-transparent'
             }`}
           >
-            <Bot className="w-4 h-4 text-[#ccff00]" /> AI Engine API
+            AI Engine API
             <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-[#ccff00]/10 text-[#ccff00] border border-[#ccff00]/20 ml-0.5 uppercase">
               {aiState.provider.toUpperCase()}
             </span>
@@ -452,9 +452,7 @@ export const Settings: React.FC = () => {
             {activeTab === 'portfolio' && (
               <div className="card card-elevated p-6 bg-[#0b0a10]/45 space-y-6">
                 <div className="flex items-center justify-between pb-4 border-b border-[#1b1926]">
-                  <h3 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
-                    <SettingsIcon className="w-4.5 h-4.5 text-[#ccff00]" /> Konfigurasi Dasar Portfolio
-                  </h3>
+                  <h3 className="text-sm font-bold text-white tracking-tight font-sans">Konfigurasi Dasar Portfolio</h3>
                   <span className="text-[10px] font-mono font-bold text-[#00f5a0] bg-[#00f5a0]/10 border border-[#00f5a0]/20 px-2.5 py-1 rounded-full">
                     Formula Allocation Active
                   </span>
@@ -591,9 +589,7 @@ export const Settings: React.FC = () => {
               <div className="card card-elevated p-6 bg-[#0b0a10]/45 space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#1b1926]">
                   <div>
-                    <h3 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
-                      <Bell className="w-4.5 h-4.5 text-[#ccff00]" /> Saluran Lampiran Notifikasi & Alert
-                    </h3>
+                    <h3 className="text-sm font-bold text-white tracking-tight font-sans">Saluran Lampiran Notifikasi & Alert</h3>
                     <p className="text-[10px] text-[#9f9bac] mt-0.5">
                       WhatsApp, Email, Telegram, Discord Webhook & Custom HTTP JSON Endpoint
                     </p>
@@ -877,9 +873,7 @@ export const Settings: React.FC = () => {
             {activeTab === 'global' && (
               <div className="card card-elevated p-6 bg-[#0b0a10]/45 space-y-6">
                 <div className="flex items-center justify-between pb-4 border-b border-[#1b1926]">
-                  <h3 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
-                    <SlidersHorizontal className="w-4.5 h-4.5 text-[#ccff00]" /> Pengaturan Sistem Global Workbench
-                  </h3>
+                  <h3 className="text-sm font-bold text-white tracking-tight font-sans">Pengaturan Sistem Global Workbench</h3>
                   <span className="text-[10px] font-mono text-[#9f9bac]">
                     Global Workspace Parameters
                   </span>
@@ -986,9 +980,7 @@ export const Settings: React.FC = () => {
               <div className="card card-elevated p-6 space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#1b1926] pb-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-[#ccff00]/10 border border-[#ccff00]/20 flex items-center justify-center text-[#ccff00]">
-                      <Bot className="w-5 h-5" />
-                    </div>
+                    
                     <div>
                       <h3 className="text-base font-extrabold text-white font-sans flex items-center gap-2">
                         Konfigurasi Multi-Provider AI API & Engine

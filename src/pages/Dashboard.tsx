@@ -48,6 +48,38 @@ import {
   WidgetWatchlistDetail 
 } from '../components/TickerAnalysisWidgets';
 
+const Saham3DIcon = () => (
+  <svg className="w-10 h-10 drop-shadow-[0_4px_8px_rgba(27,251,124,0.4)]" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="12" y="36" width="10" height="18" rx="3" fill="#1bfb7c" opacity="0.4"/>
+    <rect x="27" y="24" width="10" height="30" rx="3" fill="#1bfb7c" opacity="0.7"/>
+    <rect x="42" y="12" width="10" height="42" rx="3" fill="#1bfb7c"/>
+    <path d="M17 36L32 24L47 12L58 12" stroke="#FFFFFF" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+    <circle cx="47" cy="12" r="4" fill="#FFFFFF"/>
+  </svg>
+);
+
+const GoldBar3DIcon = () => (
+  <svg className="w-10 h-10 drop-shadow-[0_4px_8px_rgba(255,190,59,0.4)]" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M20 22L44 22L54 38L10 38Z" fill="#FFE55C"/>
+    <path d="M10 38L54 38L54 46L10 46Z" fill="#F2C94C"/>
+    <path d="M20 22L44 22L54 38L10 38Z" stroke="#D97706" strokeWidth="2" strokeLinejoin="round"/>
+    <path d="M10 38L54 38L54 46L10 46Z" stroke="#D97706" strokeWidth="2" strokeLinejoin="round"/>
+    <text x="32" y="44" fill="#D97706" fontSize="7" fontWeight="900" textAnchor="middle" opacity="0.8">999.9</text>
+    <path d="M48 14L50 18L54 20L50 22L48 26L46 22L42 20L46 18Z" fill="#FFFFFF" opacity="0.9"/>
+  </svg>
+);
+
+const Cash3DIcon = () => (
+  <svg className="w-10 h-10 drop-shadow-[0_4px_8px_rgba(157,29,242,0.4)]" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="8" y="22" width="48" height="24" rx="4" fill="#9d1df2" opacity="0.3" stroke="#9d1df2" strokeWidth="2"/>
+    <rect x="14" y="26" width="36" height="16" rx="2" fill="#9d1df2" opacity="0.7"/>
+    <circle cx="32" cy="34" r="6" fill="#FFFFFF" opacity="0.9"/>
+    <circle cx="32" cy="34" r="3" fill="#9d1df2"/>
+    <path d="M20 34H24" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round"/>
+    <path d="M40 34H44" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round"/>
+  </svg>
+);
+
 export const Dashboard: React.FC = () => {
   const [, setLocation] = useLocation();
   const { 
@@ -371,10 +403,7 @@ export const Dashboard: React.FC = () => {
                 <div style={{ order: widgetOrder.indexOf('rotation') }} className="card card-elevated p-3.5 sm:p-5 lg:p-6 lg:col-span-4 flex flex-col justify-between space-y-3 sm:space-y-4 bg-[#0b0a10]/45 border border-[#1b1926]">
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="flex items-center gap-2">
-                        <RefreshCw className="w-4 h-4 text-[#00f0ff]" />
-                        <h4 className="text-xs font-bold uppercase text-white tracking-wider font-sans">Multi-Tier Rotation System</h4>
-                      </div>
+                      <h4 className="text-xs font-bold uppercase text-white tracking-wider font-sans">Multi-Tier Rotation System</h4>
                       <p className="text-[10px] text-[#686477] mt-0.5">Rotasi aset dinamis & jaring pengaman risiko.</p>
                     </div>
                     <button
@@ -388,74 +417,74 @@ export const Dashboard: React.FC = () => {
                   <div className="flex flex-col gap-2.5 my-auto">
                     {/* Item 1: Saham */}
                     {isEmasRegime ? (
-                      <div className="p-3 rounded-xl bg-[#111018]/80 border border-[#1bfb7c]/20 flex items-center justify-between opacity-60">
-                        <div className="flex items-center gap-2.5">
-                           <div className="w-7 h-7 rounded-lg bg-[#1bfb7c]/10 flex items-center justify-center text-[#1bfb7c]">
-                              <LineChart className="w-3.5 h-3.5" />
+                      <div className="p-3 sm:p-4 rounded-xl bg-[#111018]/80 border border-[#1bfb7c]/20 flex items-center justify-between opacity-60">
+                        <div className="flex items-center gap-3">
+                           <div className="flex items-center justify-center shrink-0">
+                              <Saham3DIcon />
                            </div>
                            <div>
-                             <p className="text-[10px] text-[#1bfb7c] uppercase font-extrabold leading-none">Saham</p>
-                             <p className="text-xs font-bold text-white mt-1">Fase Koreksi</p>
+                             <p className="text-[10px] sm:text-xs text-[#1bfb7c] uppercase font-extrabold leading-none">Saham</p>
+                             <p className="text-xs sm:text-sm font-bold text-white mt-1">Fase Koreksi</p>
                            </div>
                         </div>
-                        <span className="text-[9px] font-bold text-[#1bfb7c] bg-[#1bfb7c]/10 px-2 py-0.5 rounded">AVOID</span>
+                        <span className="text-[9px] sm:text-[10px] font-bold text-[#1bfb7c] bg-[#1bfb7c]/10 px-3 py-1 rounded">AVOID</span>
                       </div>
                     ) : (
-                      <div className="p-3 rounded-xl bg-[#1bfb7c]/10 border border-[#1bfb7c]/30 shadow-[0_0_15px_rgba(27,251,124,0.15)] flex items-center justify-between relative overflow-hidden">
-                        <div className="flex items-center gap-2.5 relative z-10">
-                           <div className="w-7 h-7 rounded-lg bg-[#1bfb7c]/20 flex items-center justify-center text-[#1bfb7c]">
-                              <LineChart className="w-3.5 h-3.5" />
+                      <div className="p-3 sm:p-4 rounded-xl bg-[#1bfb7c]/10 border border-[#1bfb7c]/30 shadow-[0_0_20px_rgba(27,251,124,0.15)] flex items-center justify-between relative overflow-hidden">
+                        <div className="flex items-center gap-3 relative z-10">
+                           <div className="flex items-center justify-center shrink-0 drop-shadow-[0_0_15px_rgba(27,251,124,0.4)]">
+                              <Saham3DIcon />
                            </div>
                            <div>
-                             <p className="text-[10px] text-[#1bfb7c] uppercase font-extrabold leading-none">Saham</p>
-                             <p className="text-xs font-bold text-white mt-1">Uptrend Kuat (Bullish)</p>
+                             <p className="text-[10px] sm:text-xs text-[#1bfb7c] uppercase font-extrabold leading-none">Saham</p>
+                             <p className="text-xs sm:text-sm font-bold text-white mt-1">Uptrend Kuat (Bullish)</p>
                            </div>
                         </div>
-                        <span className="text-[9px] font-bold text-black bg-[#1bfb7c] px-2 py-0.5 rounded">REKOMENDASI</span>
+                        <span className="text-[9px] sm:text-[10px] font-bold text-black bg-[#1bfb7c] px-3 py-1 rounded">REKOMENDASI</span>
                       </div>
                     )}
 
                     {/* Item 2: Emas */}
                     {isEmasRegime ? (
-                      <div className="p-3 rounded-xl bg-[#ffbe3b]/10 border border-[#ffbe3b]/30 shadow-[0_0_15px_rgba(255,190,59,0.15)] flex items-center justify-between relative overflow-hidden">
-                        <div className="flex items-center gap-2.5 relative z-10">
-                           <div className="w-7 h-7 rounded-lg bg-[#ffbe3b]/20 flex items-center justify-center text-[#ffbe3b]">
-                              <Award className="w-3.5 h-3.5" />
+                      <div className="p-3 sm:p-4 rounded-xl bg-[#ffbe3b]/10 border border-[#ffbe3b]/30 shadow-[0_0_20px_rgba(255,190,59,0.15)] flex items-center justify-between relative overflow-hidden">
+                        <div className="flex items-center gap-3 relative z-10">
+                           <div className="flex items-center justify-center shrink-0 drop-shadow-[0_0_15px_rgba(255,190,59,0.4)]">
+                              <GoldBar3DIcon />
                            </div>
                            <div>
-                             <p className="text-[10px] text-[#ffbe3b] uppercase font-extrabold leading-none">Emas</p>
-                             <p className="text-xs font-bold text-white mt-1">Uptrend Kuat</p>
+                             <p className="text-[10px] sm:text-xs text-[#ffbe3b] uppercase font-extrabold leading-none">Emas</p>
+                             <p className="text-xs sm:text-sm font-bold text-white mt-1">Uptrend Kuat</p>
                            </div>
                         </div>
-                        <span className="text-[9px] font-bold text-black bg-[#ffbe3b] px-2 py-0.5 rounded">REKOMENDASI</span>
+                        <span className="text-[9px] sm:text-[10px] font-bold text-black bg-[#ffbe3b] px-3 py-1 rounded">REKOMENDASI</span>
                       </div>
                     ) : (
-                      <div className="p-3 rounded-xl bg-[#111018]/80 border border-[#ffbe3b]/20 flex items-center justify-between opacity-60">
-                        <div className="flex items-center gap-2.5">
-                           <div className="w-7 h-7 rounded-lg bg-[#ffbe3b]/10 flex items-center justify-center text-[#ffbe3b]">
-                              <Award className="w-3.5 h-3.5" />
+                      <div className="p-3 sm:p-4 rounded-xl bg-[#111018]/80 border border-[#ffbe3b]/20 flex items-center justify-between opacity-60">
+                        <div className="flex items-center gap-3">
+                           <div className="flex items-center justify-center shrink-0">
+                              <GoldBar3DIcon />
                            </div>
                            <div>
-                             <p className="text-[10px] text-[#ffbe3b] uppercase font-extrabold leading-none">Emas</p>
-                             <p className="text-xs font-bold text-white mt-1">Konsolidasi</p>
+                             <p className="text-[10px] sm:text-xs text-[#ffbe3b] uppercase font-extrabold leading-none">Emas</p>
+                             <p className="text-xs sm:text-sm font-bold text-white mt-1">Konsolidasi</p>
                            </div>
                         </div>
-                        <span className="text-[9px] font-bold text-[#ffbe3b] bg-[#ffbe3b]/10 px-2 py-0.5 rounded">HOLD</span>
+                        <span className="text-[9px] sm:text-[10px] font-bold text-[#ffbe3b] bg-[#ffbe3b]/10 px-3 py-1 rounded">HOLD</span>
                       </div>
                     )}
 
                     {/* Item 3: Cash USD & IDR */}
-                    <div className="p-3 rounded-xl bg-[#111018]/80 border border-[#9d1df2]/30 flex items-center justify-between opacity-80">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-7 h-7 rounded-lg bg-[#9d1df2]/10 flex items-center justify-center text-[#9d1df2]">
-                          <Landmark className="w-3.5 h-3.5" />
+                    <div className="p-3 sm:p-4 rounded-xl bg-[#111018]/80 border border-[#9d1df2]/30 flex items-center justify-between opacity-80">
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center justify-center shrink-0">
+                          <Cash3DIcon />
                         </div>
                         <div>
-                          <p className="text-[10px] text-[#9d1df2] uppercase font-bold">Likuiditas Cash</p>
-                          <p className="text-xs font-bold text-white mt-0.5">IDR & USD Buffer</p>
+                          <p className="text-[10px] sm:text-xs text-[#9d1df2] uppercase font-bold">Likuiditas Cash</p>
+                          <p className="text-xs sm:text-sm font-bold text-white mt-0.5">IDR & USD Buffer</p>
                         </div>
                       </div>
-                      <span className="text-[9px] font-bold text-[#686477] bg-white/5 px-2 py-0.5 rounded">NEUTRAL</span>
+                      <span className="text-[9px] sm:text-[10px] font-bold text-[#686477] bg-white/5 px-3 py-1 rounded">NEUTRAL</span>
                     </div>
                   </div>
 
@@ -535,13 +564,10 @@ export const Dashboard: React.FC = () => {
               {widgetOrder.includes('alerts') && (
                 <div style={{ order: widgetOrder.indexOf('alerts') }} className="card card-elevated p-6 lg:col-span-12">
                   <div className="flex items-center justify-between mb-5">
-                    <div className="flex items-center gap-2">
-                      <Bell className="w-4.5 h-4.5 text-[#ccff00]" />
-                      <div>
+                    <div>
                         <h3 className="text-sm font-bold text-white tracking-tight font-sans">Riwayat Rotasi & Sinyal Alarm</h3>
                         <p className="text-[11px] text-[#686477] font-sans">Log pergerakan rotasi dinamis, alarm harga, dan aksi jaring pengaman.</p>
                       </div>
-                    </div>
                     {alerts.filter(a => a.status === 'unread').length > 0 && (
                       <button
                         id="dashboard-mark-all-btn"
@@ -776,10 +802,7 @@ export const Dashboard: React.FC = () => {
                 <div style={{ order: widgetOrder.indexOf('ihsg_analysis') }} className="lg:col-span-12 space-y-4 bg-[#0b0a10]/60 border border-[#1b1926] p-5 rounded-2xl shadow-xl">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#1b1926] pb-3 gap-3">
                     <div>
-                      <div className="flex items-center gap-2">
-                        <span className="w-1.5 h-3.5 bg-[#ccff00] rounded-full"></span>
-                        <h4 className="text-xs font-bold uppercase text-white tracking-wider font-sans">Analisis IHSG Terpadu (Yahoo Finance Live)</h4>
-                      </div>
+                      <h4 className="text-xs font-bold uppercase text-white tracking-wider font-sans">Analisis IHSG Terpadu (Yahoo Finance Live)</h4>
                       <p className="text-[11px] text-[#9f9bac] mt-0.5">Umpan real-time & indikator konsensus bursa (^JKSE)</p>
                     </div>
 
@@ -794,7 +817,6 @@ export const Dashboard: React.FC = () => {
                             : 'text-[#9f9bac] hover:text-white'
                         }`}
                       >
-                        <Gauge className="w-3.5 h-3.5" />
                         <span>Speedometer</span>
                       </button>
                       <button
@@ -806,7 +828,6 @@ export const Dashboard: React.FC = () => {
                             : 'text-[#9f9bac] hover:text-white'
                         }`}
                       >
-                        <BarChart2 className="w-3.5 h-3.5" />
                         <span>Kinerja & Musiman</span>
                       </button>
                       <button

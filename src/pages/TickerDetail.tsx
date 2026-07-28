@@ -949,19 +949,47 @@ export const TickerDetail: React.FC<{ params: TickerParams }> = ({ params }) => 
                   setTargetPriceInput('');
                   setIsAlertModalOpen(false);
                 }}
-                className="px-5 py-2 rounded-xl text-xs font-bold bg-[#ccff00] hover:bg-[#b3e600] text-black transition-colors cursor-pointer"
-              >
-                Simpan Alert
-              </button>
+                className="px-5 py-2 rounded-xl text-xs font-bold bg-[#ccff00] hover:bg-[#b3e600] text-black transition-colors cursor-pointer">
+Simpan Alert
+</button>
+</div>
+
+            <div className="mt-4 pt-4 border-t border-[#1b1926]">
+              <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-3">Alert Harga Aktif</h4>
+              {priceAlerts.filter(a => a.symbol === symbol && a.status === 'active').length === 0 ? (
+                <p className="text-[11px] text-[#686477] text-center italic">Belum ada alert harga aktif.</p>
+              ) : (
+                <div className="space-y-2 max-h-[150px] overflow-y-auto pr-1 custom-scrollbar">
+                  {priceAlerts.filter(a => a.symbol === symbol && a.status === 'active').map(alert => (
+                    <div key={alert.id} className="flex items-center justify-between bg-[#181622] border border-[#2a273b] p-2.5 rounded-xl">
+                      <div>
+                        <div className="text-xs font-mono font-bold text-white flex items-center gap-1.5">
+                          <span>{alert.condition === 'above' ? '>= (Naik)' : '<= (Turun)'}</span>
+                          <span className="text-[#ccff00]">Rp {alert.targetPrice.toLocaleString('id-ID')}</span>
+                        </div>
+                        <span className="text-[9px] text-[#686477] mt-0.5 block">Dibuat: {new Date(alert.createdAt).toLocaleDateString('id-ID')}</span>
+                      </div>
+                      <button
+                        onClick={() => deletePriceAlert(alert.id)}
+                        className="text-xs text-[#ff3366] hover:text-white bg-[#ff3366]/10 hover:bg-[#ff3366] border border-[#ff3366]/20 hover:border-[#ff3366] cursor-pointer p-1.5 rounded-lg transition-colors"
+                        title="Hapus Alert"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
+
           </div>
         </div>
       )}
       
       {/* Navigation and Name Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-4">
         <div>
-            <div className="flex items-center justify-between mb-4">
+            <div className="mb-4">
                 <button
                 id="ticker-back-btn"
                 onClick={() => window.history.back()}
@@ -969,18 +997,12 @@ export const TickerDetail: React.FC<{ params: TickerParams }> = ({ params }) => 
                 >
                 <ArrowLeft className="w-4 h-4" /> Kembali
                 </button>
-                <button
-                    onClick={() => downloadPDF('ticker-detail-view', `Analysis_${details.symbol}`)}
-                    className="flex lg:hidden items-center gap-1.5 px-3 py-1.5 bg-[#1b1926] hover:bg-[#252233] border border-[#2a273b] text-[#9f9bac] hover:text-white rounded-lg text-xs font-bold transition-colors cursor-pointer"
-                >
-                    <Download className="w-3.5 h-3.5" /> PDF
-                </button>
             </div>
             <div className="flex items-center gap-4">
                 <TickerLogo symbol={details.symbol} sizeClassName="w-14 h-14" />
                 <div className="text-left">
                     <div className="flex items-center gap-3 justify-start">
-                    <h1 className="text-3xl font-extrabold tracking-tight text-white font-mono">{details.symbol}</h1>
+                      <h1 className="text-3xl font-extrabold tracking-tight text-white font-mono">{details.symbol}</h1>
                     </div>
                     <span className="text-sm text-[#9f9bac] font-sans font-medium mt-1 block">{details.name}</span>
                 </div>
@@ -988,8 +1010,8 @@ export const TickerDetail: React.FC<{ params: TickerParams }> = ({ params }) => 
         </div>
         
         <div className="flex items-stretch gap-3">
-          <div className="bg-[#111018]/50 border border-[#1b1926] rounded-xl px-5 py-4 text-right flex items-center justify-between md:justify-end gap-6 md:min-w-[300px] flex-1">
-            <div className="text-left md:text-right">
+          <div className="bg-[#111018]/50 border border-[#1b1926] rounded-xl px-5 py-3 text-right flex items-center justify-center gap-6">
+            <div className="text-right">
               <span className="text-[10px] text-[#686477] uppercase font-bold tracking-wider font-sans block leading-none mb-1.5">Harga Terakhir</span>
               <div className="flex items-baseline gap-2">
                   <span className="text-2xl font-extrabold font-mono text-white">Rp {details.price.toLocaleString('id-ID')}</span>
@@ -1001,10 +1023,10 @@ export const TickerDetail: React.FC<{ params: TickerParams }> = ({ params }) => 
           </div>
           <button
               onClick={() => downloadPDF('ticker-detail-view', `Analysis_${details.symbol}`)}
-              className="hidden lg:flex flex-col items-center justify-center px-4 bg-[#ccff00] hover:bg-[#b3e600] text-black rounded-xl text-xs font-bold transition-colors cursor-pointer"
+              className="flex flex-col items-center justify-center px-4 py-2 bg-[#1b1926] hover:bg-[#ccff00] hover:text-black border border-[#2a273b] hover:border-[#ccff00] text-[#9f9bac] rounded-xl text-xs font-bold transition-all cursor-pointer group"
               title="Download PDF"
           >
-              <Download className="w-5 h-5 mb-1" />
+              <Download className="w-5 h-5 mb-1 group-hover:text-black text-[#9f9bac] transition-colors" />
               <span>Export</span>
           </button>
         </div>
@@ -1015,21 +1037,7 @@ export const TickerDetail: React.FC<{ params: TickerParams }> = ({ params }) => 
         {/* Candlestick Chart Area */}
         <div className="card card-elevated p-3.5 sm:p-5 lg:col-span-8 flex flex-col space-y-4 relative min-h-[450px]">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 z-10 pb-2 border-b border-[#1b1926]/40">
-            <div className="flex items-center gap-3">
-              <TickerLogo symbol={details.symbol} sizeClassName="w-8 h-8" />
-              <div>
-                <h3 className="text-sm font-bold text-white tracking-tight font-sans flex items-center gap-2">
-                    <span className="font-mono text-[#ccff00] font-extrabold text-base">{details.symbol}</span>
-                    <span className="text-[#9f9bac] font-normal text-xs truncate max-w-[150px] sm:max-w-[250px]">{details.name}</span>
-                </h3>
-                <p className="text-[11px] text-[#686477] font-sans mt-0.5 flex items-center gap-2">
-                  <span>Rp {details.price.toLocaleString('id-ID')}</span>
-                  <span className={`font-mono font-bold ${details.changePercent >= 0 ? 'text-[#00f5a0]' : 'text-[#ff3366]'}`}>
-                    ({details.changePercent >= 0 ? '+' : ''}{details.changePercent.toFixed(2)}%)
-                  </span>
-                </p>
-              </div>
-            </div>
+            <div></div>
             
             <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-between md:justify-end">
                 {/* Modal Indicator Catalog Trigger */}
@@ -1081,7 +1089,7 @@ export const TickerDetail: React.FC<{ params: TickerParams }> = ({ params }) => 
                     </button>
                     
                     {isIntervalDropdownOpen && (
-                      <div className="absolute top-full right-0 mt-2 w-32 bg-[#111018] border border-[#2a273b] rounded-xl shadow-2xl z-50 p-1 space-y-0.5 animate-in fade-in duration-150">
+                      <div className="absolute top-full right-0 mt-2 w-32 bg-[#111018] border border-[#1b1926] rounded-xl shadow-2xl z-50 p-1 space-y-0.5 animate-in fade-in duration-150">
                         {([
                           { value: '1d', label: '1 Hari' },
                           { value: '1wk', label: '1 Minggu' },
@@ -1127,7 +1135,7 @@ export const TickerDetail: React.FC<{ params: TickerParams }> = ({ params }) => 
                     </button>
 
                     {isRangeDropdownOpen && (
-                      <div className="absolute top-full right-0 mt-2 w-40 bg-[#111018] border border-[#2a273b] rounded-xl shadow-2xl z-50 p-1 space-y-0.5 animate-in fade-in duration-150">
+                      <div className="absolute top-full right-0 mt-2 w-40 bg-[#111018] border border-[#1b1926] rounded-xl shadow-2xl z-50 p-1 space-y-0.5 animate-in fade-in duration-150">
                         {([
                           { value: '1m', label: '1 Bulan (1M)' },
                           { value: '3m', label: '3 Bulan (3M)' },
@@ -1185,47 +1193,7 @@ export const TickerDetail: React.FC<{ params: TickerParams }> = ({ params }) => 
             {/* Detail Ringkasan Pasar & Statistik Key Widget (Yahoo Finance) */}
             <WidgetWatchlistDetail symbol={details.symbol || symbol} showDropdown={false} />
 
-            {/* Active Price Alerts for this Ticker */}
-            <div className="card card-elevated p-5 flex flex-col gap-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Bell className="w-4 h-4 text-[#ccff00]" />
-                  <h4 className="text-xs font-bold text-white uppercase tracking-wider">Alert Harga Aktif</h4>
-                </div>
-                <button
-                  onClick={() => setIsAlertModalOpen(true)}
-                  className="text-[10px] font-bold text-[#ccff00] hover:underline bg-transparent border-0 cursor-pointer"
-                >
-                  + Set Baru
-                </button>
-              </div>
-
-              {priceAlerts.filter(a => a.symbol === symbol && a.status === 'active').length === 0 ? (
-                <p className="text-xs text-[#686477] py-2 text-center">Belum ada alert harga aktif untuk {symbol}.</p>
-              ) : (
-                <div className="space-y-2">
-                  {priceAlerts.filter(a => a.symbol === symbol && a.status === 'active').map(alert => (
-                    <div key={alert.id} className="flex items-center justify-between bg-[#181622] border border-[#2a273b] p-3 rounded-xl">
-                      <div>
-                        <div className="text-xs font-mono font-bold text-white flex items-center gap-1.5">
-                          <span>{alert.condition === 'above' ? '>= (Naik)' : '<= (Turun)'}</span>
-                          <span className="text-[#ccff00]">Rp {alert.targetPrice.toLocaleString('id-ID')}</span>
-                        </div>
-                        <span className="text-[10px] text-[#686477] mt-0.5 block">Dibuat: {new Date(alert.createdAt).toLocaleDateString('id-ID')}</span>
-                      </div>
-                      <button
-                        onClick={() => deletePriceAlert(alert.id)}
-                        className="text-xs text-[#ff3366] hover:text-white bg-transparent border-0 cursor-pointer p-1"
-                        title="Hapus Alert"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-        </div>
       </div>
 
       {/* 3. Interactive Sub-Tabs Bar */}
@@ -1302,7 +1270,7 @@ export const TickerDetail: React.FC<{ params: TickerParams }> = ({ params }) => 
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="text-sm font-bold text-white tracking-tight font-sans flex items-center gap-2">
-                    <Activity className="w-4 h-4 text-[#ccff00]" />
+                    
                     Skor & Breakdown Faktor
                   </h3>
                 </div>
@@ -1365,7 +1333,7 @@ export const TickerDetail: React.FC<{ params: TickerParams }> = ({ params }) => 
               {sectorData && (
                 <div className="card card-elevated p-6 space-y-4">
                   <h3 className="text-sm font-bold text-white tracking-tight font-sans flex items-center gap-2 mb-2">
-                    <PieChart className="w-4 h-4 text-[#ccff00]" />
+                    
                     Perbandingan Sektor
                   </h3>
                   <div className="grid grid-cols-3 gap-3">
@@ -1406,7 +1374,7 @@ export const TickerDetail: React.FC<{ params: TickerParams }> = ({ params }) => 
               {/* Data Fundamental Utama */}
               <div className="card card-elevated p-6">
                 <h3 className="text-sm font-bold text-white tracking-tight font-sans flex items-center gap-2 mb-4">
-                  <LayoutDashboard className="w-4 h-4 text-[#ccff00]" />
+                  
                   Data Fundamental Utama
                 </h3>
                 

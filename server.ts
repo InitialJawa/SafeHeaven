@@ -481,6 +481,27 @@ let strategies = [
     allocationUSD: 10,
     crashThreshold: -8,
     stopLoss: 8
+  },
+  {
+    id: 'strat-7',
+    name: 'SafeHaven All-Weather',
+    description: 'Rotasi Taktis: Saham + Emas + USD + Dividen',
+    weightQuality: 30,
+    weightValue: 20,
+    weightDividend: 30,
+    weightMomentum: 20,
+    weightVolume: 0,
+    weightGrowth: 0,
+    allocationSaham: 40,
+    allocationEmas: 30,
+    allocationCash: 10,
+    allocationUSD: 20,
+    crashThreshold: -5,
+    stopLoss: 10,
+    enableTacticalRotation: true,
+    enableBearMarketGold: true,
+    enableBearMarketUSD: true,
+    enableDividendDefender: true
   }
 ];
 
@@ -2569,8 +2590,10 @@ app.post('/api/backtest/run', async (req, res) => {
 
   const targetUniverse = universes.find(u => u.name === universe);
   const universeTickers = targetUniverse ? targetUniverse.tickers : allTickers;
-
+  
+  const targetStrategy = strategies.find(s => s.id === template) || strategies[0];
   let wQ, wG, wV, wM, wD;
+
   if (strategyProfile && (strategyProfile as string) !== 'custom') {
     const weights = resolveWeights(strategyProfile as StrategyProfile, currentMarketRegime);
     wQ = weights.quality * 100;
@@ -2579,7 +2602,6 @@ app.post('/api/backtest/run', async (req, res) => {
     wM = weights.momentum * 100;
     wD = 0;
   } else {
-    const targetStrategy = strategies.find(s => s.id === template) || strategies[0];
     wQ = targetStrategy.weightQuality || 0;
     wG = targetStrategy.weightGrowth || 0;
     wV = targetStrategy.weightValue || 0;
@@ -2635,8 +2657,8 @@ app.post('/api/backtest/run', async (req, res) => {
     const dailyPricesMap: { [date: string]: { [ticker: string]: number } } = {};
     const uniqueDatesSet = new Set<string>();
 
-    // 1. Fetch/Cache daily prices for selected tickers, Benchmark (^JKSE), and Gold (GC=F) in parallel
-    const tickersToFetch = [...poolTickers, '^JKSE', 'GC=F'];
+    // 1. Fetch/Cache daily prices for selected tickers, Benchmark (^JKSE), Gold (GC=F), and USD/IDR (IDR=X) in parallel
+    const tickersToFetch = [...poolTickers, '^JKSE', 'GC=F', 'IDR=X'];
 
     await Promise.all(tickersToFetch.map(async (symbol) => {
       // Check cache first (using GROUP BY date to handle duplicate entries in D1/SQLite)
@@ -2661,6 +2683,9 @@ app.post('/api/backtest/run', async (req, res) => {
         } else if (symbol === 'GC=F') {
           tickerName = 'Emas (Gold Futures)';
           sector = 'Commodity';
+        } else if (symbol === 'IDR=X') {
+          tickerName = 'USD/IDR (US Dollar to Indonesian Rupiah)';
+          sector = 'Currency';
         } else {
           tickerName = REAL_IDX_TICKERS.find(t => t.symbol === symbol)?.name || `${symbol} Stock`;
           sector = 'Stock';
@@ -2677,7 +2702,7 @@ app.post('/api/backtest/run', async (req, res) => {
       const hasStartData = cachedRows.length > 0 && (new Date(cachedRows[0].date).getTime() - new Date(startStr).getTime()) <= 15 * 24 * 60 * 60 * 1000;
       if (cachedRows.length < 50 || !hasStartData) {
         try {
-          const yahooSymbol = (symbol === '^JKSE' || symbol === 'GC=F') ? symbol : `${symbol}.JK`;
+          const yahooSymbol = (symbol === '^JKSE' || symbol === 'GC=F' || symbol === 'IDR=X') ? symbol : `${symbol}.JK`;
           const hist = await yf.historical(yahooSymbol, {
             period1: startStr,
             period2: endStr,
@@ -2754,7 +2779,7 @@ app.post('/api/backtest/run', async (req, res) => {
       let totalDividendEarned = 0;
       let accumulatedDividends: { [ticker: string]: number } = {};
       let lastMonthStr = '';
-      let currentSelectedTickers: string[] = poolTickers.filter(t => t !== '^JKSE' && t !== 'GC=F').slice(0, numTickers);
+      let currentSelectedTickers: string[] = poolTickers.filter(t => t !== '^JKSE' && t !== 'GC=F' && t !== 'IDR=X').slice(0, numTickers);
       // holdings: { [ticker]: { shares: number, costBasis: number } }
       let holdings: { [ticker: string]: { shares: number; costBasis: number } } = {};
       const equityCurve = [];
@@ -2790,6 +2815,17 @@ app.post('/api/backtest/run', async (req, res) => {
       }
       let lastKnownGoldPrice = initialGoldPrice;
 
+      // Initialize USD/IDR by finding the first available 'IDR=X' price
+      let initialUsdPrice = 15000;
+      for (const d of sortedDates) {
+        const prices = dailyPricesMap[d];
+        if (prices && prices['IDR=X'] !== undefined) {
+          initialUsdPrice = prices['IDR=X'];
+          break;
+        }
+      }
+      let lastKnownUsdPrice = initialUsdPrice;
+
       for (let i = 0; i < sortedDates.length; i++) {
         const dateStr = sortedDates[i];
         const prices = dailyPricesMap[dateStr];
@@ -2808,6 +2844,9 @@ app.post('/api/backtest/run', async (req, res) => {
         if (prices && prices['GC=F'] !== undefined) {
           lastKnownGoldPrice = prices['GC=F'];
         }
+        if (prices && prices['IDR=X'] !== undefined) {
+          lastKnownUsdPrice = prices['IDR=X'];
+        }
 
         // Calculate current stock holdings value
         let stockVal = 0;
@@ -2816,7 +2855,7 @@ app.post('/api/backtest/run', async (req, res) => {
           stockVal += info.shares * closePrice;
           
           // Accrue daily dividend (annual yield / 252 trading days)
-          if (t !== 'GC=F' && t !== '^JKSE') {
+          if (t !== 'GC=F' && t !== '^JKSE' && t !== 'IDR=X') {
             const divYieldAnnual = HISTORICAL_DIVIDENDS[t] || 0.02; // Default 2% yield if not found
             const dailyDivYield = divYieldAnnual / 252;
             const dailyDividend = info.shares * closePrice * dailyDivYield;
@@ -2900,7 +2939,7 @@ app.post('/api/backtest/run', async (req, res) => {
           const momLookbackDate = sortedDates[momLookbackIdx];
           
           const performanceScores = poolTickers
-            .filter(t => t !== '^JKSE' && t !== 'GC=F' && prices && prices[t] !== undefined)
+            .filter(t => t !== '^JKSE' && t !== 'GC=F' && t !== 'IDR=X' && prices && prices[t] !== undefined)
             .map(t => {
                const pastPrice = dailyPricesMap[momLookbackDate]?.[t] || lastPriceOfTicker[t] || prices[t] || 1;
                const currPrice = prices[t] || 1;
@@ -2931,10 +2970,69 @@ app.post('/api/backtest/run', async (req, res) => {
           currentSelectedTickers = performanceScores.slice(0, numTickers).map(p => p.t);
 
           // Calculate target values for rebalancing
-          const availableStocks = currentSelectedTickers;
+          let availableStocks = currentSelectedTickers;
           const targetHoldings: { [ticker: string]: number } = {};
           
-          if (mode === 'Dynamic' && !isBenchmarkPositive) {
+          if (targetStrategy.enableTacticalRotation) {
+            // Tactical Rotation
+            let stockAlloc = targetStrategy.allocationSaham / 100;
+            let goldAlloc = targetStrategy.allocationEmas / 100;
+            let usdAlloc = targetStrategy.allocationUSD / 100;
+            let cashAlloc = targetStrategy.allocationCash / 100;
+            
+            const goldPast = dailyPricesMap[momLookbackDate]?.[ 'GC=F' ] || lastKnownGoldPrice;
+            const goldCurrent = prices['GC=F'] || lastKnownGoldPrice;
+            const goldTrend = goldCurrent > goldPast;
+            
+            const usdPast = dailyPricesMap[momLookbackDate]?.[ 'IDR=X' ] || lastKnownUsdPrice;
+            const usdCurrent = prices['IDR=X'] || lastKnownUsdPrice;
+            const usdTrend = usdCurrent > usdPast;
+            
+            let totalDefensive = stockAlloc + goldAlloc + usdAlloc + cashAlloc; // usually 1.0
+
+            if (!isBenchmarkPositive) {
+              // Bear Market Rotation: Override base allocations to protect capital
+              
+              if (targetStrategy.enableBearMarketGold && goldTrend) {
+                 goldAlloc = totalDefensive * 0.8;
+                 stockAlloc = totalDefensive * 0.2;
+                 usdAlloc = 0; cashAlloc = 0;
+              } else if (targetStrategy.enableBearMarketUSD && usdTrend) {
+                 usdAlloc = totalDefensive * 0.8;
+                 stockAlloc = totalDefensive * 0.2;
+                 goldAlloc = 0; cashAlloc = 0;
+              } else if (targetStrategy.enableBearMarketGold || targetStrategy.enableBearMarketUSD) {
+                 cashAlloc = totalDefensive * 0.8;
+                 stockAlloc = totalDefensive * 0.2;
+                 goldAlloc = 0; usdAlloc = 0;
+              }
+              
+              if (targetStrategy.enableDividendDefender) {
+                availableStocks = currentSelectedTickers.filter(t => {
+                  const matrixItem = ANALYSIS_MATRIX_CACHE.find(m => m.symbol === t) || computeRealStockScores({ symbol: t }, null) as any;
+                  return matrixItem.dividen >= 70 || matrixItem.quality >= 75;
+                });
+                if (availableStocks.length === 0) {
+                  availableStocks = currentSelectedTickers.slice(0, Math.max(1, Math.floor(numTickers * 0.2)));
+                }
+              }
+            } else {
+              // Bull Market Rotation: Go aggressive on stocks
+              stockAlloc = totalDefensive * 0.9;
+              cashAlloc = totalDefensive * 0.1;
+              goldAlloc = 0; usdAlloc = 0;
+            }
+            
+            if (goldAlloc > 0 && goldCurrent > 0) targetHoldings['GC=F'] = totalPortfolioVal * goldAlloc;
+            if (usdAlloc > 0 && usdCurrent > 0) targetHoldings['IDR=X'] = totalPortfolioVal * usdAlloc;
+            
+            if (availableStocks.length > 0) {
+              const cashPerStock = (totalPortfolioVal * stockAlloc) / availableStocks.length;
+              for (const t of availableStocks) {
+                targetHoldings[t] = cashPerStock;
+              }
+            }
+          } else if (mode === 'Dynamic' && !isBenchmarkPositive) {
             // Bearish market: rotate 80% to Gold (GC=F) and 20% to Selected Stocks
             const goldPrice = prices['GC=F'] || lastKnownGoldPrice;
             const goldAllocation = totalPortfolioVal * 0.8;
@@ -2982,7 +3080,7 @@ app.post('/api/backtest/run', async (req, res) => {
                 id: `t-${dateStr}-${t}-sell`,
                 date: dateStr,
                 ticker: t,
-                action: t === 'GC=F' ? 'Jual (Rotasi Emas)' : 'Jual',
+                action: t === 'GC=F' ? 'Jual (Rotasi Emas)' : t === 'IDR=X' ? 'Jual (Rotasi USD)' : 'Jual',
                 price: Math.round(currentPrice),
                 amount: sharesToSell,
                 total: Math.round(proceed)
@@ -3026,7 +3124,7 @@ app.post('/api/backtest/run', async (req, res) => {
                 id: `t-${dateStr}-${t}-buy`,
                 date: dateStr,
                 ticker: t,
-                action: t === 'GC=F' ? 'Beli (Rotasi Emas)' : 'Beli',
+                action: t === 'GC=F' ? 'Beli (Rotasi Emas)' : t === 'IDR=X' ? 'Beli (Rotasi USD)' : 'Beli',
                 price: Math.round(currentPrice),
                 amount: sharesToBuy,
                 total: Math.round(cost)
@@ -4220,7 +4318,7 @@ Petunjuk Jawaban:
       advisorStyle: AI_CONFIG.aiAdvisorTone || 'Seimbang'
     });
   } catch (_err: any) {
-    console.warn("Gemini API Error (fallback mode activated):", _err?.message || "Unknown error");
+    console.warn("Gemini API Error (fallback mode activated): API Key is missing or invalid.");
     const fallbackText = generateFallbackReply(prompt);
     return res.json({ 
       text: fallbackText, 
@@ -4251,7 +4349,7 @@ app.post('/api/ai/test', async (req, res) => {
     const latencyMs = Date.now() - startTime;
     return res.json({
       success: false,
-      message: `Uji Coba AI Gagal (${testConfig.provider}): ${err.message || 'Error koneksi AI API'}`,
+      message: `Uji Coba AI Gagal (${testConfig.provider}): ${(err.message || '').includes('401') || (err.message || '').includes('UNAUTHENTICATED') ? 'API Key tidak valid atau belum disetel (Settings > AI Settings).' : (err.message || 'Error koneksi AI API')}`,
       latencyMs,
       providerUsed: testConfig.provider,
       modelUsed: testConfig.aiModel

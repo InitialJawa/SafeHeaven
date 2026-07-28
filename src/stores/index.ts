@@ -286,6 +286,27 @@ export const useAppStore = create<AppState>((set, get) => {
       allocationUSD: 10,
       crashThreshold: -8,
       stopLoss: 8
+    },
+    {
+      id: 'strat-7',
+      name: 'SafeHaven All-Weather',
+      description: 'Rotasi Taktis: Saham + Emas + USD + Dividen',
+      weightQuality: 30,
+      weightValue: 20,
+      weightDividend: 30,
+      weightMomentum: 20,
+      weightVolume: 0,
+      weightGrowth: 0,
+      allocationSaham: 40,
+      allocationEmas: 30,
+      allocationCash: 10,
+      allocationUSD: 20,
+      crashThreshold: -5,
+      stopLoss: 10,
+      enableTacticalRotation: true,
+      enableBearMarketGold: true,
+      enableBearMarketUSD: true,
+      enableDividendDefender: true
     }
   ],
   universes: [
@@ -1073,7 +1094,7 @@ export const useAppStore = create<AppState>((set, get) => {
         // Sort newest first
         items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         set({ backtestHistory: items });
-        localStorage.setItem(`safehaven_backtests_${userId}`, JSON.stringify(items));
+        try { localStorage.setItem(`safehaven_backtests_${userId}`, JSON.stringify(items)); } catch(e) { try { localStorage.setItem(`safehaven_backtests_${userId}`, JSON.stringify(items.slice(0, 5))); } catch(e2) {} }
         return;
       } catch (err) {
         // Fallthrough to local storage if Firestore fails
@@ -1101,7 +1122,7 @@ export const useAppStore = create<AppState>((set, get) => {
 
     const updated = [newItem, ...get().backtestHistory];
     set({ backtestHistory: updated });
-    localStorage.setItem(`safehaven_backtests_${userId}`, JSON.stringify(updated));
+    try { localStorage.setItem(`safehaven_backtests_${userId}`, JSON.stringify(updated)); } catch(e) { try { localStorage.setItem(`safehaven_backtests_${userId}`, JSON.stringify(updated.slice(0, 5))); } catch(e2) {} }
 
     if (firebaseUid && firebaseUid === userId) {
       try {
@@ -1119,7 +1140,7 @@ export const useAppStore = create<AppState>((set, get) => {
     const userId = firebaseUid || get().user?.id || 'usr-1';
     const updated = get().backtestHistory.filter(item => item.id !== id);
     set({ backtestHistory: updated });
-    localStorage.setItem(`safehaven_backtests_${userId}`, JSON.stringify(updated));
+    try { localStorage.setItem(`safehaven_backtests_${userId}`, JSON.stringify(updated)); } catch(e) { try { localStorage.setItem(`safehaven_backtests_${userId}`, JSON.stringify(updated.slice(0, 5))); } catch(e2) {} }
 
     if (firebaseUid && firebaseUid === userId) {
       try {

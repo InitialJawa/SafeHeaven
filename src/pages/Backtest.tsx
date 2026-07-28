@@ -653,7 +653,7 @@ export const Backtest: React.FC = () => {
               </button>
 
               {isExportDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-72 max-w-[calc(100vw-2rem)] bg-[#111018] border border-[#2a273b] rounded-xl shadow-2xl z-50 overflow-hidden animate-fadeIn py-1">
+                <div className="absolute right-0 mt-2 w-72 max-w-[calc(100vw-2rem)] bg-[#111018] border border-[#1b1926] rounded-xl shadow-2xl z-50 overflow-hidden animate-fadeIn py-1">
                   <button
                     onClick={handleExportWord}
                     disabled={isExportingWord}

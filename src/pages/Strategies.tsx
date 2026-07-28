@@ -6,13 +6,14 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../stores';
 import { Strategy } from '../types';
-import { Sliders, Plus, Trash2, Shield, Percent, Check, X, Pencil } from 'lucide-react';
+import { Sliders, Plus, Trash2, Shield, Percent, Check, X, Pencil, Info } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const Strategies: React.FC = () => {
   const { strategies, portfolioConfig, addStrategy, updateStrategy, deleteStrategy, updatePortfolioConfig } = useAppStore();
   const [isOpen, setIsOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+  const [showAutoTooltip, setShowAutoTooltip] = useState(false);
   
   // Modal states
   const [name, setName] = useState('');
@@ -31,6 +32,12 @@ export const Strategies: React.FC = () => {
 
   const [crashThreshold, setCrashThreshold] = useState(15);
   const [stopLoss, setStopLoss] = useState(10);
+  const [autoAllocation, setAutoAllocation] = useState(false);
+
+  const [enableTacticalRotation, setEnableTacticalRotation] = useState(false);
+  const [enableBearMarketGold, setEnableBearMarketGold] = useState(false);
+  const [enableBearMarketUSD, setEnableBearMarketUSD] = useState(false);
+  const [enableDividendDefender, setEnableDividendDefender] = useState(false);
 
   const openCreateModal = () => {
     setEditId(null);
@@ -53,6 +60,11 @@ export const Strategies: React.FC = () => {
     setAllocUSD(strat.allocationUSD);
     setCrashThreshold(strat.crashThreshold);
     setStopLoss(strat.stopLoss);
+    setAutoAllocation(strat.autoAllocation || false);
+    setEnableTacticalRotation(strat.enableTacticalRotation || false);
+    setEnableBearMarketGold(strat.enableBearMarketGold || false);
+    setEnableBearMarketUSD(strat.enableBearMarketUSD || false);
+    setEnableDividendDefender(strat.enableDividendDefender || false);
     setIsOpen(true);
   };
 
@@ -87,7 +99,12 @@ export const Strategies: React.FC = () => {
       allocationCash: allocCash,
       allocationUSD: allocUSD,
       crashThreshold,
-      stopLoss
+      stopLoss,
+      autoAllocation,
+      enableTacticalRotation,
+      enableBearMarketGold,
+      enableBearMarketUSD,
+      enableDividendDefender
     };
 
     if (editId) {
@@ -116,6 +133,11 @@ export const Strategies: React.FC = () => {
     setAllocUSD(15);
     setCrashThreshold(15);
     setStopLoss(10);
+    setAutoAllocation(false);
+    setEnableTacticalRotation(false);
+    setEnableBearMarketGold(false);
+    setEnableBearMarketUSD(false);
+    setEnableDividendDefender(false);
   };
 
   return (
@@ -262,7 +284,6 @@ export const Strategies: React.FC = () => {
           <div className="bg-[#0c0b12] border border-[#1b1926] rounded-2xl w-full max-w-lg p-6 relative z-10 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-2">
-                <Sliders className="w-5 h-5 text-[#ccff00]" />
                 <h3 className="text-sm font-bold text-white tracking-tight font-sans">
                   {editId ? 'Edit Strategi' : 'Definisikan Strategi Kuantitatif'}
                 </h3>
@@ -337,37 +358,85 @@ export const Strategies: React.FC = () => {
                 </div>
               </div>
               {/* Asset Allocations sliders group */}
-              <div className="space-y-3 pt-4 border-t border-[#1b1926] mt-4">
-                <div className="flex justify-between items-center">
-                  <span className="font-extrabold text-[#9f9bac] uppercase text-[10px] tracking-wider">Alokasi Sasaran Makro</span>
+              <div className="pt-4 border-t border-[#1b1926] mt-4">
+                <div className="flex justify-between items-center mb-4">
+                  <div className="flex items-center gap-3">
+                    <span className="font-extrabold text-[#9f9bac] uppercase text-[10px] tracking-wider">Alokasi Sasaran Makro</span>
+                    <div className="flex items-center gap-2 relative">
+                      <label className="flex items-center cursor-pointer gap-2" title="Aktifkan Auto Dinamis (Rotasi Taktis)">
+                        <div className={`w-8 h-4 flex items-center rounded-full p-0.5 transition-colors ${autoAllocation ? 'bg-[#ccff00]' : 'bg-[#1b1926]'}`}>
+                          <input type="checkbox" className="hidden" checked={autoAllocation} onChange={(e) => setAutoAllocation(e.target.checked)} />
+                          <div className={`bg-black w-3 h-3 rounded-full shadow-md transform transition-transform ${autoAllocation ? 'translate-x-4' : 'translate-x-0'}`}></div>
+                        </div>
+                        <span className={`text-[10px] font-bold ${autoAllocation ? 'text-[#ccff00]' : 'text-[#686477]'}`}>AUTO</span>
+                      </label>
+                      <button 
+                        type="button" 
+                        className="text-[#686477] hover:text-[#ccff00] transition-colors"
+                        onMouseEnter={() => setShowAutoTooltip(true)}
+                        onMouseLeave={() => setShowAutoTooltip(false)}
+                        onClick={() => setShowAutoTooltip(!showAutoTooltip)}
+                      >
+                        <Info className="w-3.5 h-3.5" />
+                      </button>
+                      
+                      {/* Tooltip */}
+                      {showAutoTooltip && (
+                        <div className="absolute z-50 left-0 sm:left-auto sm:right-0 top-full mt-2 w-64 sm:w-72 bg-[#1b1926] border border-[#ccff00]/30 shadow-xl rounded-xl p-3 animate-in fade-in zoom-in-95 duration-200">
+                          <div className="absolute -top-1.5 sm:right-4 left-4 sm:left-auto w-3 h-3 bg-[#1b1926] border-t border-l border-[#ccff00]/30 rotate-45"></div>
+                          <div className="relative z-10 space-y-2">
+                            <h4 className="text-[#ccff00] font-bold text-[11px] uppercase tracking-wider flex items-center gap-1.5">
+                              <Info className="w-3 h-3" />
+                              Mode Auto vs Manual
+                            </h4>
+                            <div className="text-[10px] text-white space-y-1.5 leading-relaxed">
+                              <p><strong className="text-[#00f0ff]">Mode Manual:</strong> Anda menentukan secara pasti proporsi aset (Saham, Emas, Kas, USD). Nilai akan dikunci sesuai pilihan Anda.</p>
+                              <p><strong className="text-[#ccff00]">Mode Auto:</strong> Sistem mengambil alih alokasi. Dana akan diputar secara taktis berdasarkan kondisi market (Bear/Bull) dan rotasi sektoral tanpa perlu Anda ubah secara manual.</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                   <span className={`font-mono font-extrabold text-sm ${totalAllocation === 100 ? 'text-[#ccff00]' : 'text-[#ff3366]'}`}>
                     {totalAllocation}% / 100%
                   </span>
                 </div>
-
-                <div className="space-y-3">
-                  {[
-                    { label: 'Saham', val: allocSaham, set: setAllocSaham, color: '#ccff00' },
-                    { label: 'Emas', val: allocEmas, set: setAllocEmas, color: '#00f0ff' },
-                    { label: 'Kas IDR', val: allocCash, set: setAllocCash, color: '#00f5a0' },
-                    { label: 'USD', val: allocUSD, set: setAllocUSD, color: '#a855f7' }
-                  ].map((s) => (
-                    <div key={s.label} className="grid grid-cols-4 items-center gap-2">
-                      <span className="text-[10px] text-[#686477] font-extrabold uppercase">{s.label}</span>
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        step="5"
-                        value={s.val}
-                        onChange={(e) => s.set(parseInt(e.target.value))}
-                        className="col-span-2 accent-[#ccff00]"
-                      />
-                      <span className="text-right font-mono text-white font-extrabold text-xs">{s.val}%</span>
+                
+                <div className="relative mt-3">
+                  {autoAllocation && (
+                    <div className="absolute inset-[-10px] z-10 bg-[#0b0a10]/70 backdrop-blur-sm flex items-center justify-center rounded-xl border border-[#ccff00]/20">
+                      <div className="bg-[#111018] px-4 py-2 rounded-full flex items-center gap-2 shadow-[0_0_15px_rgba(204,255,0,0.15)] border border-[#ccff00]/30">
+                        <div className="w-2 h-2 rounded-full bg-[#ccff00] animate-pulse"></div>
+                        <span className="text-[#ccff00] font-bold text-xs">Auto Dinamis</span>
+                      </div>
                     </div>
-                  ))}
+                  )}
+                  <div className={`space-y-4 p-3 rounded-xl transition-all ${autoAllocation ? 'opacity-30 pointer-events-none' : 'bg-[#111018]/30 border border-[#1b1926]'}`}>
+                    {[
+                      { label: 'Saham', val: allocSaham, set: setAllocSaham, color: '#ccff00' },
+                      { label: 'Emas', val: allocEmas, set: setAllocEmas, color: '#00f0ff' },
+                      { label: 'Kas IDR', val: allocCash, set: setAllocCash, color: '#00f5a0' },
+                      { label: 'USD', val: allocUSD, set: setAllocUSD, color: '#a855f7' }
+                    ].map((s) => (
+                      <div key={s.label} className="grid grid-cols-4 items-center gap-3">
+                        <span className="text-[10px] text-[#686477] font-extrabold uppercase">{s.label}</span>
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          step="5"
+                          value={s.val}
+                          onChange={(e) => s.set(parseInt(e.target.value))}
+                          disabled={autoAllocation} className="col-span-2 accent-[#ccff00]"
+                        />
+                        <span className="text-right font-mono text-white font-extrabold text-xs">{s.val}%</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
+
               {/* Threshold controls */}
               <div className="grid grid-cols-2 gap-4 pt-3 border-t border-[#1b1926]">
                 <div className="space-y-2">
@@ -394,6 +463,59 @@ export const Strategies: React.FC = () => {
                     className="w-full bg-[#111018]/60 border border-[#1b1926] rounded-xl px-4 py-3 text-white font-mono font-bold text-xs focus:outline-none focus:border-[#ccff00]/40"
                   />
                 </div>
+              </div>
+
+              {/* Advanced Rotational Settings */}
+              <div className="space-y-3 pt-4 border-t border-[#1b1926] mt-4 relative">
+                <span className="font-extrabold text-[#9f9bac] uppercase text-[10px] tracking-wider block">Aturan Rotasi Taktis (Advanced)</span>
+                
+                <label className="flex items-center justify-between cursor-pointer p-3 bg-[#111018]/60 border border-[#1b1926] rounded-xl hover:bg-[#111018] transition-colors">
+                  <div className="space-y-0.5">
+                    <div className="text-xs font-bold text-white">Enable Tactical Rotation</div>
+                    <div className="text-[10px] text-[#686477]">Menerapkan rotasi dinamis saat kondisi pasar bearish.</div>
+                  </div>
+                  <div className={`w-10 h-6 flex items-center rounded-full p-1 transition-colors ${enableTacticalRotation ? 'bg-[#ccff00]' : 'bg-[#1b1926]'}`}>
+                    <input type="checkbox" className="hidden" checked={enableTacticalRotation} onChange={(e) => setEnableTacticalRotation(e.target.checked)} />
+                    <div className={`bg-black w-4 h-4 rounded-full shadow-md transform transition-transform ${enableTacticalRotation ? 'translate-x-4' : 'translate-x-0'}`}></div>
+                  </div>
+                </label>
+
+                {enableTacticalRotation && (
+                  <div className="pl-4 border-l-2 border-[#1b1926] space-y-3 ml-2">
+                    <label className="flex items-center justify-between cursor-pointer p-3 bg-[#111018]/40 border border-[#1b1926]/50 rounded-xl hover:bg-[#111018]/80 transition-colors">
+                      <div className="space-y-0.5">
+                        <div className="text-[11px] font-bold text-white">Rotasi Emas (Bear Market)</div>
+                        <div className="text-[9px] text-[#686477]">Pindahkan dana ke Emas jika saham turun & tren Emas naik.</div>
+                      </div>
+                      <div className={`w-8 h-5 flex items-center rounded-full p-0.5 transition-colors ${enableBearMarketGold ? 'bg-[#00f0ff]' : 'bg-[#1b1926]'}`}>
+                        <input type="checkbox" className="hidden" checked={enableBearMarketGold} onChange={(e) => setEnableBearMarketGold(e.target.checked)} />
+                        <div className={`bg-black w-3.5 h-3.5 rounded-full shadow-md transform transition-transform ${enableBearMarketGold ? 'translate-x-3.5' : 'translate-x-0'}`}></div>
+                      </div>
+                    </label>
+
+                    <label className="flex items-center justify-between cursor-pointer p-3 bg-[#111018]/40 border border-[#1b1926]/50 rounded-xl hover:bg-[#111018]/80 transition-colors">
+                      <div className="space-y-0.5">
+                        <div className="text-[11px] font-bold text-white">Rotasi USD (Market Crash)</div>
+                        <div className="text-[9px] text-[#686477]">Pindahkan ke Dolar AS jika Saham & Emas ikut turun.</div>
+                      </div>
+                      <div className={`w-8 h-5 flex items-center rounded-full p-0.5 transition-colors ${enableBearMarketUSD ? 'bg-[#00f5a0]' : 'bg-[#1b1926]'}`}>
+                        <input type="checkbox" className="hidden" checked={enableBearMarketUSD} onChange={(e) => setEnableBearMarketUSD(e.target.checked)} />
+                        <div className={`bg-black w-3.5 h-3.5 rounded-full shadow-md transform transition-transform ${enableBearMarketUSD ? 'translate-x-3.5' : 'translate-x-0'}`}></div>
+                      </div>
+                    </label>
+
+                    <label className="flex items-center justify-between cursor-pointer p-3 bg-[#111018]/40 border border-[#1b1926]/50 rounded-xl hover:bg-[#111018]/80 transition-colors">
+                      <div className="space-y-0.5">
+                        <div className="text-[11px] font-bold text-white">Dividend Defender</div>
+                        <div className="text-[9px] text-[#686477]">Kecualikan saham berdividen/berkualitas tinggi dari penjualan panic.</div>
+                      </div>
+                      <div className={`w-8 h-5 flex items-center rounded-full p-0.5 transition-colors ${enableDividendDefender ? 'bg-[#ff3366]' : 'bg-[#1b1926]'}`}>
+                        <input type="checkbox" className="hidden" checked={enableDividendDefender} onChange={(e) => setEnableDividendDefender(e.target.checked)} />
+                        <div className={`bg-black w-3.5 h-3.5 rounded-full shadow-md transform transition-transform ${enableDividendDefender ? 'translate-x-3.5' : 'translate-x-0'}`}></div>
+                      </div>
+                    </label>
+                  </div>
+                )}
               </div>
 
               {/* Submit */}

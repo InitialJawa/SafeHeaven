@@ -240,11 +240,7 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
                 ) : (
                   user.name.charAt(0).toUpperCase()
                 )}
-                {(user.email?.toLowerCase().includes('gmail') || user.photoURL) && (
-                  <span className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 border border-[#1b1926] shadow-md z-10" title="Akun Gmail / Google">
-                    <GoogleIcon className="w-2.5 h-2.5" />
-                  </span>
-                )}
+                
               </div>
             ) : (
               <>
@@ -255,28 +251,13 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
                     ) : (
                       user.name.charAt(0).toUpperCase()
                     )}
-                    {(user.email?.toLowerCase().includes('gmail') || user.photoURL) && (
-                      <span className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 border border-[#1b1926] shadow-md z-10" title="Akun Gmail / Google">
-                        <GoogleIcon className="w-2.5 h-2.5" />
-                      </span>
-                    )}
+                    
                   </div>
                   <div className="min-w-0">
                     <p className="font-semibold text-white truncate flex items-center gap-1">
                       <span>{user.name}</span>
                     </p>
-                    <div className="flex items-center gap-1 text-[10px] text-[#9f9bac] truncate">
-                      {user.email?.toLowerCase().includes('gmail') ? (
-                        <span className="inline-flex items-center gap-1 text-[#00f0ff] font-mono text-[9.5px]">
-                          <GoogleIcon className="w-2.5 h-2.5 shrink-0" />
-                          <span className="truncate">{user.email}</span>
-                        </span>
-                      ) : (
-                        <span className="text-[10px] text-[#ccff00] uppercase font-mono font-bold block truncate">
-                          {user.isPremium || user.tier === 'Platinum' ? '⭐ Platinum Member' : user.role}
-                        </span>
-                      )}
-                    </div>
+                    
                   </div>
                 </div>
                 <button
@@ -385,24 +366,11 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
                   ) : (
                     <span className="font-bold text-xs font-sans text-white">{user ? user.name.charAt(0).toUpperCase() : 'D'}</span>
                   )}
-                  {(user?.email?.toLowerCase().includes('gmail') || user?.photoURL) && (
-                    <span className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 border border-[#1b1926] shadow-sm z-10" title="Akun Gmail / Google">
-                      <GoogleIcon className="w-2.5 h-2.5" />
-                    </span>
-                  )}
+                  
                 </div>
                 <div className="text-left hidden md:block max-w-[120px] lg:max-w-[160px]">
                   <p className="text-[10px] font-bold text-white leading-tight font-sans truncate">{user ? user.name : 'Demo User'}</p>
-                  {user?.email?.toLowerCase().includes('gmail') ? (
-                    <span className="text-[9px] text-[#00f0ff] font-mono flex items-center gap-1 truncate">
-                      <GoogleIcon className="w-2.5 h-2.5 shrink-0" />
-                      <span className="truncate">{user.email}</span>
-                    </span>
-                  ) : (
-                    <span className="text-[9px] text-[#ccff00] font-mono block truncate">
-                      {isPremium ? '⭐ Premium Active' : 'Demo Active'}
-                    </span>
-                  )}
+                  
                 </div>
               </div>
             ) : (
@@ -525,24 +493,11 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
                     ) : (
                       user ? user.name.charAt(0).toUpperCase() : 'D'
                     )}
-                    {(user?.email?.toLowerCase().includes('gmail') || user?.photoURL) && (
-                      <span className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 border border-[#1b1926] shadow-sm z-10" title="Akun Gmail / Google">
-                        <GoogleIcon className="w-2.5 h-2.5" />
-                      </span>
-                    )}
+                    
                   </div>
                   <div className="min-w-0">
                     <p className="font-semibold text-white truncate">{user ? user.name : 'Demo User'}</p>
-                    {user?.email?.toLowerCase().includes('gmail') ? (
-                      <span className="text-[9px] text-[#00f0ff] font-mono flex items-center gap-1 truncate">
-                        <GoogleIcon className="w-2.5 h-2.5 shrink-0" />
-                        <span className="truncate">{user.email}</span>
-                      </span>
-                    ) : (
-                      <span className="text-[9px] text-[#ccff00] uppercase font-mono font-bold block truncate">
-                        {isPremium ? '⭐ Premium Member' : 'Demo Active'}
-                      </span>
-                    )}
+                    
                   </div>
                 </div>
                 <button

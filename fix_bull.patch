@@ -1,0 +1,19 @@
+--- server.ts
++++ server.ts
+@@ -2982,6 +2982,12 @@
+             const usdTrend = usdCurrent > usdPast;
+             
++            let totalDefensive = stockAlloc + goldAlloc + usdAlloc + cashAlloc;
+             if (!isBenchmarkPositive) {
+               // Bear Market Rotation: Override base allocations to protect capital
+-              let totalDefensive = stockAlloc + goldAlloc + usdAlloc + cashAlloc; // usually 1.0
+               
+               if (targetStrategy.enableBearMarketGold && goldTrend) {
+@@ -3002,2 +3008,7 @@
+               }
++            } else {
++               // Bull Market Rotation: Go aggressive on stocks
++               stockAlloc = totalDefensive * 0.9;
++               cashAlloc = totalDefensive * 0.1;
++               goldAlloc = 0; usdAlloc = 0;
+             }

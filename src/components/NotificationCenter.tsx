@@ -56,7 +56,7 @@ export const NotificationCenter: React.FC = () => {
       {isOpen && (
         <div 
           id="notification-dropdown-box" 
-          className="absolute right-0 mt-2 w-80 bg-[#0a0a0a] border border-[#1f1f1f] rounded-xl shadow-2xl overflow-hidden z-50 animate-[slideUp_0.15s_ease-out]"
+          className="absolute right-0 mt-2 w-80 bg-[#111018] border border-[#1b1926] rounded-xl shadow-2xl overflow-hidden z-50 animate-[slideUp_0.15s_ease-out]"
         >
           <div className="px-4 py-3 bg-[#111111] border-b border-[#1f1f1f] flex items-center justify-between">
             <span className="text-xs font-semibold text-white">Notifikasi Aktif ({count})</span>

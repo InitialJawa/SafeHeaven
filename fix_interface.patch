@@ -1,0 +1,8 @@
+--- src/types.ts
++++ src/types.ts
+@@ -93,6 +93,7 @@
+   crashThreshold: number;
+   stopLoss: number;
++  autoAllocation?: boolean;
+   enableTacticalRotation?: boolean;
+   enableBearMarketGold?: boolean;

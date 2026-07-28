@@ -1,0 +1,30 @@
+--- src/stores/index.ts
++++ src/stores/index.ts
+@@ -1080,2 +1080,12 @@
+ 
++  const saveToLocalSafe = (key: string, data: any[]) => {
++    try {
++      localStorage.setItem(key, JSON.stringify(data.slice(0, 10)));
++    } catch (e) {
++      try {
++        localStorage.setItem(key, JSON.stringify(data.slice(0, 3)));
++      } catch (e2) {}
++    }
++  };
++
+   fetchBacktestHistory: async () => {
+@@ -1096,3 +1106,3 @@
+         set({ backtestHistory: items });
+-        localStorage.setItem(`safehaven_backtests_${userId}`, JSON.stringify(items));
++        saveToLocalSafe(`safehaven_backtests_${userId}`, items);
+         return;
+@@ -1124,3 +1134,3 @@
+     set({ backtestHistory: updated });
+-    localStorage.setItem(`safehaven_backtests_${userId}`, JSON.stringify(updated));
++    saveToLocalSafe(`safehaven_backtests_${userId}`, updated);
+ 
+@@ -1142,3 +1152,3 @@
+     set({ backtestHistory: updated });
+-    localStorage.setItem(`safehaven_backtests_${userId}`, JSON.stringify(updated));
++    saveToLocalSafe(`safehaven_backtests_${userId}`, updated);
+ 

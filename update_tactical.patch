@@ -1,0 +1,35 @@
+--- server.ts
++++ server.ts
+@@ -2982,23 +2982,26 @@
+             const usdTrend = usdCurrent > usdPast;
+             
+             if (!isBenchmarkPositive) {
+-              if (targetStrategy.enableBearMarketGold && goldTrend) {
+-                 goldAlloc += stockAlloc * 0.8; 
+-                 stockAlloc = stockAlloc * 0.2;
+-              } else if (targetStrategy.enableBearMarketUSD && usdTrend) {
+-                 usdAlloc += stockAlloc * 0.8; 
+-                 stockAlloc = stockAlloc * 0.2;
+-              } else if (targetStrategy.enableBearMarketGold || targetStrategy.enableBearMarketUSD) {
+-                 cashAlloc += stockAlloc * 0.8;
+-                 stockAlloc = stockAlloc * 0.2;
+-              }
++              // Bear Market Rotation: Override base allocations to protect capital
++              let totalDefensive = stockAlloc + goldAlloc + usdAlloc + cashAlloc; // usually 1.0
++              
++              if (targetStrategy.enableBearMarketGold && goldTrend) {
++                 goldAlloc = totalDefensive * 0.8;
++                 stockAlloc = totalDefensive * 0.2;
++                 usdAlloc = 0; cashAlloc = 0;
++              } else if (targetStrategy.enableBearMarketUSD && usdTrend) {
++                 usdAlloc = totalDefensive * 0.8;
++                 stockAlloc = totalDefensive * 0.2;
++                 goldAlloc = 0; cashAlloc = 0;
++              } else {
++                 cashAlloc = totalDefensive * 0.8;
++                 stockAlloc = totalDefensive * 0.2;
++                 goldAlloc = 0; usdAlloc = 0;
++              }
+               
+               if (targetStrategy.enableDividendDefender) {
+                 availableStocks = currentSelectedTickers.filter(t => {

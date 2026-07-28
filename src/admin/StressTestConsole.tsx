@@ -56,9 +56,7 @@ export const StressTestConsole: React.FC<StressTestConsoleProps> = ({ addLog }) 
       <div className="card card-elevated p-6 space-y-5 bg-[#0b0a10]/45 border border-[#1b1926]">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-sm font-bold text-white tracking-tight font-sans flex items-center gap-2">
-              <ShieldAlert className="w-4 h-4 text-[#ff3366]" /> Modul Simulasi Krisis Pasar & Black Swan
-            </h3>
+            <h3 className="text-sm font-bold text-white tracking-tight font-sans">Modul Simulasi Krisis Pasar & Black Swan</h3>
             <p className="text-[11px] text-[#686477] mt-0.5 font-sans">
               Injeksi kejutan makro ekonomi untuk menguji ketahanan portofolio dan respon Crash Shield.
             </p>

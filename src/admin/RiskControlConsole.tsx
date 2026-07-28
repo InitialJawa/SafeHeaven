@@ -148,7 +148,6 @@ export const RiskControlConsole: React.FC<RiskControlConsoleProps> = ({ addLog }
         <div className="card card-elevated p-6 bg-[#0b0a10]/45 border border-[#1b1926] space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <ShieldAlert className={`w-5 h-5 ${data?.crashShieldActive ? 'text-[#ff3366] animate-pulse' : 'text-[#00f5a0]'}`} />
               <h3 className="text-sm font-bold text-white font-sans">Status Crash Shield</h3>
             </div>
             <span className={`text-[10px] font-mono font-bold px-2.5 py-1 rounded-full border ${
@@ -183,7 +182,6 @@ export const RiskControlConsole: React.FC<RiskControlConsoleProps> = ({ addLog }
         <div className="card card-elevated p-6 bg-[#0b0a10]/45 border border-[#1b1926] space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Flame className={`w-5 h-5 ${data?.stopLossTriggered ? 'text-[#ff3366]' : 'text-amber-400'}`} />
               <h3 className="text-sm font-bold text-white font-sans">Mekanisme Stop Loss Asset</h3>
             </div>
             <span className={`text-[10px] font-mono font-bold px-2.5 py-1 rounded-full border ${

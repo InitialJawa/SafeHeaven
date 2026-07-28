@@ -174,7 +174,7 @@ export const Analytics: React.FC = () => {
     return (
       <div className="px-6 space-y-6 pb-20 animate-in fade-in duration-300">
         {/* Header Skeleton */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 min-w-0">
           <Skeleton className="w-1.5 h-8 rounded-full" />
           <div className="space-y-1.5">
             <Skeleton className="h-7 w-64 rounded-lg" />
@@ -366,15 +366,12 @@ export const Analytics: React.FC = () => {
       </div>
 
       {/* Dedicated Universe Selection Toolbar */}
-      <div className="card card-elevated p-4 bg-[#0b0a10]/60 border border-[#1b1926] flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-xl">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-[#ccff00]/10 border border-[#ccff00]/20 flex items-center justify-center text-[#ccff00]">
-            <Filter className="w-4 h-4" />
-          </div>
+      <div className="card card-elevated p-4 bg-[#0b0a10]/60 border border-[#1b1926] flex flex-col lg:flex-row lg:items-center justify-between gap-4 rounded-xl overflow-hidden">
+        <div className="flex items-center gap-3 min-w-0">
+          
           <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-xs font-bold uppercase text-white tracking-wider font-sans">Semesta Saham (Universe Index)</h3>
-              <span className="text-[9px] font-bold text-[#ccff00] bg-[#ccff00]/10 px-2 py-0.5 rounded-full border border-[#ccff00]/20">
+            <div className="flex flex-wrap items-center gap-2"><h3 className="text-xs font-bold uppercase text-white tracking-wider font-sans">Semesta Saham (Universe Index)</h3>
+              <span className="text-[9px] font-bold text-[#ccff00] bg-[#ccff00]/10 px-2 py-0.5 rounded-full border border-[#ccff00]/20 whitespace-nowrap shrink-0">
                 {marketIndex}
               </span>
             </div>
@@ -382,7 +379,7 @@ export const Analytics: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 hide-scrollbar">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0 hide-scrollbar w-full lg:w-auto">
           {universes.map((u) => {
             const active = marketIndex === u.name;
             return (

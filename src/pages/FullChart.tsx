@@ -750,7 +750,7 @@ export const FullChart: React.FC<FullChartProps> = ({ params }) => {
               </button>
               
               {isIntervalDropdownOpen && (
-                <div className="absolute top-full right-0 mt-2 w-32 bg-[#111018] border border-[#2a273b] rounded-xl shadow-2xl z-50 p-1 space-y-0.5 animate-in fade-in duration-150">
+                <div className="absolute top-full right-0 mt-2 w-32 bg-[#111018] border border-[#1b1926] rounded-xl shadow-2xl z-50 p-1 space-y-0.5 animate-in fade-in duration-150">
                   {([
                     { value: '1d', label: '1 Hari' },
                     { value: '1wk', label: '1 Minggu' },
@@ -796,7 +796,7 @@ export const FullChart: React.FC<FullChartProps> = ({ params }) => {
               </button>
 
               {isRangeDropdownOpen && (
-                <div className="absolute top-full right-0 mt-2 w-40 bg-[#111018] border border-[#2a273b] rounded-xl shadow-2xl z-50 p-1 space-y-0.5 animate-in fade-in duration-150">
+                <div className="absolute top-full right-0 mt-2 w-40 bg-[#111018] border border-[#1b1926] rounded-xl shadow-2xl z-50 p-1 space-y-0.5 animate-in fade-in duration-150">
                   {([
                     { value: '1m', label: '1 Bulan (1M)' },
                     { value: '3m', label: '3 Bulan (3M)' },

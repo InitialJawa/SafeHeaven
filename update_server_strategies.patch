@@ -1,0 +1,13 @@
+--- server.ts
++++ server.ts
+@@ -490,6 +490,10 @@
+     allocationUSD: 20,
+     crashThreshold: -5,
+-    stopLoss: 10
++    stopLoss: 10,
++    enableTacticalRotation: true,
++    enableBearMarketGold: true,
++    enableBearMarketUSD: true,
++    enableDividendDefender: true
+   }
+ ];

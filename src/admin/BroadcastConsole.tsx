@@ -100,9 +100,7 @@ export const BroadcastConsole: React.FC<BroadcastConsoleProps> = ({ addLog }) =>
       {/* Broadcast Notification Sender */}
       <div className="card card-elevated p-6 bg-[#0b0a10]/45 border border-[#1b1926] space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-bold text-white tracking-tight font-sans flex items-center gap-2">
-            <Send className="w-4 h-4 text-[#ccff00]" /> Broadcast Sinyal Ke Seluruh Tab
-          </h3>
+          <h3 className="text-sm font-bold text-white tracking-tight font-sans">Broadcast Sinyal Ke Seluruh Tab</h3>
 
           {/* Courier Status Pill */}
           <div className="flex items-center gap-2">

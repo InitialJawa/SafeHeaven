@@ -277,9 +277,7 @@ export const UserManagementConsole: React.FC<UserManagementConsoleProps> = ({ ad
           
           {/* Form 1: Add New VIP Client */}
           <div className="card card-elevated p-6 bg-[#0b0a10]/45 border border-[#1b1926] space-y-4">
-            <h3 className="text-sm font-bold text-white font-sans flex items-center gap-2">
-              <UserPlus className="w-4 h-4 text-amber-400" /> Daftarkan Member VIP Baru
-            </h3>
+            <h3 className="text-sm font-bold text-white font-sans">Daftarkan Member VIP Baru</h3>
 
             <form onSubmit={handleCreateClient} className="space-y-3 text-xs">
               <div className="space-y-1">
@@ -318,9 +316,7 @@ export const UserManagementConsole: React.FC<UserManagementConsoleProps> = ({ ad
 
           {/* Form 2: VIP Error & Access Diagnostic */}
           <div className="card card-elevated p-6 bg-[#0b0a10]/45 border border-[#1b1926] space-y-4">
-            <h3 className="text-sm font-bold text-white font-sans flex items-center gap-2">
-              <Wrench className="w-4 h-4 text-[#00f0ff]" /> Cek & Diagnosis Error Member VIP
-            </h3>
+            <h3 className="text-sm font-bold text-white font-sans">Cek & Diagnosis Error Member VIP</h3>
 
             <p className="text-[11px] text-[#9f9bac]">
               Gunakan alat ini apabila member melapor lisensi VIP tidak masuk atau mengalami kejanggalan hak akses.

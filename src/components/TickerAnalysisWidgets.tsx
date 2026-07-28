@@ -98,7 +98,7 @@ export const WidgetKinerja: React.FC<WidgetKinerjaProps> = ({ symbol }) => {
       <div>
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-xs font-bold text-white tracking-tight font-sans flex items-center gap-1.5">
-            <Activity className="w-3.5 h-3.5 text-[#ccff00]" />
+            
             Kinerja {symbol === '^JKSE' || symbol === 'IHSG' ? 'IHSG' : symbol}
           </h3>
           {data.isFallback && (
@@ -196,7 +196,7 @@ export const WidgetMusiman: React.FC<WidgetMusimanProps> = ({ symbol }) => {
       <div>
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-xs font-bold text-white tracking-tight font-sans flex items-center gap-1.5">
-            <Calendar className="w-3.5 h-3.5 text-[#ccff00]" />
+            
             Analisis Musiman {symbol === '^JKSE' || symbol === 'IHSG' ? 'IHSG' : symbol} (%)
           </h3>
           <span className="text-[9px] text-[#686477] font-mono">Mingguan (Weekly) • Garis Quartal</span>
@@ -331,8 +331,7 @@ export const WidgetFinancials: React.FC<WidgetFinancialsProps> = ({ symbol }) =>
     <div className="card card-elevated p-6 bg-[#0b0a10]/45 border border-[#1b1926] flex flex-col justify-between hover:border-[#ccff00]/20 transition-all">
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-bold text-white tracking-tight font-sans flex items-center gap-2">
-            <BarChart2 className="w-4 h-4 text-[#ccff00]" />
+          <h3 className="text-sm font-bold text-white tracking-tight font-sans">
             Laporan Pemasukan (Tahunan)
           </h3>
           <span className="text-[9px] text-[#686477] font-mono">Nilai dlm Triliun IDR</span>
@@ -446,8 +445,7 @@ export const WidgetDividen: React.FC<WidgetDividenProps> = ({ symbol }) => {
       {/* Chart Section */}
       <div className="flex flex-col justify-between items-center md:items-start flex-1 min-w-[150px]">
         <div>
-          <h3 className="text-sm font-bold text-white tracking-tight font-sans flex items-center gap-2 mb-1">
-            <Percent className="w-4 h-4 text-[#ccff00]" />
+          <h3 className="text-sm font-bold text-white tracking-tight font-sans mb-1">
             Alokasi Dividen TTM
           </h3>
           <p className="text-[10px] text-[#686477] font-sans">Rasio pembayaran & Laba ditahan</p>
@@ -738,7 +736,7 @@ export const WidgetGauges: React.FC<WidgetGaugesProps> = ({ symbol }) => {
     <div className="bg-[#0b0a10]/60 border border-[#1b1926] rounded-2xl p-4 hover:border-[#ccff00]/30 transition-all">
       <div className="flex items-center justify-between mb-3 pb-2 border-b border-[#1b1926]">
         <h3 className="text-xs font-bold text-white tracking-tight font-sans flex items-center gap-2">
-          <Activity className="w-3.5 h-3.5 text-[#ccff00]" />
+          
           Analisa Gauges (Teknikal & Analis) - {symbol === '^JKSE' || symbol === 'IHSG' ? 'IHSG' : symbol}
         </h3>
         <span className="text-[9px] text-[#686477] font-mono">Indikator Real-Time</span>
@@ -748,7 +746,7 @@ export const WidgetGauges: React.FC<WidgetGaugesProps> = ({ symbol }) => {
         <div className="flex flex-col items-center justify-between pb-3 md:pb-0 md:pr-3">
           <div className="text-center mb-0.5">
             <h4 className="text-xs font-bold text-white tracking-tight font-sans flex items-center justify-center gap-1.5">
-              <Activity className="w-3.5 h-3.5 text-[#ccff00]" />
+              
               Analisa Teknikal
             </h4>
             <p className="text-[10px] text-[#9f9bac] font-sans">Konsensus osilator & MA (Real-Time)</p>
@@ -770,7 +768,7 @@ export const WidgetGauges: React.FC<WidgetGaugesProps> = ({ symbol }) => {
         <div className="flex flex-col items-center justify-between pt-3 md:pt-0 md:pl-3">
           <div className="text-center mb-0.5">
             <h4 className="text-xs font-bold text-white tracking-tight font-sans flex items-center justify-center gap-1.5">
-              <Target className="w-3.5 h-3.5 text-[#ccff00]" />
+              
               Penilaian Analis
             </h4>
             <p className="text-[10px] text-[#9f9bac] font-sans">Konsensus target 1 tahun bursa</p>

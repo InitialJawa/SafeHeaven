@@ -30,47 +30,65 @@ service cloud.firestore {
 
       // Configs subcollection
       match /configs/{configId} {
-        allow read, write: if isOwner(userId) && isValidId(configId);
+        allow get: if isOwner(userId) && isValidId(configId);
+        allow list: if isOwner(userId);
+        allow create, update, delete: if isOwner(userId) && isValidId(configId);
       }
 
       // Alert rules subcollection
       match /alertRules/{ruleId} {
-        allow read, write: if isOwner(userId) && isValidId(ruleId);
+        allow get: if isOwner(userId) && isValidId(ruleId);
+        allow list: if isOwner(userId);
+        allow create, update, delete: if isOwner(userId) && isValidId(ruleId);
       }
 
       // Alerts history subcollection
       match /alerts/{alertId} {
-        allow read, write: if isOwner(userId) && isValidId(alertId);
+        allow get: if isOwner(userId) && isValidId(alertId);
+        allow list: if isOwner(userId);
+        allow create, update, delete: if isOwner(userId) && isValidId(alertId);
       }
 
       // Watchlists subcollection
       match /watchlists/{watchlistId} {
-        allow read, write: if isOwner(userId) && isValidId(watchlistId);
+        allow get: if isOwner(userId) && isValidId(watchlistId);
+        allow list: if isOwner(userId);
+        allow create, update, delete: if isOwner(userId) && isValidId(watchlistId);
       }
 
       // Backtests history subcollection
       match /backtests/{backtestId} {
-        allow read, write, delete: if isOwner(userId) && isValidId(backtestId);
+        allow get: if isOwner(userId) && isValidId(backtestId);
+        allow list: if isOwner(userId);
+        allow create, update, delete: if isOwner(userId) && isValidId(backtestId);
       }
 
       // Memory subcollection
       match /memory/{memoryId} {
-        allow read, write, delete: if isOwner(userId) && isValidId(memoryId);
+        allow get: if isOwner(userId) && isValidId(memoryId);
+        allow list: if isOwner(userId);
+        allow create, update, delete: if isOwner(userId) && isValidId(memoryId);
       }
 
       // Chat sessions subcollection
       match /chatSessions/{sessionId} {
-        allow read, write, delete: if isOwner(userId) && isValidId(sessionId);
+        allow get: if isOwner(userId) && isValidId(sessionId);
+        allow list: if isOwner(userId);
+        allow create, update, delete: if isOwner(userId) && isValidId(sessionId);
       }
 
       // Saved prompts subcollection
       match /savedPrompts/{promptId} {
-        allow read, write, delete: if isOwner(userId) && isValidId(promptId);
+        allow get: if isOwner(userId) && isValidId(promptId);
+        allow list: if isOwner(userId);
+        allow create, update, delete: if isOwner(userId) && isValidId(promptId);
       }
 
       // Custom strategies subcollection
       match /strategies/{strategyId} {
-        allow read, write, delete: if isOwner(userId) && isValidId(strategyId);
+        allow get: if isOwner(userId) && isValidId(strategyId);
+        allow list: if isOwner(userId);
+        allow create, update, delete: if isOwner(userId) && isValidId(strategyId);
       }
     }
   }
