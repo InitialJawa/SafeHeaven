@@ -9,7 +9,6 @@ import { useAppStore } from '../stores';
 import { auth, googleProvider, signInWithPopup } from '../lib/firebase';
 import { ShieldCheck, ArrowRight, UserPlus, LogIn, Lock, Mail, User, TrendingUp, Landmark, Shield } from 'lucide-react';
 import { SafeHavenLogo } from '../components/SafeHavenLogo';
-import { GoogleIcon, GmailIcon } from '../components/AppLogos';
 
 export const Login: React.FC = () => {
   const [, setLocation] = useLocation();
@@ -130,7 +129,7 @@ export const Login: React.FC = () => {
               <div className="flex justify-between items-end">
                 <div>
                   <span className="text-[8px] text-[#686477] uppercase font-mono tracking-widest">Card Holder</span>
-                  <p className="text-xs font-bold font-mono tracking-wide text-white">IMAM NASRULLOH</p>
+                  <p className="text-xs font-bold font-mono tracking-wide text-white">SAFEHAVEN MEMBER</p>
                 </div>
                 <div className="text-right">
                   <span className="text-[8px] text-[#686477] uppercase font-mono tracking-widest">Expiry</span>
@@ -177,7 +176,7 @@ export const Login: React.FC = () => {
                 {isRegister ? 'Membuat Akun Baru' : 'Masuk ke Cockpit'}
               </h2>
               <p className="text-xs text-[#9f9bac] mt-1">
-                {isRegister ? 'Mulailah dengan merancang taktis akun Anda' : 'Silakan gunakan detail demo Anda untuk masuk langsung'}
+                {isRegister ? 'Mulailah dengan merancang taktis akun Anda' : 'Silakan gunakan email & password atau Google Auth untuk masuk'}
               </p>
             </div>
 
@@ -194,7 +193,7 @@ export const Login: React.FC = () => {
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="cth: Imam Nasrulloh"
+                    placeholder="cth: Nama Lengkap Anda"
                     className="w-full bg-[#111018] border border-[#1b1926] text-sm rounded-xl px-4 py-3 text-white placeholder-[#686477] focus:outline-none focus:border-[#ccff00] focus:shadow-[0_0_15px_rgba(204,255,0,0.1)] transition-all font-sans"
                   />
                 </div>
@@ -273,63 +272,20 @@ export const Login: React.FC = () => {
                 )}
               </button>
 
-              {/* Quick Account Selector Options with Gmail Logos */}
-              <div className="pt-2 border-t border-[#1b1926]/80 space-y-1.5 text-left">
-                <span className="text-[10px] font-mono font-bold text-[#686477] uppercase tracking-wider block mb-1">
-                  Pilih Akun Instan (Gmail / Admin / Demo)
-                </span>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      login('client1@gmail.com', 'Amir Nasution');
-                      setLocation('/dashboard');
-                    }}
-                    className="p-2 rounded-xl bg-[#111018] hover:bg-[#1b1926] border border-[#2d2943] hover:border-[#00f0ff]/40 text-left transition-all cursor-pointer flex items-center gap-2 group"
-                  >
-                    <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center shrink-0">
-                      <GoogleIcon className="w-3.5 h-3.5" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[11px] font-bold text-white group-hover:text-[#00f0ff] truncate">Amir Nasution</p>
-                      <p className="text-[9px] font-mono text-[#9f9bac] truncate flex items-center gap-1">
-                        <GmailIcon className="w-2.5 h-2.5 shrink-0" />
-                        <span>client1@gmail.com</span>
-                      </p>
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      login('admin@safehaven.id', 'SafeHaven Admin');
-                      setLocation('/dashboard');
-                    }}
-                    className="p-2 rounded-xl bg-[#111018] hover:bg-[#1b1926] border border-[#2d2943] hover:border-[#ccff00]/40 text-left transition-all cursor-pointer flex items-center gap-2 group"
-                  >
-                    <div className="w-6 h-6 rounded-full bg-[#ccff00]/10 border border-[#ccff00]/25 flex items-center justify-center text-[#ccff00] font-bold text-[10px] shrink-0 font-mono">
-                      A
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[11px] font-bold text-white group-hover:text-[#ccff00] truncate">SafeHaven Admin</p>
-                      <p className="text-[9px] font-mono text-[#9f9bac] truncate">admin@safehaven.id</p>
-                    </div>
-                  </button>
-                </div>
-              </div>
-
               {/* Demo Mode Instant Access Button */}
-              <button
-                id="login-demo-btn"
-                type="button"
-                onClick={() => {
-                  useAppStore.getState().loginDemoUser(false);
-                  setLocation('/dashboard');
-                }}
-                className="w-full mt-2 bg-[#111018] hover:bg-[#181624] border border-[#ccff00]/30 text-[#ccff00] text-xs font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer shadow-[0_0_15px_rgba(204,255,0,0.1)]"
-              >
-                <span>Coba Langsung dengan Akun Demo</span>
-              </button>
+              <div className="pt-2 border-t border-[#1b1926]/80">
+                <button
+                  id="login-demo-btn"
+                  type="button"
+                  onClick={() => {
+                    useAppStore.getState().loginDemoUser(false);
+                    setLocation('/dashboard');
+                  }}
+                  className="w-full bg-[#111018] hover:bg-[#181624] border border-[#ccff00]/30 text-[#ccff00] text-xs font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer shadow-[0_0_15px_rgba(204,255,0,0.1)]"
+                >
+                  <span>Coba Langsung dengan Akun Demo (Guest Mode)</span>
+                </button>
+              </div>
             </form>
 
             {/* Toggle Mode */}

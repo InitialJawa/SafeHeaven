@@ -351,7 +351,7 @@ export const AssetTreemap: React.FC<AssetTreemapProps> = ({ capital = 500000000,
       <div className="flex justify-between items-start mb-4 z-10">
         <div className="space-y-1">
           <h2 className="text-xl font-extrabold text-white tracking-tight leading-none font-sans mt-1">
-            {portfolioConfig?.strategyName || 'IMAM NASRULLOH'}
+            {portfolioConfig?.strategyName || 'PORTFOLIO STRATEGY'}
           </h2>
           <div className="flex items-center gap-2 mt-2">
             <span className="text-[10px] font-bold text-[#1ae88e] flex items-center gap-1 bg-[#1ae88e]/10 px-2 py-0.5 rounded-md border border-[#1ae88e]/20">

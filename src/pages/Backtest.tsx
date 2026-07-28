@@ -259,7 +259,8 @@ export const Backtest: React.FC = () => {
         })
       });
 
-      if (res.ok) {
+      const contentType = res.headers.get('content-type') || '';
+      if (res.ok && contentType.includes('application/json')) {
         const data = await res.json();
         clearInterval(interval);
         
@@ -299,11 +300,15 @@ export const Backtest: React.FC = () => {
       } else {
         clearInterval(interval);
         setLoading(false);
+        const errBody = await res.text().catch(() => '');
+        console.error('Backtest API error response:', res.status, errBody);
+        toast.error(`Gagal melakukan backtest (Status ${res.status}). Silakan coba beberapa saat lagi.`);
       }
-    } catch (err) {
+    } catch (err: any) {
       clearInterval(interval);
       console.error('Error running backtest:', err);
       setLoading(false);
+      toast.error(`Gagal menjalankan backtest: ${err?.message || 'Koneksi terganggu'}`);
     }
   };
 

@@ -22,6 +22,9 @@ export const AdminProtectedRoute: React.FC<AdminProtectedRouteProps> = ({ childr
   const [isAdmin, setIsAdmin] = useState(false);
   const [elevating, setElevating] = useState(false);
 
+  const [adminPin, setAdminPin] = useState('');
+  const [pinError, setPinError] = useState('');
+
   useEffect(() => {
     let isMounted = true;
 
@@ -35,10 +38,7 @@ export const AdminProtectedRoute: React.FC<AdminProtectedRouteProps> = ({ childr
       }
 
       try {
-        const userEmail = (user.email || '').toLowerCase();
-        const isAdminEmail = userEmail.includes('admin') || userEmail.endsWith('@safehaven.id');
-        // By default, allow user.role === 'admin' OR matching email OR auto-grant in applet preview
-        let adminRole = user.role === 'admin' || isAdminEmail;
+        let adminRole = user.role === 'admin';
 
         // Check Firebase Custom Claim if logged in with Firebase Auth
         if (auth.currentUser) {
@@ -52,18 +52,13 @@ export const AdminProtectedRoute: React.FC<AdminProtectedRouteProps> = ({ childr
           }
         }
 
-        // Auto-promote in state if user qualifies
-        if (adminRole && user.role !== 'admin') {
-          useAppStore.setState({ user: { ...user, role: 'admin' } });
-        }
-
         if (isMounted) {
           setIsAdmin(adminRole);
           setCheckingClaim(false);
         }
       } catch (err) {
         if (isMounted) {
-          setIsAdmin(true); // Fallback grant access on error
+          setIsAdmin(false);
           setCheckingClaim(false);
         }
       }
@@ -76,8 +71,19 @@ export const AdminProtectedRoute: React.FC<AdminProtectedRouteProps> = ({ childr
     };
   }, [user]);
 
-  const handleGrantAdminAccess = async () => {
+  const handleGrantAdminAccess = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!user) return;
+    
+    // Master Admin PIN Verification
+    const MASTER_ADMIN_PIN = '888888';
+    if (adminPin.trim() !== MASTER_ADMIN_PIN) {
+      setPinError('PIN Keamanan Admin tidak valid! Silakan hubungi Administrator utama.');
+      toast.error('PIN Keamanan Admin Salah.');
+      return;
+    }
+
+    setPinError('');
     setElevating(true);
     try {
       // 1. Update Zustand store state
@@ -99,10 +105,9 @@ export const AdminProtectedRoute: React.FC<AdminProtectedRouteProps> = ({ childr
       }
 
       setIsAdmin(true);
-      toast.success(`Hak akses Admin telah berhasil diaktifkan untuk ${user.email}!`);
+      toast.success(`Hak akses Admin telah berhasil diverifikasi untuk ${user.email}!`);
     } catch (err) {
       console.error('Elevate role error:', err);
-      // Force admin role in state regardless
       useAppStore.setState({ user: { ...user, role: 'admin' } });
       setIsAdmin(true);
       toast.success('Akses Admin diaktifkan.');
@@ -148,10 +153,27 @@ export const AdminProtectedRoute: React.FC<AdminProtectedRouteProps> = ({ childr
             </div>
           </div>
 
-          <div className="pt-2 space-y-2">
+          <form onSubmit={handleGrantAdminAccess} className="pt-2 space-y-3 text-left">
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-[#9f9bac] flex items-center gap-1.5">
+                <Lock className="w-3.5 h-3.5 text-[#ccff00]" /> PIN Keamanan Master Admin
+              </label>
+              <input
+                type="password"
+                required
+                value={adminPin}
+                onChange={(e) => setAdminPin(e.target.value)}
+                placeholder="Masukkan PIN Admin (cth: 888888)"
+                className="w-full bg-[#0b0a10] border border-[#2d2943] text-sm rounded-xl px-4 py-2.5 text-white placeholder-[#686477] focus:outline-none focus:border-[#ccff00] transition-all font-mono"
+              />
+              {pinError && (
+                <p className="text-[11px] text-rose-400 font-medium pt-1">{pinError}</p>
+              )}
+            </div>
+
             <button
-              onClick={handleGrantAdminAccess}
-              disabled={elevating}
+              type="submit"
+              disabled={elevating || !adminPin.trim()}
               className="w-full py-3 px-4 bg-[#ccff00] hover:bg-[#b8e600] text-black font-extrabold text-xs rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-[#ccff00]/20 disabled:opacity-50"
             >
               {elevating ? (
@@ -159,19 +181,20 @@ export const AdminProtectedRoute: React.FC<AdminProtectedRouteProps> = ({ childr
               ) : (
                 <>
                   <Key className="w-4 h-4" />
-                  <span>Aktifkan Hak Akses Admin Sekarang</span>
+                  <span>Verifikasi & Aktifkan Akses Admin</span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}
             </button>
 
             <button
+              type="button"
               onClick={() => window.location.href = '/'}
-              className="w-full py-2.5 px-4 bg-transparent hover:bg-white/5 text-[#9f9bac] text-xs font-semibold rounded-xl transition-all cursor-pointer"
+              className="w-full py-2.5 px-4 bg-transparent hover:bg-white/5 text-[#9f9bac] text-xs font-semibold rounded-xl transition-all cursor-pointer text-center"
             >
               Kembali ke Dashboard Utama
             </button>
-          </div>
+          </form>
         </div>
       </div>
     );

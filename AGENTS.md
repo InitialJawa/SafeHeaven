@@ -39,3 +39,5 @@
 - `/src/components/TickerAnalysisWidgets.tsx` - Yahoo Finance integrated widgets (Gauges, Financials, Dividends, Performance, Seasonality).
 - `/src/pages/Portfolio.tsx` - User portfolio tracking & AI portfolio insights.
 - `/src/pages/Watchlist.tsx` - Custom watchlists and stock screener.
+- `/scripts/` - Organized automation & patch scripts (`/checks`, `/fixes`, `/patches`, `/maintenance`, `/debug`, `/_archive`).
+- `/tests/` - End-to-end and API integration tests.

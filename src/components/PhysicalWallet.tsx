@@ -53,7 +53,7 @@ export const PhysicalWallet: React.FC<PhysicalWalletProps> = ({
               {getActiveProfileLabel()}
             </p>
             <h4 className="text-xs sm:text-sm font-extrabold text-white tracking-wide truncate max-w-[180px] uppercase">
-              {user?.name || 'IMAM NASRULLOH'}
+              {user?.name || 'SAFEHAVEN MEMBER'}
             </h4>
           </div>
           <div className="text-right">

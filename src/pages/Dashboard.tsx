@@ -293,7 +293,7 @@ export const Dashboard: React.FC = () => {
                     <div className="select-none flex justify-center md:col-span-7 lg:col-span-8">
                       <PhysicalWallet 
                         capital={capital}
-                        strategyName={portfolioConfig?.strategyName || 'IMAM NASRULLOH'}
+                        strategyName={portfolioConfig?.strategyName || 'PORTFOLIO STRATEGY'}
                         onTopUp={() => {
                           toast.success('Pintu Deposit Instan siap di Settings Workbench.');
                           setLocation('/settings');

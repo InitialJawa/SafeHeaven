@@ -49,7 +49,7 @@ async function executeQuery(sql: string, args: any[] = []): Promise<any> {
   const cfDatabaseId = process.env.CLOUDFLARE_D1_DATABASE_ID;
   const cfApiToken = process.env.CLOUDFLARE_API_TOKEN;
 
-  if (!cloudflareDisabled && cfAccountId && cfDatabaseId && cfApiToken && cfAccountId !== "" && cfDatabaseId !== "" && cfApiToken !== "" && cfApiToken !== 'cfut_nElv3u3E8ya1iIe6UpQJ8gYZ9AfhXFKoHf11kSmNcf878aba') {
+  if (!cloudflareDisabled && cfAccountId && cfDatabaseId && cfApiToken && cfAccountId !== "" && cfDatabaseId !== "" && cfApiToken !== "") {
     try {
       const url = `https://api.cloudflare.com/client/v4/accounts/${cfAccountId}/d1/database/${cfDatabaseId}/query`;
       const response = await fetch(url, {
@@ -2581,33 +2581,36 @@ app.get('/api/ticker/:symbol/sector', async (req, res) => {
 
 // 16. Backtest Run
 app.post('/api/backtest/run', async (req, res) => {
-  const { template, strategyProfile, universe, capital, topN, mode, thresholdPercent, rebalanceDays, startDate, endDate } = req.body;
-  const seedCapital = Number(capital) || 100000000;
-  const numTickers = Math.min(Number(topN) || 10, 50);
-  const rebalancePeriod = Number(rebalanceDays) || 14;
-  const startStr = startDate || '2025-07-20';
-  const endStr = endDate || '2026-07-20';
+  try {
+    const { template, strategyProfile, universe, capital, topN, mode, thresholdPercent, rebalanceDays, startDate, endDate } = req.body || {};
+    const seedCapital = Number(capital) || 100000000;
+    const numTickers = Math.min(Number(topN) || 10, 50);
+    const rebalancePeriod = Number(rebalanceDays) || 14;
+    const startStr = startDate || '2025-07-20';
+    const endStr = endDate || '2026-07-20';
 
-  const targetUniverse = universes.find(u => u.name === universe);
-  const universeTickers = targetUniverse ? targetUniverse.tickers : allTickers;
-  
-  const targetStrategy = strategies.find(s => s.id === template) || strategies[0];
-  let wQ, wG, wV, wM, wD;
+    const targetUniverse = (universes || []).find(u => u.name === universe);
+    const universeTickers = targetUniverse ? targetUniverse.tickers : (allTickers || []);
+    
+    const targetStrategy: any = (strategies || []).find(s => s.id === template) || (strategies && strategies[0]) || { id: 'default', weightQuality: 20, weightGrowth: 20, weightValue: 20, weightMomentum: 20, weightDividend: 20 };
+    let wQ = 20, wG = 20, wV = 20, wM = 20, wD = 20;
 
-  if (strategyProfile && (strategyProfile as string) !== 'custom') {
-    const weights = resolveWeights(strategyProfile as StrategyProfile, currentMarketRegime);
-    wQ = weights.quality * 100;
-    wG = weights.growth * 100;
-    wV = weights.value * 100;
-    wM = weights.momentum * 100;
-    wD = 0;
-  } else {
-    wQ = targetStrategy.weightQuality || 0;
-    wG = targetStrategy.weightGrowth || 0;
-    wV = targetStrategy.weightValue || 0;
-    wM = targetStrategy.weightMomentum || 0;
-    wD = targetStrategy.weightDividend || 0;
-  }
+    if (strategyProfile && (strategyProfile as string) !== 'custom') {
+      const weights = resolveWeights(strategyProfile as StrategyProfile, currentMarketRegime || 'neutral');
+      if (weights) {
+        wQ = (weights.quality || 0.2) * 100;
+        wG = (weights.growth || 0.2) * 100;
+        wV = (weights.value || 0.2) * 100;
+        wM = (weights.momentum || 0.4) * 100;
+        wD = 0;
+      }
+    } else {
+      wQ = targetStrategy.weightQuality || 0;
+      wG = targetStrategy.weightGrowth || 0;
+      wV = targetStrategy.weightValue || 0;
+      wM = targetStrategy.weightMomentum || 0;
+      wD = targetStrategy.weightDividend || 0;
+    }
   const totalWeight = wQ + wG + wV + wM + wD || 100;
 
   const poolSize = Math.max(30, numTickers * 3);
@@ -3243,6 +3246,13 @@ app.post('/api/backtest/run', async (req, res) => {
       { id: 'f-2', date: '2026-04-10', ticker: 'BBRI', action: 'Beli', price: 4400, amount: 3500, total: 15400000 }
     ]
   });
+  } catch (outerError) {
+    console.error('[BACKTEST] Outer error executing backtest:', outerError);
+    res.status(500).json({
+      error: 'Failed to run backtest simulation',
+      details: String(outerError)
+    });
+  }
 });
 
 // 17. Optimizer Run

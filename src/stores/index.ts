@@ -425,7 +425,9 @@ export const useAppStore = create<AppState>((set, get) => {
   // Auth Operations
   login: (email, name) => {
     const normalizedEmail = (email || '').toLowerCase();
-    const role = (normalizedEmail.includes('admin') || normalizedEmail.endsWith('@safehaven.id')) ? 'admin' : normalizedEmail.includes('advisor') ? 'advisor' : 'user';
+    // Default to user role unless user is exact master admin email with password login
+    const isMasterAdmin = normalizedEmail === 'admin@safehaven.id';
+    const role = isMasterAdmin ? 'admin' : normalizedEmail.includes('advisor') ? 'advisor' : 'user';
     const isPremium = role === 'admin' || normalizedEmail.includes('premium');
     const userInfo: UserInfo = {
       id: `usr-${Date.now()}`,
@@ -438,7 +440,7 @@ export const useAppStore = create<AppState>((set, get) => {
     };
     localStorage.setItem('safehaven_user', JSON.stringify(userInfo));
     set({ user: userInfo, isAuthenticated: true, isDemoMode: false, tier: userInfo.tier || 'Perunggu' });
-    toast.success(`Selamat datang kembali, ${name}!`);
+    toast.success(`Selamat datang kembali, ${name || email}!`);
   },
   loginWithGoogle: async (email, name, uid, photoURL) => {
     const normalizedEmail = (email || '').toLowerCase();
