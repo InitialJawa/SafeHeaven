@@ -2660,7 +2660,10 @@ app.post('/api/backtest/run', async (req, res) => {
     // 1. Fetch/Cache daily prices for selected tickers, Benchmark (^JKSE), Gold (GC=F), and USD/IDR (IDR=X) in parallel
     const tickersToFetch = [...poolTickers, '^JKSE', 'GC=F', 'IDR=X'];
 
-    await Promise.all(tickersToFetch.map(async (symbol) => {
+    // Process tickers in chunks of 3 to avoid Yahoo Finance rate limits
+    for (let i = 0; i < tickersToFetch.length; i += 3) {
+      const chunk = tickersToFetch.slice(i, i + 3);
+      await Promise.all(chunk.map(async (symbol) => {
       // Check cache first (using GROUP BY date to handle duplicate entries in D1/SQLite)
       let cachedRows = [];
       try {
@@ -2745,6 +2748,8 @@ app.post('/api/backtest/run', async (req, res) => {
         uniqueDatesSet.add(dateStr);
       }
     }));
+    await new Promise(r => setTimeout(r, 200)); // small delay between chunks
+    }
 
     // 2. Run simulation if we have sufficient data
     const sortedDates = Array.from(uniqueDatesSet).sort();
