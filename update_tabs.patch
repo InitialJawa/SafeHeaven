@@ -1,0 +1,26 @@
+--- src/pages/AiManager.tsx
++++ src/pages/AiManager.tsx
+@@ -58,7 +58,7 @@
+ 
+ export const AiManager: React.FC = () => {
+   const { user, isDemoMode } = useAppStore();
+-  const [activeTab, setActiveTab] = useState<'chat' | 'prompts' | 'settings'>('chat');
++  const [activeTab, setActiveTab] = useState<'chat' | 'prompts' | 'vibe' | 'settings'>('chat');
+   const [input, setInput] = useState('');
+   const [copiedId, setCopiedId] = useState<string | null>(null);
+   
+@@ -218,6 +218,14 @@
+               <span>Saved Prompts</span>
+             </button>
+             <button
++              onClick={() => setActiveTab('vibe')}
++              className={`px-4 py-2 rounded-lg flex items-center space-x-2 text-sm font-medium transition-all ${
++                activeTab === 'vibe' ? 'bg-[#222030] text-white shadow-sm' : 'text-[#888899] hover:text-white'
++              }`}
++            >
++              <Activity className="w-4 h-4" />
++              <span>Vibe Trading</span>
++            </button>
++            <button
+               onClick={() => setActiveTab('settings')}
+               className={`px-4 py-2 rounded-lg flex items-center space-x-2 text-sm font-medium transition-all ${

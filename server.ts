@@ -179,12 +179,13 @@ async function initDbSchema() {
       );
     `);
 
-    // 4. Self-healing check for price_history (ensure 'id' column exists)
+    // 4. Self-healing check for price_history (ensure 'id' and 'date' columns exist)
     try {
       const info = await executeQuery("PRAGMA table_info(price_history);");
       const hasId = info.rows && info.rows.some((c: any) => c.name === 'id');
-      if (info.rows && info.rows.length > 0 && !hasId) {
-        console.log("Local price_history table lacks 'id' column. Recreating for D1 compatibility...");
+      const hasDate = info.rows && info.rows.some((c: any) => c.name === 'date');
+      if (info.rows && info.rows.length > 0 && (!hasId || !hasDate)) {
+        console.log("Local price_history table lacks 'id' or 'date' column. Recreating for compatibility...");
         await executeQuery("DROP TABLE price_history;");
         await executeQuery(`
           CREATE TABLE IF NOT EXISTS price_history (
@@ -264,6 +265,28 @@ async function initDbSchema() {
         FOREIGN KEY (ticker) REFERENCES tickers(ticker)
       );
     `);
+    
+    // 7. Self-healing check for dividend_history (ensure 'date' column exists)
+    try {
+      const infoDiv = await executeQuery("PRAGMA table_info(dividend_history);");
+      const hasDateDiv = infoDiv.rows && infoDiv.rows.some((c: any) => c.name === 'date');
+      if (infoDiv.rows && infoDiv.rows.length > 0 && !hasDateDiv) {
+        console.log("Local dividend_history table lacks 'date' column. Recreating...");
+        await executeQuery("DROP TABLE dividend_history;");
+        await executeQuery(`
+          CREATE TABLE IF NOT EXISTS dividend_history (
+            id TEXT PRIMARY KEY,
+            ticker TEXT NOT NULL,
+            date TEXT NOT NULL,
+            dividend REAL NOT NULL,
+            fetched_at TEXT DEFAULT (datetime('now')),
+            FOREIGN KEY (ticker) REFERENCES tickers(ticker)
+          );
+        `);
+      }
+    } catch (err) {
+      console.warn("Self-healing check for dividend_history table failed, proceeding:", err);
+    }
 
     // 8. Create portfolio_configs table
     await executeQuery(`
@@ -4297,7 +4320,7 @@ app.post('/api/chat', async (req, res) => {
     return res.status(400).json({ error: 'Prompt required' });
   }
 
-  const systemPrompt = `Anda adalah "SafeHaven AI Assistant", asisten kecerdasan buatan terpadu untuk platform kuantitatif pasar saham Indonesia (IHSG) & manajemen portfolio.
+  const systemPrompt = `Anda adalah "Vibe-Trading Agent", asisten kecerdasan buatan kuantitatif & sentimen yang tajam (mengadopsi gaya HKUDS/Vibe-Trading). Anda memberikan wawasan pasar (IHSG, Global, Crypto, FX) dengan gaya bahasa yang asik namun sangat berbobot dan akurat.
 
 Konteks Portfolio Pengguna:
 - Modal Total: Rp ${portfolioConfig.capital.toLocaleString('id-ID')}
@@ -4311,7 +4334,7 @@ ${memoryContext ? memoryContext : 'Belum ada memori untuk pengguna ini.'}
 Petunjuk Jawaban:
 1. Berikan jawaban yang analitis, presisi, dan relevan seputar saham IHSG, analisa teknikal/fundamental, manajemen risiko (VaR), alokasi aset, atau strategi rebalancing.
 2. Gunakan Bahasa Indonesia yang profesional, ramah, dan ringkas.
-3. Gunakan formatting Markdown yang rapi (bold untuk ticker saham seperti **BBCA**, **BBRI**, poin-poin terstruktur, dan tabel jika menyajikan perbandingan).
+3. Gunakan formatting Markdown secara KREATIF dan TERSTRUKTUR. Wajib gunakan tabel Markdown yang valid untuk membandingkan aset/skenario. PASTIKAN SELALU menyisipkan baris kosong (empty line) sebelum dan sesudah tabel, serta gunakan enter (newline) pada setiap akhir baris tabel agar tabel ter-render dengan sempurna, berikan emoji (💡, 📌, 🎯, 📉, 📈) pada poin penting. Sajikan analisis seperti 'Peta Rotasi Aset', 'Support & Resistance', dan 'Jawaban: Taruh di mana?'. Gunakan bahasa engaging, santai tapi tajam layaknya trader pro.
 4. PENTING UNTUK MEMORI: Anda bertugas menjaga profil dan preferensi pengguna berdasarkan interaksi. Jika percakapan saat ini memberikan informasi baru (seperti saham favorit, toleransi risiko, gaya trading, dll) ATAU merubah memori yang sudah ada, JANGAN LUPA untuk mengupdate memori. Output memori baru secara lengkap pada BAGIAN PALING AKHIR pesan Anda, diapit oleh tag <memory>...</memory>. Jika tidak ada perubahan, jangan sertakan tag <memory>.`;
 
   try {
@@ -4368,6 +4391,54 @@ app.post('/api/ai/test', async (req, res) => {
       latencyMs,
       providerUsed: testConfig.provider,
       modelUsed: testConfig.aiModel
+    });
+  }
+});
+
+app.post('/api/vibe/analyze', async (req, res) => {
+  const { input, type } = req.body;
+  if (!input) {
+    return res.status(400).json({ error: 'Input required' });
+  }
+
+  const systemPrompt = `Anda adalah "Vibe-Trading Agent", spesialis AI sentiment analysis untuk market finansial.
+Tugas Anda adalah membaca input dari user (bisa berupa teks berita atau ticker saham) dan menentukan sentimen perdagangan.
+Berikan output MURNI dalam format JSON tanpa markdown, dengan struktur berikut:
+{
+  "signal": "Bullish" | "Bearish" | "Neutral",
+  "confidence": <angka 0-100 merepresentasikan keyakinan AI>,
+  "explanation": "<penjelasan singkat maksimal 3 kalimat mengenai alasan sentimen tersebut>",
+  "identified_ticker": "<ticker saham jika terdeteksi dari teks, misal: BBCA, atau kosongkan jika umum>"
+}`;
+
+  const prompt = `Analisis ${type === 'ticker' ? 'ticker' : 'berita/teks'} berikut:
+"${input}"
+  
+Berikan format JSON yang valid saja.`;
+
+  try {
+    const rawResponse = await callAiCompletion(prompt, {}, systemPrompt);
+    // Coba parse JSON
+    let parsedResult = null;
+    try {
+      const cleaned = rawResponse.replace(/\`\`\`(json)?/gi, '').trim();
+      parsedResult = JSON.parse(cleaned);
+    } catch (parseErr) {
+      // Fallback jika AI tidak membalas JSON murni
+      return res.json({
+        signal: "Neutral",
+        confidence: 50,
+        explanation: "Gagal memparsing respons JSON dari AI. Analisis sentimen mungkin tidak akurat atau tidak dalam format yang diminta: " + rawResponse,
+        identified_ticker: type === 'ticker' ? input : null
+      });
+    }
+    
+    return res.json(parsedResult);
+  } catch (err: any) {
+    console.error("Vibe Analyze Error:", err);
+    return res.status(500).json({ 
+      error: 'Failed to analyze sentiment', 
+      details: err.message 
     });
   }
 });

@@ -167,16 +167,93 @@ export const RegimeTreemap: React.FC<RegimeTreemapProps> = ({ distribution = [],
 
       const layoutBlocks: RegimeBlock[] = [];
 
-      if (sorted.length >= 2) {
+      if (sorted.length === 4) {
+        const leftItem = sorted[0];
+        const rightTopItem = sorted[1];
+        const rightBotLeftItem = sorted[2];
+        const rightBotRightItem = sorted[3];
+
+        const leftW = Math.round((innerW - gap) * 0.52);
+        const rightW = innerW - leftW - gap;
+
+        const rightTopH = Math.round((innerH - gap) * 0.52);
+        const rightBotH = innerH - rightTopH - gap;
+        const subW = Math.round((rightW - gap) * 0.5);
+        const rx = padding + leftW + gap;
+
+        // 1. Left Dominant Block
+        const detailsTop = getRegimeDetails(leftItem.name);
+        layoutBlocks.push({
+          id: leftItem.name.toLowerCase(),
+          name: leftItem.name.toUpperCase(),
+          percentage: leftItem.value,
+          color: detailsTop.color,
+          textColor: detailsTop.textColor,
+          subtitle: detailsTop.subtitle,
+          isDominant: true,
+          x: padding,
+          y: padding,
+          w: leftW,
+          h: innerH
+        });
+
+        // 2. Right Top Block
+        const detailsRightTop = getRegimeDetails(rightTopItem.name);
+        layoutBlocks.push({
+          id: rightTopItem.name.toLowerCase(),
+          name: rightTopItem.name.toUpperCase(),
+          percentage: rightTopItem.value,
+          color: detailsRightTop.color,
+          textColor: detailsRightTop.textColor,
+          subtitle: detailsRightTop.subtitle,
+          isDominant: false,
+          x: rx,
+          y: padding,
+          w: rightW,
+          h: rightTopH
+        });
+
+        // 3. Right Bottom Left Block
+        const detailsRightBotLeft = getRegimeDetails(rightBotLeftItem.name);
+        layoutBlocks.push({
+          id: rightBotLeftItem.name.toLowerCase(),
+          name: rightBotLeftItem.name.toUpperCase(),
+          percentage: rightBotLeftItem.value,
+          color: detailsRightBotLeft.color,
+          textColor: detailsRightBotLeft.textColor,
+          subtitle: detailsRightBotLeft.subtitle,
+          isDominant: false,
+          x: rx,
+          y: padding + rightTopH + gap,
+          w: subW,
+          h: rightBotH
+        });
+
+        // 4. Right Bottom Right Block
+        const detailsRightBotRight = getRegimeDetails(rightBotRightItem.name);
+        layoutBlocks.push({
+          id: rightBotRightItem.name.toLowerCase(),
+          name: rightBotRightItem.name.toUpperCase(),
+          percentage: rightBotRightItem.value,
+          color: detailsRightBotRight.color,
+          textColor: detailsRightBotRight.textColor,
+          subtitle: detailsRightBotRight.subtitle,
+          isDominant: false,
+          x: rx + subW + gap,
+          y: padding + rightTopH + gap,
+          w: rightW - subW - gap,
+          h: rightBotH
+        });
+
+      } else if (sorted.length >= 2) {
+        // Fallback for non-4 items
         const topItem = sorted[0];
         const rightItems = sorted.slice(1);
 
-        // Left column width proportional to top item value (min 40%, max 60%)
         const leftRatio = Math.min(0.6, Math.max(0.4, topItem.value / 100));
         const leftW = Math.round((innerW - gap) * leftRatio);
         const rightW = innerW - leftW - gap;
 
-        // Left Dominant Block
         const detailsTop = getRegimeDetails(topItem.name);
         layoutBlocks.push({
           id: topItem.name.toLowerCase(),
@@ -192,7 +269,6 @@ export const RegimeTreemap: React.FC<RegimeTreemapProps> = ({ distribution = [],
           h: innerH
         });
 
-        // Right column stacked blocks
         const totalRightVal = rightItems.reduce((sum, item) => sum + item.value, 0) || 1;
         let currentY = padding;
         const availableH = innerH - gap * (rightItems.length - 1);
@@ -268,78 +344,53 @@ export const RegimeTreemap: React.FC<RegimeTreemapProps> = ({ distribution = [],
 
         ctx.fillStyle = block.textColor;
 
-        // Render text according to block height and width
-        if (block.h >= 110) {
-          // Large Block (e.g., NORMAL 40%)
-          ctx.font = '800 13px Inter, system-ui, sans-serif';
-          ctx.textAlign = 'left';
-          ctx.textBaseline = 'top';
+        // Text rendering
+        ctx.fillStyle = block.textColor;
+        ctx.font = 'bold 12px Inter, system-ui, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+
+        if (block.w > 70 && block.h > 65) {
           ctx.fillText(block.name, block.x + 14, block.y + 14);
 
           if (block.isDominant) {
             const badgeText = 'DOMINAN';
-            ctx.font = 'extrabold 9px JetBrains Mono, monospace';
-            const badgeW = ctx.measureText(badgeText).width + 10;
-            const badgeH = 18;
-            const badgeX = block.x + block.w - badgeW - 12;
-            const badgeY = block.y + 12;
+            ctx.font = 'bold 10px JetBrains Mono, monospace';
+            const badgeW = ctx.measureText(badgeText).width + 12;
+            const badgeH = 20;
+            const badgeX = block.x + block.w - badgeW - 14;
+            const badgeY = block.y + 14;
 
             ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
-            drawRoundRectPath(ctx, badgeX, badgeY, badgeW, badgeH, 6);
+            ctx.beginPath();
+            ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 6);
             ctx.fill();
 
             ctx.fillStyle = block.textColor;
-            ctx.fillText(badgeText, badgeX + 5, badgeY + 4);
+            ctx.fillText(badgeText, badgeX + 6, badgeY + 5);
           }
 
-          // Bottom stacked text
-          ctx.font = '900 32px Inter, system-ui, sans-serif';
-          ctx.textAlign = 'left';
-          ctx.textBaseline = 'top';
-          ctx.fillText(`${block.percentage}%`, block.x + 14, block.y + block.h - 52);
+          // Percentage & Subtitle
+          if (block.h > 110) {
+            ctx.font = '900 26px Inter, system-ui, sans-serif';
+            ctx.fillText(`${block.percentage}%`, block.x + 14, block.y + block.h - 48);
 
-          ctx.font = '700 10px JetBrains Mono, monospace';
-          ctx.fillStyle = block.textColor === '#ffffff' ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.8)';
-          ctx.fillText(block.subtitle, block.x + 14, block.y + block.h - 20);
+            ctx.font = '600 10px JetBrains Mono, monospace';
+            ctx.fillStyle = block.textColor === '#ffffff' ? 'rgba(255,255,255,0.75)' : 'rgba(0,0,0,0.75)';
+            ctx.fillText(block.subtitle, block.x + 14, block.y + block.h - 22);
+          } else {
+            ctx.font = '900 20px Inter, system-ui, sans-serif';
+            ctx.fillText(`${block.percentage}%`, block.x + 14, block.y + block.h - 32);
 
-        } else if (block.h >= 75) {
-          // Medium Block (e.g., BULL 30% or VOLATILE with larger space)
-          ctx.font = '800 12px Inter, system-ui, sans-serif';
-          ctx.textAlign = 'left';
-          ctx.textBaseline = 'top';
-          ctx.fillText(block.name, block.x + 14, block.y + 10);
-
-          ctx.font = '900 22px Inter, system-ui, sans-serif';
-          ctx.fillText(`${block.percentage}%`, block.x + 14, block.y + 26);
-
-          if (block.h >= 90) {
-            ctx.font = '700 9px JetBrains Mono, monospace';
-            ctx.fillStyle = block.textColor === '#ffffff' ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.8)';
-            ctx.fillText(block.subtitle, block.x + 14, block.y + 52);
+            ctx.font = '600 9px JetBrains Mono, monospace';
+            ctx.fillStyle = block.textColor === '#ffffff' ? 'rgba(255,255,255,0.75)' : 'rgba(0,0,0,0.75)';
+            ctx.fillText(block.subtitle, block.x + 14, block.y + block.h - 16);
           }
-
-        } else if (block.h >= 50) {
-          // Medium Compact Block (e.g. VOLATILE 20%)
-          ctx.font = '800 11px Inter, system-ui, sans-serif';
-          ctx.textAlign = 'left';
-          ctx.textBaseline = 'top';
-          ctx.fillText(block.name, block.x + 12, block.y + 10);
-
-          ctx.font = '900 18px Inter, system-ui, sans-serif';
-          ctx.fillText(`${block.percentage}%`, block.x + 12, block.y + 26);
-
-        } else {
-          // Small Compact Inline Block (e.g. BEAR 10%)
-          const midY = block.y + block.h / 2;
-          ctx.font = '800 11px Inter, system-ui, sans-serif';
-          ctx.textAlign = 'left';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(block.name, block.x + 12, midY);
-
-          ctx.font = '900 14px Inter, system-ui, sans-serif';
-          ctx.textAlign = 'right';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(`${block.percentage}%`, block.x + block.w - 12, midY);
+        } else if (block.w > 50 && block.h > 40) {
+          ctx.font = 'bold 10px Inter, system-ui, sans-serif';
+          ctx.fillText(block.name, block.x + 8, block.y + 8);
+          ctx.font = 'bold 14px Inter, system-ui, sans-serif';
+          ctx.fillText(`${block.percentage}%`, block.x + 8, block.y + block.h - 22);
         }
 
         ctx.restore();
