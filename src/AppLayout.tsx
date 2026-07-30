@@ -116,6 +116,7 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
     {
       category: 'SYSTEM',
       items: [
+        { name: 'Premium & Topup', path: '/premium', icon: Crown, isPublic: false },
         { name: 'AI Manager', path: '/ai', icon: Bot, isPublic: false },
         { name: 'Settings', path: '/settings', icon: Settings, isPublic: false },
         { name: 'Admin Console', path: '/admin', icon: Shield, isPublic: false },

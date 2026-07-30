@@ -295,8 +295,7 @@ export const Dashboard: React.FC = () => {
                         capital={capital}
                         strategyName={portfolioConfig?.strategyName || 'PORTFOLIO STRATEGY'}
                         onTopUp={() => {
-                          toast.success('Pintu Deposit Instan siap di Settings Workbench.');
-                          setLocation('/settings');
+                          setLocation('/premium');
                         }}
                         onTransfer={() => {
                           toast.info('Modul Transfer diaktifkan. Pilih instrumen bursa tujuan.');

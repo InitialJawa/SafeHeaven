@@ -16,7 +16,8 @@ import {
   Activity, 
   Zap,
   Lock,
-  LayoutDashboard
+  LayoutDashboard,
+  CreditCard
 } from 'lucide-react';
 import { OverviewConsole } from './OverviewConsole';
 import { StressTestConsole } from './StressTestConsole';
@@ -26,8 +27,9 @@ import { BroadcastConsole } from './BroadcastConsole';
 import { UserManagementConsole } from './UserManagementConsole';
 import { DatabaseConsole } from './DatabaseConsole';
 import { AuditTerminalConsole } from './AuditTerminalConsole';
+import { PaymentConsole } from './PaymentConsole';
 
-type AdminTab = 'overview' | 'stress' | 'risk' | 'rebalance' | 'broadcast' | 'users' | 'database' | 'audit';
+type AdminTab = 'overview' | 'stress' | 'risk' | 'rebalance' | 'broadcast' | 'payment' | 'users' | 'database' | 'audit';
 
 export const AdminConsole: React.FC = () => {
   const { marketRegime } = useAppStore();
@@ -50,13 +52,14 @@ export const AdminConsole: React.FC = () => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       const keyMap: Record<string, AdminTab> = {
         '1': 'overview',
-        '2': 'stress',
-        '3': 'risk',
-        '4': 'rebalance',
-        '5': 'broadcast',
-        '6': 'users',
-        '7': 'database',
-        '8': 'audit'
+        '2': 'payment',
+        '3': 'stress',
+        '4': 'risk',
+        '5': 'rebalance',
+        '6': 'broadcast',
+        '7': 'users',
+        '8': 'database',
+        '9': 'audit'
       };
       if (keyMap[e.key]) {
         setActiveTab(keyMap[e.key]);
@@ -115,6 +118,7 @@ export const AdminConsole: React.FC = () => {
         <div className="mt-6 pt-5 border-t border-[#1b1926] flex items-center gap-1.5 overflow-x-auto scrollbar-none">
           {[
             { id: 'overview', label: 'Overview', icon: LayoutDashboard, badge: 'Live' },
+            { id: 'payment', label: 'Saweria & Payment', icon: CreditCard, badge: 'Gateway' },
             { id: 'stress', label: 'Stress & Crisis', icon: ShieldAlert, badge: undefined },
             { id: 'risk', label: 'Risk Control', icon: Shield, badge: undefined },
             { id: 'rebalance', label: 'Rebalance Lab', icon: Layers, badge: undefined },
@@ -154,6 +158,7 @@ export const AdminConsole: React.FC = () => {
       {/* Active Tab View */}
       <div className="transition-all duration-200">
         {activeTab === 'overview' && <OverviewConsole setActiveTab={setActiveTab} addLog={addLog} auditLogs={auditLogs} />}
+        {activeTab === 'payment' && <PaymentConsole addLog={addLog} />}
         {activeTab === 'stress' && <StressTestConsole addLog={addLog} />}
         {activeTab === 'risk' && <RiskControlConsole addLog={addLog} />}
         {activeTab === 'rebalance' && <RebalanceConsole addLog={addLog} />}

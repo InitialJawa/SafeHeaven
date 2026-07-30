@@ -27,6 +27,7 @@ const AiManager = lazy(() => import('../pages/AiManager').then(m => ({ default: 
 const TickerDetail = lazy(() => import('../pages/TickerDetail').then(m => ({ default: m.TickerDetail })));
 const FullChart = lazy(() => import('../pages/FullChart').then(m => ({ default: m.FullChart })));
 const NotFound = lazy(() => import('../pages/NotFound').then(m => ({ default: m.NotFound })));
+const Premium = lazy(() => import('../pages/Premium').then(m => ({ default: m.Premium })));
 
 export const AppRoutes = () => {
   const { user, isDemoMode } = useAppStore();
@@ -118,6 +119,14 @@ export const AppRoutes = () => {
             <AppLayout><PremiumGuardView featureName="Quant Lab - Walk Forward Optimizer" /></AppLayout>
           ) : (
             <AppLayout><Optimizer /></AppLayout>
+          )}
+        </Route>
+
+        <Route path="/premium">
+          {!isRegisteredUser ? (
+            <AppLayout><AuthGuardView featureName="Premium Status" /></AppLayout>
+          ) : (
+            <AppLayout><Premium /></AppLayout>
           )}
         </Route>
 

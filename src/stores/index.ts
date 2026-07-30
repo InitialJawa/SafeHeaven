@@ -5,7 +5,7 @@
 
 import { create } from 'zustand';
 import { db, auth, handleFirestoreError, OperationType, firebaseSignOut } from '../lib/firebase';
-import { doc, setDoc, getDoc, collection, getDocs, deleteDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, getDocs, deleteDoc, query, limit } from 'firebase/firestore';
 import { toast } from 'sonner';
 import { 
   TickerInfo, 
@@ -408,6 +408,9 @@ export const useAppStore = create<AppState>((set, get) => {
     autoStopLoss: 10,
     soundNotifications: true,
     highContrastGlow: true,
+    saweriaUrl: 'https://saweria.co/SafeHavenAdmin',
+    saweriaMerchantName: 'SafeHaven Official',
+    saweriaInstructions: 'Pembayaran diproses secara aman melalui Saweria. Pastikan mencantumkan email terdaftar saat checkout.',
   },
   aiConfig: {
     provider: 'gemini',
@@ -642,7 +645,7 @@ export const useAppStore = create<AppState>((set, get) => {
       (async () => {
         try {
           const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 1500));
-          const queryPromise = getDocs(collection(db, 'priceAlerts'));
+          const queryPromise = getDocs(query(collection(db, 'priceAlerts'), limit(20)));
           const querySnapshot = (await Promise.race([queryPromise, timeoutPromise])) as any;
           const loadedAlerts: PriceAlert[] = [];
           if (querySnapshot && typeof querySnapshot.forEach === 'function') {
@@ -1088,7 +1091,7 @@ export const useAppStore = create<AppState>((set, get) => {
     if (firebaseUid && firebaseUid === userId) {
       try {
         const colRef = collection(db, 'users', userId, 'backtests');
-        const snapshot = await getDocs(colRef);
+        const snapshot = await getDocs(query(colRef, limit(20)));
         const items: BacktestHistoryItem[] = [];
         snapshot.forEach(docSnap => {
           items.push(docSnap.data() as BacktestHistoryItem);
@@ -1161,7 +1164,7 @@ export const useAppStore = create<AppState>((set, get) => {
     if (firebaseUid && firebaseUid === userId) {
       try {
         const colRef = collection(db, 'users', userId, 'chatSessions');
-        const snapshot = await getDocs(colRef);
+        const snapshot = await getDocs(query(colRef, limit(20)));
         const items: ChatSessionItem[] = [];
         snapshot.forEach(docSnap => {
           items.push(docSnap.data() as ChatSessionItem);
@@ -1247,7 +1250,7 @@ export const useAppStore = create<AppState>((set, get) => {
     if (firebaseUid && firebaseUid === userId) {
       try {
         const colRef = collection(db, 'users', userId, 'savedPrompts');
-        const snapshot = await getDocs(colRef);
+        const snapshot = await getDocs(query(colRef, limit(20)));
         const items: SavedPromptItem[] = [];
         snapshot.forEach(docSnap => {
           items.push(docSnap.data() as SavedPromptItem);

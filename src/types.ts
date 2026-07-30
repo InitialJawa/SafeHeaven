@@ -36,6 +36,9 @@ export interface PortfolioConfig {
   stressImpactPct?: number;
   lastRebalancedAt?: string;
   projectedAnnualDividend?: number;
+  rebalanceDays?: number;
+  rebalanceMode?: string;
+  thresholdDev?: number;
 }
 
 export interface StockPick {
@@ -158,6 +161,9 @@ export interface GlobalSystemConfig {
   autoStopLoss: number;
   soundNotifications: boolean;
   highContrastGlow: boolean;
+  saweriaUrl?: string;
+  saweriaMerchantName?: string;
+  saweriaInstructions?: string;
 }
 
 export type AiProvider = 'gemini' | 'openai' | 'anthropic' | 'deepseek' | 'groq' | 'custom_openai';

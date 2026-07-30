@@ -7,12 +7,16 @@
 
 import express from 'express';
 
-import admin from 'firebase-admin';
+import { initializeApp, getApps } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
+import { getFirestore } from 'firebase-admin/firestore';
 
 // Initialize Firebase Admin if not already initialized
-if (!admin.getApps().length) {
+if (!getApps().length) {
   try {
-    admin.initializeApp();
+    initializeApp({
+      projectId: 'gen-lang-client-0094156306'
+    });
   } catch (e) {
     console.warn('Failed to initialize Firebase Admin SDK:', e);
   }
@@ -87,7 +91,7 @@ const authMiddleware = async (req: express.Request, res: express.Response, next:
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const idToken = authHeader.split('Bearer ')[1];
     try {
-      const decodedToken = await (admin as any).auth().verifyIdToken(idToken);
+      const decodedToken = await getAuth().verifyIdToken(idToken);
       req.user = decodedToken;
     } catch (error) {
       console.warn('Error verifying auth token:', error);
@@ -381,6 +385,13 @@ async function initDbSchema() {
         allocation_usd REAL
       );
     `);
+    await dbClient.execute(`
+      CREATE TABLE IF NOT EXISTS user_configs (
+        uid TEXT PRIMARY KEY,
+        config_json TEXT
+      );
+    `);
+
 
     // Ensure default portfolio config row exists
     await executeQuery(`
@@ -451,20 +462,28 @@ const defaultPortfolioConfig = {
   allocationUSD: 5,
   crashThreshold: 5,
   stopLoss: 7,
+  rebalanceDays: 14,
+  rebalanceMode: 'Dynamic',
+  thresholdDev: 5,
   activeStressScenario: undefined,
   stressImpactPct: undefined,
   lastRebalancedAt: undefined
 };
 
+const FIRESTORE_DATABASE_ID = process.env.FIRESTORE_DATABASE_ID || "ai-studio-safeheaven-feb17918-0b82-4235-b3c1-5e4a8fa033c0";
+
 async function getPortfolioConfig(uid: string) {
   if (!uid || uid === 'anonymous') return { ...defaultPortfolioConfig };
   try {
-    const doc = await (admin as any).firestore().collection('users').doc(uid).collection('configs').doc('portfolio').get();
-    if (doc.exists) {
-      return { ...defaultPortfolioConfig, ...doc.data() };
+    const res = await dbClient.execute({
+      sql: 'SELECT config_json FROM user_configs WHERE uid = ?',
+      args: [uid]
+    });
+    if (res.rows && res.rows.length > 0) {
+      return { ...defaultPortfolioConfig, ...JSON.parse(res.rows[0].config_json as string) };
     }
   } catch (e) {
-    console.warn('Error reading portfolio config', e);
+    console.warn('Error reading portfolio config from SQLite', e);
   }
   return { ...defaultPortfolioConfig };
 }
@@ -472,9 +491,14 @@ async function getPortfolioConfig(uid: string) {
 async function setPortfolioConfig(uid: string, configData: any) {
   if (!uid || uid === 'anonymous') return;
   try {
-    await (admin as any).firestore().collection('users').doc(uid).collection('configs').doc('portfolio').set(configData, { merge: true });
+    const existing = await getPortfolioConfig(uid);
+    const merged = { ...existing, ...configData };
+    await dbClient.execute({
+      sql: 'INSERT INTO user_configs (uid, config_json) VALUES (?, ?) ON CONFLICT(uid) DO UPDATE SET config_json = excluded.config_json',
+      args: [uid, JSON.stringify(merged)]
+    });
   } catch (e) {
-    console.warn('Error writing portfolio config', e);
+    console.warn('Error writing portfolio config to SQLite', e);
   }
 }
 
@@ -2711,7 +2735,17 @@ app.get('/api/ticker/:symbol/sector', async (req, res) => {
 
 // 16. Backtest Run
 app.post('/api/backtest/run', async (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
+  const sendProgress = (progress, stepId, message) => {
+    res.write(`data: ${JSON.stringify({ type: 'progress', progress, stepId, message })}\n\n`);
+  };
+
   try {
+    sendProgress(5, 1, 'Menginisialisasi parameter portofolio...');
     const { template, strategyProfile, universe, capital, topN, mode, thresholdPercent, rebalanceDays, startDate, endDate } = req.body || {};
     const seedCapital = Number(capital) || 100000000;
     const numTickers = Math.min(Number(topN) || 10, 50);
@@ -2882,8 +2916,10 @@ app.post('/api/backtest/run', async (req, res) => {
       }
     }));
     await new Promise(r => setTimeout(r, 200)); // small delay between chunks
+      sendProgress(20 + Math.floor((i / tickersToFetch.length) * 30), 2, `Mengambil data historis untuk ${tickersToFetch.length} instrumen...`);
     }
 
+    sendProgress(50, 3, 'Menyelaraskan data historis...');
     // 2. Run simulation if we have sufficient data
     const sortedDates = Array.from(uniqueDatesSet).sort();
     if (sortedDates.length >= 10) {
@@ -2963,8 +2999,12 @@ app.post('/api/backtest/run', async (req, res) => {
       }
       let lastKnownUsdPrice = initialUsdPrice;
 
+      sendProgress(60, 4, 'Kalkulasi & Rebalancing Portofolio...');
       for (let i = 0; i < sortedDates.length; i++) {
         const dateStr = sortedDates[i];
+        if (i % 50 === 0) {
+           sendProgress(60 + Math.floor((i / sortedDates.length) * 35), 4, `Kalkulasi & Rebalancing Portofolio (${dateStr})...`);
+        }
         const prices = dailyPricesMap[dateStr];
 
         // Update last known prices
@@ -3309,78 +3349,37 @@ app.post('/api/backtest/run', async (req, res) => {
       const excessReturnMean = avgReturn - riskFreeDaily;
       const sharpeRatio = dailyVol > 0.0001 ? (excessReturnMean / dailyVol) * Math.sqrt(252) : 1.2;
 
-      return res.json({
-        equityCurve,
-        metrics: {
+      res.write(`data: ${JSON.stringify({
+        type: 'result',
+        data: {
+          equityCurve,
+          metrics: {
           totalReturn: parseFloat(totalReturn.toFixed(2)),
           cagr: parseFloat(cagr.toFixed(2)),
           maxDrawdown: parseFloat(maxDd.toFixed(2)),
           sharpeRatio: parseFloat(Math.max(0.1, sharpeRatio).toFixed(2)),
           volatility: parseFloat(volatility.toFixed(2)),
           totalDividend: parseFloat(totalDividendEarned.toFixed(0))
-        },
-        tradeMarkers: trades.reverse()
-      });
+          },
+          tradeMarkers: trades.reverse()
+        }
+      })}\n\n`);
+      return res.end();
+    } else {
+      throw new Error("Insufficient historical data retrieved (found " + sortedDates.length + " trading days).");
     }
-  } catch (error) {
-    console.error('Real Backtest simulation failed, falling back to simulated engine:', error);
+  } catch (innerError: any) {
+    console.error('Real Backtest simulation failed:', innerError);
+    throw innerError;
   }
-
-  // Fallback engine
-  const fallbackCurve = [];
-  let currentVal = seedCapital;
-  let bhVal = seedCapital;
-  let ihsgVal = seedCapital;
-  let goldVal = seedCapital;
-
-  const now = new Date();
-  for (let i = 24; i >= 0; i--) {
-    const d = new Date(now.getTime() - i * 15 * 24 * 60 * 60 * 1000);
-    const dateStr = d.toISOString().split('T')[0];
-    
-    const dividendDrift = 0.0017; // Approx 4% annualized per 15 days
-    const drift = (mode === 'Dynamic' ? 0.025 : mode === 'Threshold' ? 0.02 : 0.018) + dividendDrift;
-    const noise = (Math.random() - 0.42) * 0.08;
-    const bhNoise = (Math.random() - 0.46) * 0.085;
-    const ihsgNoise = (Math.random() - 0.48) * 0.05;
-    const goldNoise = (Math.random() - 0.49) * 0.02;
-    
-    currentVal = Math.round(currentVal * (1 + drift + noise));
-    bhVal = Math.round(bhVal * (1 + 0.01 + bhNoise));
-    ihsgVal = Math.round(ihsgVal * (1 + 0.005 + ihsgNoise));
-    goldVal = Math.round(goldVal * (1 + 0.002 + goldNoise));
-
-    fallbackCurve.push({
-      date: dateStr,
-      value: currentVal,
-      buyAndHoldValue: bhVal,
-      ihsg: ihsgVal,
-      gold: goldVal
-    });
-  }
-
-  const finalReturn = ((currentVal - seedCapital) / seedCapital) * 100;
-  res.json({
-    equityCurve: fallbackCurve,
-    metrics: {
-      totalReturn: parseFloat(finalReturn.toFixed(2)),
-      cagr: parseFloat((finalReturn * 0.65).toFixed(2)),
-      maxDrawdown: parseFloat((-10 - Math.random() * 8).toFixed(2)),
-      sharpeRatio: parseFloat((1.8 + Math.random() * 0.9).toFixed(2)),
-      volatility: parseFloat((12 + Math.random() * 6).toFixed(1)),
-      totalDividend: parseFloat((seedCapital * 0.08).toFixed(0))
-    },
-    tradeMarkers: [
-      { id: 'f-1', date: '2026-02-15', ticker: 'BBCA', action: 'Beli', price: 9800, amount: 2000, total: 19600000 },
-      { id: 'f-2', date: '2026-04-10', ticker: 'BBRI', action: 'Beli', price: 4400, amount: 3500, total: 15400000 }
-    ]
-  });
-  } catch (outerError) {
+  } catch (outerError: any) {
     console.error('[BACKTEST] Outer error executing backtest:', outerError);
-    res.status(500).json({
+    res.write(`data: ${JSON.stringify({
+      type: 'error',
       error: 'Failed to run backtest simulation',
       details: String(outerError)
-    });
+    })}\n\n`);
+    res.end();
   }
 });
 
@@ -4183,6 +4182,9 @@ let GLOBAL_CONFIG = {
   autoStopLoss: 10,
   soundNotifications: true,
   highContrastGlow: true,
+  saweriaUrl: 'https://saweria.co/SafeHavenAdmin',
+  saweriaMerchantName: 'SafeHaven Official',
+  saweriaInstructions: 'Pembayaran diproses secara aman melalui Saweria. Pastikan mencantumkan email terdaftar saat checkout.',
 };
 
 let AI_CONFIG = {

@@ -149,6 +149,34 @@ export const Backtest: React.FC = () => {
     }
     return () => clearInterval(subTextInterval);
   }, [loading]);
+
+  React.useEffect(() => {
+    const loadGlobalSettings = async () => {
+      try {
+        const res = await window.appFetch('/api/portfolio/config');
+        if (res.ok) {
+          const config = await res.json();
+          if (config) {
+            if (config.capital) setCapital(config.capital);
+            if (config.universe) setUniverse(config.universe);
+            if (config.topN) setTopN(config.topN);
+            if (config.rebalanceDays) setRebalanceDays(config.rebalanceDays);
+            if (config.rebalanceMode) setMode(config.rebalanceMode);
+            if (config.thresholdDev) setThreshold(config.thresholdDev);
+            if (config.strategyProfile && config.strategyProfile !== 'custom') {
+              setStrategyProfile(config.strategyProfile);
+            } else if (config.strategyTemplate) {
+              setTemplate(config.strategyTemplate);
+              setStrategyProfile('custom');
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Failed to load global portfolio config for backtest', e);
+      }
+    };
+    loadGlobalSettings();
+  }, []);
   const [activeTab, setActiveTab] = useState<BacktestTab>('overview');
   const [configTab, setConfigTab] = useState<'params' | 'rules'>('params');
   
@@ -212,35 +240,6 @@ export const Backtest: React.FC = () => {
     ];
     setSteps(initialSteps);
 
-    let progressVal = 0;
-
-    const interval = setInterval(() => {
-        let increment = Math.floor(Math.random() * 8) + 2;
-        progressVal += increment;
-        
-        // Progress goes from 0 to 50 fast, then 50 to 100 slowly.
-        if (progressVal > 50 && progressVal < 80) {
-            progressVal += 5;
-        } else if (progressVal > 95) {
-            // Cap at 95 until complete
-            progressVal = 95;
-        }
-        
-        setProgress(progressVal);
-
-        if (progressVal < 30) {
-          setLoadingText('Menginisialisasi parameter portofolio...');
-        } else if (progressVal < 60) {
-          setLoadingText('Koneksi Data Emiten & Sinkronisasi Benchmark...');
-        } else if (progressVal < 90) {
-          setLoadingText('Menyelaraskan data historis...');
-        } else {
-          setLoadingText('Kalkulasi & Rebalancing Portofolio...');
-        }
-
-        
-    }, 60);
-
     try {
       const res = await window.appFetch('/api/backtest/run', {
         method: 'POST',
@@ -259,22 +258,60 @@ export const Backtest: React.FC = () => {
         })
       });
 
-      const contentType = res.headers.get('content-type') || '';
-      if (res.ok && contentType.includes('application/json')) {
-        const data = await res.json();
-        clearInterval(interval);
+      if (!res.ok) {
+        throw new Error('Gagal memulai simulasi');
+      }
+
+      if (res.body) {
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
         
-        setSteps([
-          { id: 1, label: 'Inisialisasi Portofolio', sublabel: 'Mengatur parameter modal & bobot strategi...', progress: 100, status: 'completed' },
-          { id: 2, label: 'Koneksi Data Emiten', sublabel: 'Mengambil data historis pergerakan harga saham...', progress: 100, status: 'completed' },
-          { id: 3, label: 'Sinkronisasi Benchmark', sublabel: 'Menyelaraskan data IHSG (^JKSE) & Emas (GC=F)...', progress: 100, status: 'completed' },
-          { id: 4, label: 'Kalkulasi & Rebalancing', sublabel: 'Menghitung sinyal transaksi & metrik Sharpe...', progress: 100, status: 'completed' }
-        ]);
-        setProgress(100);
-        setLoadingText('Simulasi selesai! Menyiapkan grafik...');
-        setTimeout(() => {
-          setResult(data);
-          setLoading(false);
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n\n');
+          buffer = lines.pop() || '';
+          
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const event = JSON.parse(line.substring(6));
+                
+                if (event.type === 'progress') {
+                  setProgress(event.progress);
+                  setLoadingText(event.message);
+                  setSteps(prev => prev.map(s => {
+                    if (s.id < event.stepId) return { ...s, progress: 100, status: 'completed' };
+                    if (s.id === event.stepId) {
+                       let p = 0;
+                       if (event.stepId === 2) { 
+                          p = Math.min(100, Math.max(0, ((event.progress - 20) / 30) * 100));
+                       } else if (event.stepId === 4) { 
+                          p = Math.min(100, Math.max(0, ((event.progress - 60) / 35) * 100));
+                       } else {
+                          p = event.progress;
+                       }
+                       return { ...s, progress: Math.floor(p), status: 'running' };
+                    }
+                    return s;
+                  }));
+                } else if (event.type === 'result') {
+                  const data = event.data;
+                  setSteps([
+                    { id: 1, label: 'Inisialisasi Portofolio', sublabel: 'Mengatur parameter modal & bobot strategi...', progress: 100, status: 'completed' },
+                    { id: 2, label: 'Koneksi Data Emiten', sublabel: 'Mengambil data historis pergerakan harga saham...', progress: 100, status: 'completed' },
+                    { id: 3, label: 'Sinkronisasi Benchmark', sublabel: 'Menyelaraskan data IHSG (^JKSE) & Emas (GC=F)...', progress: 100, status: 'completed' },
+                    { id: 4, label: 'Kalkulasi & Rebalancing', sublabel: 'Menghitung sinyal transaksi & metrik Sharpe...', progress: 100, status: 'completed' }
+                  ]);
+                  setProgress(100);
+                  setLoadingText('Simulasi selesai! Menyiapkan grafik...');
+                  
+                  setTimeout(() => {
+                    setResult(data);
+                    setLoading(false);
 
           // Save backtest result to Firebase
           const stratObj = strategies.find(s => s.id === template);
@@ -297,15 +334,21 @@ export const Backtest: React.FC = () => {
           });
           toast.success('Hasil simulasi backtest tersimpan ke Firebase!');
         }, 500);
+                } else if (event.type === 'error') {
+                  toast.error(event.error || 'Terjadi kesalahan saat memproses data simulasi.');
+                  setLoading(false);
+                }
+              } catch (e) {
+                console.error("SSE parse error", e);
+              }
+            }
+          }
+        }
       } else {
-        clearInterval(interval);
+        toast.error('Browser tidak mendukung streaming response');
         setLoading(false);
-        const errBody = await res.text().catch(() => '');
-        console.error('Backtest API error response:', res.status, errBody);
-        toast.error(`Gagal melakukan backtest (Status ${res.status}). Silakan coba beberapa saat lagi.`);
       }
     } catch (err: any) {
-      clearInterval(interval);
       console.error('Error running backtest:', err);
       setLoading(false);
       toast.error(`Gagal menjalankan backtest: ${err?.message || 'Koneksi terganggu'}`);
@@ -880,7 +923,7 @@ export const Backtest: React.FC = () => {
                     <label className="block text-[9px] font-black uppercase tracking-widest text-[#686477] mb-2">Threshold Deviasi (%)</label>
                     <span className="text-[10px] text-[#00f5a0] font-bold">±{threshold}%</span>
                   </div>
-                  <input type="range" min="1" max="20" value={threshold} onChange={e => setThreshold(Number(e.target.value))} className="w-full accent-[#00f5a0]" />
+                  <input type="range" min="1" max="20" value={threshold} onChange={e => setThreshold(Number(e.target.value))} className="w-full accent-[#ccff00]" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
