@@ -51,7 +51,7 @@ export const RiskControlConsole: React.FC<RiskControlConsoleProps> = ({ addLog }
   const fetchRiskSettings = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/risk/settings');
+      const res = await window.appFetch('/api/risk/settings');
       if (res.ok) {
         const json = await res.json();
         setData(json);
@@ -84,7 +84,7 @@ export const RiskControlConsole: React.FC<RiskControlConsoleProps> = ({ addLog }
 
   const handleRiskAction = async (action: 'bypass' | 'reset') => {
     try {
-      const res = await fetch('/api/risk/control', {
+      const res = await window.appFetch('/api/risk/control', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action })

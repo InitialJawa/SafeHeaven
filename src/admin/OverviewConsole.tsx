@@ -52,7 +52,7 @@ export const OverviewConsole: React.FC<OverviewConsoleProps> = ({ setActiveTab, 
     setLoadingAction(actionName);
     addLog(`Exec: Initiating Quick Action [${actionName}]...`);
     try {
-      const res = await fetch(`/api/admin/${endpoint}`, {
+      const res = await window.appFetch(`/api/admin/${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: bodyObj ? JSON.stringify(bodyObj) : JSON.stringify({ triggeredBy: 'OverviewQuickAction' })

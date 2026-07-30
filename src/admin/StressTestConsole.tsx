@@ -31,7 +31,7 @@ export const StressTestConsole: React.FC<StressTestConsoleProps> = ({ addLog }) 
 
   const triggerPost = async (endpoint: string, body?: any, successMsg?: string) => {
     try {
-      const res = await fetch(`/api/admin/${endpoint}`, {
+      const res = await window.appFetch(`/api/admin/${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: body ? JSON.stringify(body) : undefined

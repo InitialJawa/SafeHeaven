@@ -36,7 +36,7 @@ export const Risk: React.FC = () => {
   const fetchRiskSettings = async () => {
     try {
       const base = window.location.origin;
-      const res = await fetch(`${base}/api/risk/settings`);
+      const res = await window.appFetch(`${base}/api/risk/settings`);
       if (res.ok) {
         const json = await res.json();
         setData(json);
@@ -55,7 +55,7 @@ export const Risk: React.FC = () => {
   const handleAction = async (action: 'bypass' | 'reset') => {
     try {
       const base = window.location.origin;
-      const res = await fetch(`${base}/api/risk/control`, {
+      const res = await window.appFetch(`${base}/api/risk/control`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action })

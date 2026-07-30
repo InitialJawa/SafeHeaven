@@ -97,7 +97,7 @@ export const AiManager: React.FC = () => {
   const fetchActiveAiConfig = async () => {
     try {
       const base = window.location.origin;
-      const res = await fetch(`${base}/api/ai/config`);
+      const res = await window.appFetch(`${base}/api/ai/config`);
       if (res.ok) {
         const data = await res.json();
         setActiveConfig({

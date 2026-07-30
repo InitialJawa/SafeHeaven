@@ -32,7 +32,7 @@ export const MacroChart: React.FC<MacroChartProps> = ({ initialType = 'ihsg' }) 
       setLoading(true);
       try {
         const base = window.location.origin;
-        const res = await fetch(`${base}/api/market/macro?type=${type}&range=max`);
+        const res = await window.appFetch(`${base}/api/market/macro?type=${type}&range=max`);
         if (res.ok) {
           const data = await res.json();
           const validData = data.filter((d: any) => d.time && d.close !== undefined);

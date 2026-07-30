@@ -35,10 +35,10 @@ export const Portfolio: React.FC = () => {
         try {
             const base = window.location.origin;
             
-            const gRes = await fetch(`${base}/api/portfolio/growth?capital=${portfolioConfig.capital}`);
+            const gRes = await window.appFetch(`${base}/api/portfolio/growth?capital=${portfolioConfig.capital}`);
             if (gRes.ok) setGrowthData(await gRes.json());
             
-            const sRes = await fetch(`${base}/api/portfolio/signals`);
+            const sRes = await window.appFetch(`${base}/api/portfolio/signals`);
             if (sRes.ok) setSignals(await sRes.json());
             
         } catch (e) {

@@ -118,7 +118,7 @@ export const StockAnalysis: React.FC = () => {
       const endpoint = isManualSync ? '/api/market/analysis-matrix/sync' : '/api/market/analysis-matrix';
       const method = isManualSync ? 'POST' : 'GET';
 
-      const res = await fetch(`${window.location.origin}${endpoint}`, { method });
+      const res = await window.appFetch(`${window.location.origin}${endpoint}`, { method });
       if (res.ok) {
         const result = await res.json();
         const data = result.data || (Array.isArray(result) ? result : []);

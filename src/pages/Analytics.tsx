@@ -144,7 +144,7 @@ export const Analytics: React.FC = () => {
     const fetchAnalytics = async () => {
       try {
         const base = window.location.origin;
-        const res = await fetch(`${base}/api/analytics/dashboard?index=${encodeURIComponent(marketIndex)}`);
+        const res = await window.appFetch(`${base}/api/analytics/dashboard?index=${encodeURIComponent(marketIndex)}`);
         if (res.ok) {
           const json = await res.json();
           setData(json);

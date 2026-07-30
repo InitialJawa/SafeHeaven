@@ -29,7 +29,7 @@ export const Optimizer: React.FC = () => {
 
     try {
       const base = window.location.origin;
-      const res = await fetch(`${base}/api/optimize/run`, {
+      const res = await window.appFetch(`${base}/api/optimize/run`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

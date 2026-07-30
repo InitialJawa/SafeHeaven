@@ -33,7 +33,7 @@ export const DatabaseConsole: React.FC<DatabaseConsoleProps> = ({ addLog }) => {
 
   const fetchDbStats = async () => {
     try {
-      const res = await fetch('/api/db/stats');
+      const res = await window.appFetch('/api/db/stats');
       if (res.ok) {
         const data = await res.json();
         setDbStats(data);
@@ -72,7 +72,7 @@ export const DatabaseConsole: React.FC<DatabaseConsoleProps> = ({ addLog }) => {
         url = '/api/db/admin/records_summary';
       }
 
-      const res = await fetch(url, {
+      const res = await window.appFetch(url, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
       });

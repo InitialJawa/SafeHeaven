@@ -83,7 +83,7 @@ export const apiCache = {
     const cached = apiCache.get<T>(url);
     if (cached) {
       // Revalidate in background without blocking caller
-      fetch(url, options)
+      window.appFetch(url, options)
         .then((res) => (res.ok ? res.json() : null))
         .then((newData) => {
           if (newData) apiCache.set(url, newData, ttlMs);
@@ -92,7 +92,7 @@ export const apiCache = {
       return cached;
     }
 
-    const res = await fetch(url, options);
+    const res = await window.appFetch(url, options);
     if (!res.ok) {
       throw new Error(`HTTP error! status: ${res.status}`);
     }

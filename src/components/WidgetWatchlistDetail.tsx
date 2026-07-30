@@ -119,7 +119,7 @@ export const WidgetWatchlistDetail: React.FC<WidgetWatchlistDetailProps> = ({
     let success = false;
     try {
       const base = window.location.origin;
-      const res = await fetch(`${base}/api/widgets/ticker-details?symbol=${encodeURIComponent(sym)}`);
+      const res = await window.appFetch(`${base}/api/widgets/ticker-details?symbol=${encodeURIComponent(sym)}`);
       if (res.ok) {
         const json = await res.json();
         setData(json);

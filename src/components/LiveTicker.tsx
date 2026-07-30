@@ -16,7 +16,7 @@ export const LiveTicker: React.FC = () => {
     const fetchLiveTickers = async () => {
       try {
         const base = window.location.origin;
-        const res = await fetch(`${base}/api/live-tickers`);
+        const res = await window.appFetch(`${base}/api/live-tickers`);
         if (res.ok) {
           const data = await res.json();
           if (Array.isArray(data)) {

@@ -3,6 +3,50 @@ import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 
+import { auth } from './lib/firebase';
+
+const originalFetch = window.fetch;
+window.appFetch = async (...args: [RequestInfo | URL, RequestInit?]) => {
+  let [resource, config] = args;
+  
+  let isApiCall = false;
+  if (typeof resource === 'string' && resource.includes('/api/')) {
+    isApiCall = true;
+  } else if (resource instanceof Request && resource.url.includes('/api/')) {
+    isApiCall = true;
+  }
+  
+  if (isApiCall && auth?.currentUser) {
+    try {
+      const token = await auth.currentUser.getIdToken();
+      if (typeof resource === 'string') {
+         config = config || {};
+         config.headers = {
+           ...config.headers,
+           'Authorization': `Bearer ${token}`
+         };
+         args = [resource, config];
+      } else {
+         const newReq = new Request(resource, config);
+         newReq.headers.set('Authorization', `Bearer ${token}`);
+         args = [newReq];
+      }
+    } catch(e) {
+      console.warn('Failed to attach auth token:', e);
+    }
+  }
+  return originalFetch(args[0], args[1]);
+};
+
+declare global {
+  interface Window {
+    appFetch: typeof fetch;
+  }
+}
+
+
+
+
 interface ErrorBoundaryProps {
   children: ReactNode;
 }

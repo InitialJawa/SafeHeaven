@@ -242,7 +242,7 @@ export const Backtest: React.FC = () => {
     }, 60);
 
     try {
-      const res = await fetch('/api/backtest/run', {
+      const res = await window.appFetch('/api/backtest/run', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -13,7 +13,7 @@ export const Compare: React.FC = () => {
   const [stocks, setStocks] = useState<any[]>([]);
 
   useEffect(() => {
-    fetch(`${window.location.origin}/api/market/analysis-matrix`)
+    window.appFetch(`${window.location.origin}/api/market/analysis-matrix`)
       .then(res => res.json())
       .then(result => {
         if (result.data) setStocks(result.data);

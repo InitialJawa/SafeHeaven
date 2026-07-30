@@ -5,14 +5,14 @@ import * as admin from 'firebase-admin';
 // Usage: ts-node scripts/set_admin_claim.ts <user_uid>
 
 async function setAdminClaim(uid: string) {
-  if (!admin.apps.length) {
+  if (!(admin as any).apps.length) {
     admin.initializeApp({
       projectId: "ai-studio-safeheaven-feb17918-0b82-4235-b3c1-5e4a8fa033c0" // replace if needed
     });
   }
 
   try {
-    await admin.auth().setCustomUserClaims(uid, { admin: true });
+    await (admin as any).auth().setCustomUserClaims(uid, { admin: true });
     console.log(`Success! Admin claim set for user: ${uid}`);
     process.exit(0);
   } catch (error) {

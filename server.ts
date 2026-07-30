@@ -6,6 +6,27 @@
 
 
 import express from 'express';
+
+import admin from 'firebase-admin';
+
+// Initialize Firebase Admin if not already initialized
+if (!admin.getApps().length) {
+  try {
+    admin.initializeApp();
+  } catch (e) {
+    console.warn('Failed to initialize Firebase Admin SDK:', e);
+  }
+}
+
+// Augment Express Request type
+declare global {
+  namespace Express {
+    interface Request {
+      user?: any;
+    }
+  }
+}
+
 import http from 'http';
 import path from 'path';
 import fs from 'fs';
@@ -26,7 +47,7 @@ const chatRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 20, // limit each user to 20 requests per windowMs
   keyGenerator: (req) => {
-    return req.user?.uid || req.ip || 'anonymous';
+    return req.user?.uid || 'anonymous';
   },
   message: { error: 'Terlalu banyak permintaan (Rate Limit Exceeded). Silakan coba lagi nanti.' }
 });
@@ -60,6 +81,23 @@ app.use(cors({
 }));
 
 app.use(express.json());
+
+const authMiddleware = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const idToken = authHeader.split('Bearer ')[1];
+    try {
+      const decodedToken = await (admin as any).auth().verifyIdToken(idToken);
+      req.user = decodedToken;
+    } catch (error) {
+      console.warn('Error verifying auth token:', error);
+    }
+  }
+  next();
+};
+
+app.use(authMiddleware);
+
 
 // Initialize server-side Gemini Client
 let ai: GoogleGenAI | null = null;
@@ -421,7 +459,7 @@ const defaultPortfolioConfig = {
 async function getPortfolioConfig(uid: string) {
   if (!uid || uid === 'anonymous') return { ...defaultPortfolioConfig };
   try {
-    const doc = await admin.firestore().collection('users').doc(uid).collection('configs').doc('portfolio').get();
+    const doc = await (admin as any).firestore().collection('users').doc(uid).collection('configs').doc('portfolio').get();
     if (doc.exists) {
       return { ...defaultPortfolioConfig, ...doc.data() };
     }
@@ -434,7 +472,7 @@ async function getPortfolioConfig(uid: string) {
 async function setPortfolioConfig(uid: string, configData: any) {
   if (!uid || uid === 'anonymous') return;
   try {
-    await admin.firestore().collection('users').doc(uid).collection('configs').doc('portfolio').set(configData, { merge: true });
+    await (admin as any).firestore().collection('users').doc(uid).collection('configs').doc('portfolio').set(configData, { merge: true });
   } catch (e) {
     console.warn('Error writing portfolio config', e);
   }
@@ -994,7 +1032,8 @@ app.get('/api/market/macro', async (req, res) => {
 });
 
 // 3. Portfolio Tier
-app.get('/api/portfolio/tier', (req, res) => {
+app.get('/api/portfolio/tier', async (req, res) => {
+  let portfolioConfig = await getPortfolioConfig(req.user?.uid || 'anonymous');
   const cap = portfolioConfig.capital;
   let tier = 'Perunggu';
   let level = 1;
@@ -1559,7 +1598,7 @@ app.get('/api/analytics/dashboard', async (req, res) => {
   // Generate dynamic data for all tickers in the universe
   const universeStocks = tickerList.map((symbol, i) => {
     const item = ANALYSIS_MATRIX_CACHE.find(t => t.symbol === symbol) || getTickerMatrixData(symbol);
-    const score = calculateTotalScore(item);
+    const score = calculateTotalScore(item, defaultPortfolioConfig);
     const signal = score > 80 ? 'Beli' : score > 60 ? 'Akumulasi' : score > 40 ? 'Tahan' : 'Hindari';
     
     return {
@@ -1761,7 +1800,8 @@ app.get('/api/portfolio/growth', async (req, res) => {
   }
 });
 
-app.get('/api/portfolio/signals', (req, res) => {
+app.get('/api/portfolio/signals', async (req, res) => {
+  let portfolioConfig = await getPortfolioConfig(req.user?.uid || 'anonymous');
   const targetUniverse = universes.find(u => u.name === portfolioConfig.universe);
   let availableSymbols = targetUniverse ? targetUniverse.tickers : INITIAL_TICKERS.map(t => t.symbol);
   
@@ -1837,7 +1877,8 @@ app.post('/api/admin/clients', (req, res) => {
 });
 
 // Admin Triggers & Simulator Suite
-app.post('/api/admin/trigger-scoring', (req, res) => {
+app.post('/api/admin/trigger-scoring', async (req, res) => {
+  let portfolioConfig = await getPortfolioConfig(req.user?.uid || 'anonymous');
   INITIAL_TICKERS.forEach((t) => {
     const shift = Math.floor(Math.random() * 9) - 4;
     t.score = Math.min(99, Math.max(30, t.score + shift));
@@ -1868,7 +1909,8 @@ app.post('/api/admin/trigger-scoring', (req, res) => {
   res.json({ success: true, message: 'Scoring recomputed' });
 });
 
-app.post('/api/admin/trigger-prices', (req, res) => {
+app.post('/api/admin/trigger-prices', async (req, res) => {
+  let portfolioConfig = await getPortfolioConfig(req.user?.uid || 'anonymous');
   INITIAL_TICKERS.forEach((t) => {
     const pctChange = (Math.random() * 6) - 3; // -3% to +3%
     t.price = Math.round(t.price * (1 + pctChange / 100));
@@ -1899,7 +1941,8 @@ app.post('/api/admin/trigger-prices', (req, res) => {
   res.json({ success: true, message: 'Price fluctuation triggered' });
 });
 
-app.post('/api/admin/trigger-crash', (req, res) => {
+app.post('/api/admin/trigger-crash', async (req, res) => {
+  let portfolioConfig = await getPortfolioConfig(req.user?.uid || 'anonymous');
   INITIAL_TICKERS.forEach((t) => {
     const drop = 12 + Math.random() * 6; // 12% to 18% crash drop
     t.price = Math.round(t.price * (1 - drop / 100));
@@ -1907,17 +1950,15 @@ app.post('/api/admin/trigger-crash', (req, res) => {
   });
   
   // Update portfolio config with active stress state
-  portfolioConfig = {
-    ...portfolioConfig,
+  Object.assign(portfolioConfig, {
     activeStressScenario: 'Black Swan Crisis (-15%)',
     stressImpactPct: -15,
     allocationSaham: 40,
     allocationEmas: 30,
     allocationCash: 20,
     allocationUSD: 10
-  };
-
-  
+  });
+  await setPortfolioConfig(req.user?.uid || 'anonymous', portfolioConfig);
   try {
     const cfAccountId = process.env.CLOUDFLARE_ACCOUNT_ID;
     const cfDatabaseId = process.env.CLOUDFLARE_D1_DATABASE_ID;
@@ -2010,7 +2051,7 @@ app.post('/api/admin/trigger-rebalance', async (req, res) => {
   const activeStrat = strategies.find(s => s.id === portfolioConfig.strategyTemplate) || strategies[0];
   
   // Re-establish target weights from strategy
-  portfolioConfig = {
+  Object.assign(portfolioConfig, {
     ...portfolioConfig,
     allocationSaham: activeStrat.allocationSaham,
     allocationEmas: activeStrat.allocationEmas,
@@ -2018,9 +2059,7 @@ app.post('/api/admin/trigger-rebalance', async (req, res) => {
     allocationUSD: activeStrat.allocationUSD,
     activeStressScenario: undefined,
     stressImpactPct: 0,
-    lastRebalancedAt: new Date().toISOString()
-  };
-
+    lastRebalancedAt: new Date().toISOString()});
   // Re-score tickers & normalize signals
   INITIAL_TICKERS.forEach((t) => {
     t.changePercent = parseFloat(((Math.random() * 2) - 1).toFixed(2));
@@ -2059,16 +2098,14 @@ app.post('/api/admin/trigger-rebalance', async (req, res) => {
 app.post('/api/admin/trigger-drift', async (req, res) => {
   let portfolioConfig = await getPortfolioConfig(req.user?.uid || 'anonymous');
   // Simulate allocation drift: Saham surges to 75%, leaving Cash & Gold reduced
-  portfolioConfig = {
-    ...portfolioConfig,
+  Object.assign(portfolioConfig, {
     allocationSaham: 75,
     allocationEmas: 15,
     allocationCash: 5,
     allocationUSD: 5,
     activeStressScenario: 'Deviasi Alokasi / Asset Drift (+15% Saham)'
-  };
-
-  
+  });
+  await setPortfolioConfig(req.user?.uid || 'anonymous', portfolioConfig);
   try {
     const cfAccountId = process.env.CLOUDFLARE_ACCOUNT_ID;
     const cfDatabaseId = process.env.CLOUDFLARE_D1_DATABASE_ID;
@@ -2094,7 +2131,8 @@ app.post('/api/admin/trigger-drift', async (req, res) => {
   res.json({ success: true, message: 'Asset drift simulated.' });
 });
 
-app.post('/api/admin/reset-simulation', (req, res) => {
+app.post('/api/admin/reset-simulation', async (req, res) => {
+  let portfolioConfig = await getPortfolioConfig(req.user?.uid || 'anonymous');
   // Reset prices to standard initial values
   INITIAL_TICKERS.forEach((t, i) => {
     t.price = 1000 + (i * 250);
@@ -2103,17 +2141,15 @@ app.post('/api/admin/reset-simulation', (req, res) => {
     t.signal = t.score > 80 ? 'Beli' : t.score > 60 ? 'Akumulasi' : t.score > 40 ? 'Tahan' : 'Hindari';
   });
 
-  portfolioConfig = {
-    ...portfolioConfig,
+  Object.assign(portfolioConfig, {
     allocationSaham: 60,
     allocationEmas: 20,
     allocationCash: 10,
     allocationUSD: 10,
     activeStressScenario: undefined,
     stressImpactPct: 0
-  };
-
-  
+  });
+  await setPortfolioConfig(req.user?.uid || 'anonymous', portfolioConfig);
   try {
     const cfAccountId = process.env.CLOUDFLARE_ACCOUNT_ID;
     const cfDatabaseId = process.env.CLOUDFLARE_D1_DATABASE_ID;
@@ -2228,7 +2264,8 @@ app.post('/api/admin/test-courier', async (req, res) => {
   });
 });
 
-app.post('/api/admin/add-manual-alert', (req, res) => {
+app.post('/api/admin/add-manual-alert', async (req, res) => {
+  let portfolioConfig = await getPortfolioConfig(req.user?.uid || 'anonymous');
   const { message, type } = req.body;
   const newAlert = {
     id: `a-${Date.now()}`,
@@ -2279,7 +2316,7 @@ function getTickerMatrixData(symbol: string) {
   };
 }
 
-function calculateTotalScore(item: any) {
+function calculateTotalScore(item: any, portfolioConfig: any) {
   let wQ, wG, wV, wM, wD;
 
   if (portfolioConfig.strategyProfile && (portfolioConfig.strategyProfile as string) !== 'custom') {
@@ -2313,7 +2350,7 @@ function calculateTotalScore(item: any) {
 function getTickerBySymbol(symbol: string) {
   const cleanSymbol = symbol.toUpperCase();
   const item = getTickerMatrixData(cleanSymbol);
-  const score = calculateTotalScore(item);
+  const score = calculateTotalScore(item, defaultPortfolioConfig);
   const signal = score >= 80 ? 'Beli' as const : score >= 60 ? 'Akumulasi' as const : score >= 40 ? 'Tahan' as const : 'Hindari' as const;
   
   return {
@@ -2329,7 +2366,7 @@ function getTickerBySymbol(symbol: string) {
 app.get('/api/ticker/:symbol', async (req, res) => {
   const symbol = req.params.symbol.toUpperCase();
   const item = getTickerMatrixData(symbol);
-  const totalScore = calculateTotalScore(item);
+  const totalScore = calculateTotalScore(item, defaultPortfolioConfig);
   const signal = totalScore >= 80 ? 'Beli' as const : totalScore >= 60 ? 'Akumulasi' as const : totalScore >= 40 ? 'Tahan' as const : 'Hindari' as const;
 
   try {
@@ -2394,7 +2431,7 @@ app.get('/api/ticker/:symbol/score', async (req, res) => {
     }
   }
 
-  const totalScore = calculateTotalScore(item);
+  const totalScore = calculateTotalScore(item, defaultPortfolioConfig);
 
   res.json({
     symbol: item.symbol,
@@ -2412,7 +2449,7 @@ app.get('/api/ticker/:symbol/score', async (req, res) => {
 app.get('/api/ticker/:symbol/signal', (req, res) => {
   const symbol = req.params.symbol.toUpperCase();
   const item = getTickerMatrixData(symbol);
-  const totalScore = calculateTotalScore(item);
+  const totalScore = calculateTotalScore(item, defaultPortfolioConfig);
   const signal = totalScore >= 80 ? 'Beli' : totalScore >= 60 ? 'Akumulasi' : totalScore >= 40 ? 'Tahan' : 'Hindari';
   res.json({ symbol, signal });
 });
@@ -2893,8 +2930,7 @@ app.post('/api/backtest/run', async (req, res) => {
 
       // Track last known prices for robustness against data gaps
       const lastPriceOfTicker: { [ticker: string]: number } = {};
-
-      // Initialize benchmark indexes by finding the first available '^JKSE' price
+  // Initialize benchmark indexes by finding the first available '^JKSE' price
       let initialBenchmarkPrice = 1;
       for (const d of sortedDates) {
         const prices = dailyPricesMap[d];
@@ -4356,12 +4392,13 @@ app.put('/api/global/config', (req, res) => {
 });
 
 app.get('/api/ai/config', (req, res) => res.json(AI_CONFIG));
-app.put('/api/ai/config', (req, res) => {
+app.put('/api/ai/config', async (req, res) => {
+  let portfolioConfig = await getPortfolioConfig(req.user?.uid || 'anonymous');
   AI_CONFIG = { ...AI_CONFIG, ...req.body };
   res.json(AI_CONFIG);
 });
 
-function generateFallbackReply(prompt: string) {
+function generateFallbackReply(prompt: string, portfolioConfig: any) {
   const lowerPrompt = prompt.toLowerCase();
 
   if (lowerPrompt === 'halo' || lowerPrompt === 'hi' || lowerPrompt.includes('halo!') || lowerPrompt.includes('hi!')) {
@@ -4430,7 +4467,7 @@ Petunjuk Jawaban:
     });
   } catch (_err: any) {
     console.warn("Gemini API Error (fallback mode activated): API Key is missing or invalid.");
-    const fallbackText = generateFallbackReply(prompt);
+    const fallbackText = generateFallbackReply(prompt, portfolioConfig);
     return res.json({ 
       text: fallbackText, 
       provider: AI_CONFIG.provider || 'gemini', 

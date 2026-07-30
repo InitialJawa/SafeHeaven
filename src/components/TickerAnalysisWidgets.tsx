@@ -52,7 +52,7 @@ export const WidgetKinerja: React.FC<WidgetKinerjaProps> = ({ symbol }) => {
       setLoading(true);
       try {
         const base = window.location.origin;
-        const res = await fetch(`${base}/api/widgets/kinerja?symbol=${symbol}`);
+        const res = await window.appFetch(`${base}/api/widgets/kinerja?symbol=${symbol}`);
         if (res.ok) {
           const json = await res.json();
           setData(json);
@@ -145,7 +145,7 @@ export const WidgetMusiman: React.FC<WidgetMusimanProps> = ({ symbol }) => {
       setLoading(true);
       try {
         const base = window.location.origin;
-        const res = await fetch(`${base}/api/widgets/musiman?symbol=${symbol}`);
+        const res = await window.appFetch(`${base}/api/widgets/musiman?symbol=${symbol}`);
         if (res.ok) {
           const json = await res.json();
           setData(json);
@@ -291,7 +291,7 @@ export const WidgetFinancials: React.FC<WidgetFinancialsProps> = ({ symbol }) =>
       setLoading(true);
       try {
         const base = window.location.origin;
-        const res = await fetch(`${base}/api/widgets/financials?symbol=${symbol}`);
+        const res = await window.appFetch(`${base}/api/widgets/financials?symbol=${symbol}`);
         if (res.ok) {
           const json = await res.json();
           setData(json);
@@ -390,7 +390,7 @@ export const WidgetDividen: React.FC<WidgetDividenProps> = ({ symbol }) => {
       setLoading(true);
       try {
         const base = window.location.origin;
-        const res = await fetch(`${base}/api/widgets/dividen?symbol=${symbol}`);
+        const res = await window.appFetch(`${base}/api/widgets/dividen?symbol=${symbol}`);
         if (res.ok) {
           const json = await res.json();
           setData(json);
@@ -706,7 +706,7 @@ export const WidgetGauges: React.FC<WidgetGaugesProps> = ({ symbol }) => {
       setLoading(true);
       try {
         const base = window.location.origin;
-        const res = await fetch(`${base}/api/widgets/gauges?symbol=${symbol}`);
+        const res = await window.appFetch(`${base}/api/widgets/gauges?symbol=${symbol}`);
         if (res.ok) {
           const json = await res.json();
           setData(json);
@@ -817,7 +817,7 @@ export const WidgetNews: React.FC<WidgetNewsProps> = ({ symbol }) => {
 
     try {
       const base = window.location.origin;
-      const res = await fetch(`${base}/api/widgets/ticker-details?symbol=${encodeURIComponent(symbol)}`);
+      const res = await window.appFetch(`${base}/api/widgets/ticker-details?symbol=${encodeURIComponent(symbol)}`);
       if (res.ok) {
         const data = await res.json();
         if (data.news && Array.isArray(data.news)) {

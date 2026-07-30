@@ -55,7 +55,7 @@ export const PortfolioGrowthChart: React.FC<PortfolioGrowthChartProps> = ({
     setLoading(true);
     try {
       const base = window.location.origin;
-      const res = await fetch(`${base}/api/portfolio/growth?capital=${initialCapital}`);
+      const res = await window.appFetch(`${base}/api/portfolio/growth?capital=${initialCapital}`);
       if (res.ok) {
         const json: GrowthPoint[] = await res.json();
         setRawGrowthData(json);

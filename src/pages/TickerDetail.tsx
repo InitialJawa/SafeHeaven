@@ -180,19 +180,19 @@ export const TickerDetail: React.FC<{ params: TickerParams }> = ({ params }) => 
         const base = window.location.origin;
         
         // 1. Fetch details
-        const detailsRes = await fetch(`${base}/api/ticker/${symbol}`);
+        const detailsRes = await window.appFetch(`${base}/api/ticker/${symbol}`);
         const detailsData = detailsRes.ok ? await detailsRes.json() : null;
         
         // 2. Fetch score breakdown
-        const scoreRes = await fetch(`${base}/api/ticker/${symbol}/score`);
+        const scoreRes = await window.appFetch(`${base}/api/ticker/${symbol}/score`);
         const scoreData = scoreRes.ok ? await scoreRes.json() : null;
 
         // 3. Fetch fundamentals
-        const fundRes = await fetch(`${base}/api/ticker/${symbol}/fundamentals`);
+        const fundRes = await window.appFetch(`${base}/api/ticker/${symbol}/fundamentals`);
         const fundData = fundRes.ok ? await fundRes.json() : null;
 
         // 4. Fetch sector comparison
-        const secRes = await fetch(`${base}/api/ticker/${symbol}/sector`);
+        const secRes = await window.appFetch(`${base}/api/ticker/${symbol}/sector`);
         const secData = secRes.ok ? await secRes.json() : null;
 
         setDetails(detailsData);
@@ -212,7 +212,7 @@ export const TickerDetail: React.FC<{ params: TickerParams }> = ({ params }) => 
     const fetchCandles = async () => {
       try {
         const base = window.location.origin;
-        const candlesRes = await fetch(`${base}/api/ticker/${symbol}/chart?range=max&interval=${interval}`);
+        const candlesRes = await window.appFetch(`${base}/api/ticker/${symbol}/chart?range=max&interval=${interval}`);
         const candlesData = candlesRes.ok ? await candlesRes.json() : [];
         setCandles(candlesData);
       } catch (e) {
@@ -773,7 +773,7 @@ export const TickerDetail: React.FC<{ params: TickerParams }> = ({ params }) => 
 
     try {
       const base = window.location.origin;
-      const res = await fetch(`${base}/api/chat`, {
+      const res = await window.appFetch(`${base}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt })

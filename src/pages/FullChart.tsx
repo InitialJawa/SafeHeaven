@@ -97,7 +97,7 @@ export const FullChart: React.FC<FullChartProps> = ({ params }) => {
             signal: 'NEUTRAL',
           });
         } else {
-          const res = await fetch(`${base}/api/ticker/${symbol}`);
+          const res = await window.appFetch(`${base}/api/ticker/${symbol}`);
           if (res.ok) {
             const data = await res.json();
             setDetails(data);
@@ -119,7 +119,7 @@ export const FullChart: React.FC<FullChartProps> = ({ params }) => {
       if (isMacroType) {
         url = `${base}/api/market/macro?type=${symbol.toLowerCase()}&range=max&interval=${interval}`;
       }
-      const res = await fetch(url);
+      const res = await window.appFetch(url);
       if (res.ok) {
         const data = await res.json();
         const validData = (Array.isArray(data) ? data : []).filter((d: any) => d.time && d.close !== undefined);

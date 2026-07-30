@@ -143,7 +143,7 @@ export const Dashboard: React.FC = () => {
   useEffect(() => {
     const fetchGrowth = async () => {
         const base = window.location.origin;
-        const res = await fetch(`${base}/api/portfolio/growth?capital=${portfolioConfig?.capital || 500000000}`);
+        const res = await window.appFetch(`${base}/api/portfolio/growth?capital=${portfolioConfig?.capital || 500000000}`);
         if (res.ok) {
             const json = await res.json();
             setGrowthData(json);
@@ -169,7 +169,7 @@ export const Dashboard: React.FC = () => {
     setRebalancing(true);
     try {
       const base = window.location.origin;
-      const res = await fetch(`${base}/api/admin/trigger-rebalance`, { method: 'POST' });
+      const res = await window.appFetch(`${base}/api/admin/trigger-rebalance`, { method: 'POST' });
       if (res.ok) {
         toast.success('Portofolio berhasil direbalancing ke alokasi optimal!');
         await fetchInitialData();

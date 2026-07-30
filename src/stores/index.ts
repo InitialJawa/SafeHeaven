@@ -577,7 +577,7 @@ export const useAppStore = create<AppState>((set, get) => {
         try {
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 2500);
-          const res = await fetch(getApiUrl(endpoint), { signal: controller.signal });
+          const res = await window.appFetch(getApiUrl(endpoint), { signal: controller.signal });
           clearTimeout(timeoutId);
           return res.ok ? await res.json() : null;
         } catch {
@@ -672,7 +672,7 @@ export const useAppStore = create<AppState>((set, get) => {
 
   updatePortfolioConfig: async (config) => {
     try {
-      const response = await fetch(getApiUrl('/api/portfolio/config'), {
+      const response = await window.appFetch(getApiUrl('/api/portfolio/config'), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(config)
@@ -682,13 +682,13 @@ export const useAppStore = create<AppState>((set, get) => {
         set({ portfolioConfig: data });
         
         // Re-fetch dependent data
-        const pickRes = await fetch(getApiUrl('/api/portfolio/stock-picks'));
+        const pickRes = await window.appFetch(getApiUrl('/api/portfolio/stock-picks'));
         if (pickRes.ok) {
           const picksData = await pickRes.json();
           set({ stockPicks: picksData });
         }
         
-        const tierRes = await fetch(getApiUrl('/api/portfolio/tier'));
+        const tierRes = await window.appFetch(getApiUrl('/api/portfolio/tier'));
         if (tierRes.ok) {
           const tierData = await tierRes.json();
           set({ tier: tierData.tier, tierProgress: tierData.progress });
@@ -709,7 +709,7 @@ export const useAppStore = create<AppState>((set, get) => {
     const id = `ar-${Date.now()}`;
     const newRule: AlertRule = { ...rule, id, status: 'ON' };
     try {
-      const response = await fetch(getApiUrl('/api/alert-rules'), {
+      const response = await window.appFetch(getApiUrl('/api/alert-rules'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newRule)
@@ -731,7 +731,7 @@ export const useAppStore = create<AppState>((set, get) => {
         r.id === id ? { ...r, status: (r.status === 'ON' ? 'OFF' : 'ON') as 'ON' | 'OFF' } : r
       );
       // Fire-and-forget sync
-      fetch(getApiUrl(`/api/alert-rules/${id}`), {
+      window.appFetch(getApiUrl(`/api/alert-rules/${id}`), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updated.find(r => r.id === id))
@@ -743,7 +743,7 @@ export const useAppStore = create<AppState>((set, get) => {
   deleteAlertRule: async (id) => {
     set((state) => ({ alertRules: state.alertRules.filter((r) => r.id !== id) }));
     try {
-      await fetch(getApiUrl(`/api/alert-rules/${id}`), { method: 'DELETE' });
+      await window.appFetch(getApiUrl(`/api/alert-rules/${id}`), { method: 'DELETE' });
     } catch {}
   },
 
@@ -751,7 +751,7 @@ export const useAppStore = create<AppState>((set, get) => {
     const id = `strat-${Date.now()}`;
     const newStrat: Strategy = { ...strat, id };
     try {
-      const response = await fetch(getApiUrl('/api/strategies'), {
+      const response = await window.appFetch(getApiUrl('/api/strategies'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newStrat)
@@ -772,7 +772,7 @@ export const useAppStore = create<AppState>((set, get) => {
       strategies: state.strategies.map(s => s.id === id ? { ...s, ...strat } : s)
     }));
     try {
-      await fetch(getApiUrl(`/api/strategies/${id}`), {
+      await window.appFetch(getApiUrl(`/api/strategies/${id}`), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(strat)
@@ -783,7 +783,7 @@ export const useAppStore = create<AppState>((set, get) => {
   deleteStrategy: async (id) => {
     set((state) => ({ strategies: state.strategies.filter((s) => s.id !== id) }));
     try {
-      await fetch(getApiUrl(`/api/strategies/${id}`), { method: 'DELETE' });
+      await window.appFetch(getApiUrl(`/api/strategies/${id}`), { method: 'DELETE' });
     } catch {}
   },
 
@@ -791,7 +791,7 @@ export const useAppStore = create<AppState>((set, get) => {
     const id = `uni-${Date.now()}`;
     const newUni: Universe = { ...uni, id };
     try {
-      const response = await fetch(getApiUrl('/api/universes'), {
+      const response = await window.appFetch(getApiUrl('/api/universes'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newUni)
@@ -810,13 +810,13 @@ export const useAppStore = create<AppState>((set, get) => {
   deleteUniverse: async (id) => {
     set((state) => ({ universes: state.universes.filter((u) => u.id !== id) }));
     try {
-      await fetch(getApiUrl(`/api/universes/${id}`), { method: 'DELETE' });
+      await window.appFetch(getApiUrl(`/api/universes/${id}`), { method: 'DELETE' });
     } catch {}
   },
 
   syncUniverses: async () => {
     try {
-      const response = await fetch(getApiUrl('/api/universes/sync'), { method: 'POST' });
+      const response = await window.appFetch(getApiUrl('/api/universes/sync'), { method: 'POST' });
       if (response.ok) {
         const data = await response.json();
         if (data.success && data.universes) {
@@ -835,7 +835,7 @@ export const useAppStore = create<AppState>((set, get) => {
       universes: state.universes.map((u) => u.id === id ? { ...u, ...uni } : u)
     }));
     try {
-      await fetch(getApiUrl(`/api/universes/${id}`), {
+      await window.appFetch(getApiUrl(`/api/universes/${id}`), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(uni)
@@ -845,13 +845,13 @@ export const useAppStore = create<AppState>((set, get) => {
 
   triggerRebalance: async () => {
     try {
-      await fetch(getApiUrl('/api/rebalance/trigger'), { method: 'POST' });
+      await window.appFetch(getApiUrl('/api/rebalance/trigger'), { method: 'POST' });
     } catch {}
   },
 
   saveRebalanceConfig: async (config) => {
     try {
-      const res = await fetch(getApiUrl('/api/rebalance/config'), {
+      const res = await window.appFetch(getApiUrl('/api/rebalance/config'), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(config)
@@ -866,7 +866,7 @@ export const useAppStore = create<AppState>((set, get) => {
 
   saveNotificationConfig: async (config) => {
     try {
-      const res = await fetch(getApiUrl('/api/notif/config'), {
+      const res = await window.appFetch(getApiUrl('/api/notif/config'), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(config)
@@ -881,7 +881,7 @@ export const useAppStore = create<AppState>((set, get) => {
 
   saveGlobalConfig: async (config) => {
     try {
-      const res = await fetch(getApiUrl('/api/global/config'), {
+      const res = await window.appFetch(getApiUrl('/api/global/config'), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(config)
@@ -896,7 +896,7 @@ export const useAppStore = create<AppState>((set, get) => {
 
   saveAiConfig: async (config) => {
     try {
-      const res = await fetch(getApiUrl('/api/ai/config'), {
+      const res = await window.appFetch(getApiUrl('/api/ai/config'), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(config)
@@ -916,7 +916,7 @@ export const useAppStore = create<AppState>((set, get) => {
     const key = `sh_live_${Math.random().toString(36).substring(2, 10)}`;
     const newKey: ApiKey = { id, name, key, status: 'Active', lastUsed: 'Never' };
     try {
-      const res = await fetch(getApiUrl('/api/keys'), {
+      const res = await window.appFetch(getApiUrl('/api/keys'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newKey)
@@ -937,7 +937,7 @@ export const useAppStore = create<AppState>((set, get) => {
       apiKeys: state.apiKeys.map((k) => k.id === id ? { ...k, status: 'Revoked' } : k)
     }));
     try {
-      await fetch(getApiUrl(`/api/keys/${id}`), { method: 'DELETE' });
+      await window.appFetch(getApiUrl(`/api/keys/${id}`), { method: 'DELETE' });
     } catch {}
   },
 
@@ -1000,7 +1000,7 @@ export const useAppStore = create<AppState>((set, get) => {
 
     try {
       const { userMemoryContext } = get();
-      const response = await fetch(getApiUrl('/api/chat'), {
+      const response = await window.appFetch(getApiUrl('/api/chat'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: text, memoryContext: userMemoryContext })
@@ -1059,7 +1059,7 @@ export const useAppStore = create<AppState>((set, get) => {
       users: state.users.map((u) => u.id === userId ? { ...u, role } : u)
     }));
     try {
-      await fetch(getApiUrl(`/api/admin/users/${userId}/role`), {
+      await window.appFetch(getApiUrl(`/api/admin/users/${userId}/role`), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role })
@@ -1072,7 +1072,7 @@ export const useAppStore = create<AppState>((set, get) => {
     const newClient: ClientInfo = { id, name, email, advisorId: 'usr-2' };
     set((state) => ({ clients: [...state.clients, newClient] }));
     try {
-      await fetch(getApiUrl('/api/admin/clients'), {
+      await window.appFetch(getApiUrl('/api/admin/clients'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newClient)

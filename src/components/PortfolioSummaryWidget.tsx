@@ -37,7 +37,7 @@ export const PortfolioSummaryWidget: React.FC = () => {
     setLoading(true);
     try {
       const base = window.location.origin;
-      const res = await fetch(`${base}/api/portfolio/growth?capital=${capital}`);
+      const res = await window.appFetch(`${base}/api/portfolio/growth?capital=${capital}`);
       if (res.ok) {
         const contentType = res.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {
@@ -58,7 +58,7 @@ export const PortfolioSummaryWidget: React.FC = () => {
     setAiLoading(true);
     try {
       const base = window.location.origin;
-      const res = await fetch(`${base}/api/ai/portfolio-insight`);
+      const res = await window.appFetch(`${base}/api/ai/portfolio-insight`);
       if (res.ok) {
         const contentType = res.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {

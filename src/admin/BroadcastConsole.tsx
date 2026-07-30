@@ -20,7 +20,7 @@ export const BroadcastConsole: React.FC<BroadcastConsoleProps> = ({ addLog }) =>
   const [isTestingCourier, setIsTestingCourier] = useState(false);
 
   useEffect(() => {
-    fetch('/api/admin/courier-status')
+    window.appFetch('/api/admin/courier-status')
       .then((res) => res.json())
       .then((data) => setCourierStatus(data))
       .catch(() => setCourierStatus(null));
@@ -29,7 +29,7 @@ export const BroadcastConsole: React.FC<BroadcastConsoleProps> = ({ addLog }) =>
   const handleTestCourier = async () => {
     setIsTestingCourier(true);
     try {
-      const res = await fetch('/api/admin/test-courier', {
+      const res = await window.appFetch('/api/admin/test-courier', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -54,7 +54,7 @@ export const BroadcastConsole: React.FC<BroadcastConsoleProps> = ({ addLog }) =>
 
   const triggerPost = async (endpoint: string, body?: any, successMsg?: string) => {
     try {
-      const res = await fetch(`/api/admin/${endpoint}`, {
+      const res = await window.appFetch(`/api/admin/${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: body ? JSON.stringify(body) : undefined
@@ -78,7 +78,7 @@ export const BroadcastConsole: React.FC<BroadcastConsoleProps> = ({ addLog }) =>
     if (!alertText.trim()) return;
 
     try {
-      const res = await fetch('/api/admin/add-manual-alert', {
+      const res = await window.appFetch('/api/admin/add-manual-alert', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: alertText, type: alertType })

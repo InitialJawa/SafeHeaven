@@ -261,7 +261,7 @@ export const Settings: React.FC = () => {
     setAiTestResult(null);
     try {
       const base = window.location.origin;
-      const res = await fetch(`${base}/api/ai/test`, {
+      const res = await window.appFetch(`${base}/api/ai/test`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -300,7 +300,7 @@ export const Settings: React.FC = () => {
 
     try {
       const base = window.location.origin;
-      const res = await fetch(`${base}/api/notif/test`, {
+      const res = await window.appFetch(`${base}/api/notif/test`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ channel: channelName, config: notifState })

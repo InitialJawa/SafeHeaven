@@ -130,7 +130,7 @@ export const MarketNews: React.FC = () => {
 
     try {
       const base = window.location.origin;
-      const res = await fetch(`${base}/api/news?symbol=${encodeURIComponent(symbolToFetch)}`);
+      const res = await window.appFetch(`${base}/api/news?symbol=${encodeURIComponent(symbolToFetch)}`);
       if (res.ok) {
         const data = await res.json();
         if (data.news && Array.isArray(data.news)) {
