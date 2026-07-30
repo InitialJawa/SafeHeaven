@@ -54,39 +54,35 @@ export const DatabaseConsole: React.FC<DatabaseConsoleProps> = ({ addLog }) => {
     fetchDbStats();
   }, []);
 
-  const runSqlQuery = async (customQuery?: string) => {
+  const runSqlQuery = async (customTable?: string, customTicker?: string) => {
     setDbLoading(true);
     setQueryError(null);
     setQueryResult(null);
     
-    let queryToRun = customQuery || sqlQuery;
+    const tableToQuery = customTable || activeTable;
+    const ticker = customTicker !== undefined ? customTicker : tickerFilter;
     
-    // Construct query if using table preset
-    if (!customQuery && activeTable !== 'custom') {
-      if (activeTable === 'price_history') {
-        queryToRun = tickerFilter.trim() 
-          ? `SELECT * FROM price_history WHERE ticker = '${tickerFilter.toUpperCase().trim()}' ORDER BY date DESC LIMIT 20;`
-          : `SELECT * FROM price_history ORDER BY date DESC LIMIT 20;`;
-      } else {
-        queryToRun = tickerFilter.trim()
-          ? `SELECT * FROM fundamentals_historical WHERE ticker = '${tickerFilter.toUpperCase().trim()}' ORDER BY report_date DESC LIMIT 10;`
-          : `SELECT * FROM fundamentals_historical ORDER BY report_date DESC LIMIT 10;`;
-      }
-    }
-
     try {
-      const res = await fetch('/api/db/query', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sql: queryToRun })
+      let url = '';
+      if (tableToQuery === 'price_history') {
+        url = `/api/db/admin/price_history${ticker.trim() ? `?ticker=${encodeURIComponent(ticker.trim())}` : ''}`;
+      } else if (tableToQuery === 'fundamentals_historical') {
+        url = `/api/db/admin/fundamentals_historical${ticker.trim() ? `?ticker=${encodeURIComponent(ticker.trim())}` : ''}`;
+      } else {
+        url = '/api/db/admin/records_summary';
+      }
+
+      const res = await fetch(url, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
       });
       
       const data = await res.json();
       if (data.success) {
         setQueryResult(data);
-        addLog(`SQL Query executed: "${queryToRun.substring(0, 45)}..."`);
+        addLog(`Data records fetched from ${tableToQuery}`);
       } else {
-        setQueryError(data.error || 'Terjadi kesalahan eksekusi query.');
+        setQueryError(data.error || 'Terjadi kesalahan mengambil data.');
       }
     } catch (err: any) {
       setQueryError(err.message || 'Kesalahan koneksi ke server.');
@@ -196,11 +192,10 @@ export const DatabaseConsole: React.FC<DatabaseConsoleProps> = ({ addLog }) => {
               setActiveTable('custom');
               setQueryResult(null);
               setQueryError(null);
-              setSqlQuery('SELECT ticker, count(*) as total_records FROM price_history GROUP BY ticker ORDER BY total_records DESC LIMIT 15;');
             }}
             className={`px-4 py-3 border-r border-[#1b1926] transition-all flex items-center gap-1.5 cursor-pointer ${activeTable === 'custom' ? 'bg-[#1b1926] text-white' : 'text-[#9f9bac] hover:text-white'}`}
           >
-            <Code className="w-3.5 h-3.5 text-[#00f0ff]" /> Custom SQL Query (Read-only)
+            <Code className="w-3.5 h-3.5 text-[#00f0ff]" /> Top Tickers Summary
           </button>
         </div>
 
@@ -240,7 +235,7 @@ export const DatabaseConsole: React.FC<DatabaseConsoleProps> = ({ addLog }) => {
                     type="button"
                     onClick={() => {
                       setTickerFilter(t);
-                      runSqlQuery(`SELECT * FROM ${activeTable === 'price_history' ? 'price_history' : 'fundamentals_historical'} WHERE ticker = '${t}' ORDER BY ${activeTable === 'price_history' ? 'date' : 'report_date'} DESC LIMIT 20;`);
+                      runSqlQuery(activeTable, t);
                     }}
                     className={`px-2 py-0.5 text-[10px] font-mono font-bold rounded-lg border transition-all cursor-pointer ${
                       tickerFilter === t 
@@ -255,30 +250,17 @@ export const DatabaseConsole: React.FC<DatabaseConsoleProps> = ({ addLog }) => {
             </div>
           ) : (
             <div className="space-y-3">
-              <div className="space-y-1">
-                <label className="text-[#9f9bac] font-extrabold uppercase text-[10px] flex items-center justify-between">
-                  <span>Instruksi SQL</span>
-                  <span className="text-sky-400 font-mono font-bold">SELECT / PRAGMA / EXPLAIN</span>
-                </label>
-                <textarea
-                  rows={3}
-                  value={sqlQuery}
-                  onChange={(e) => setSqlQuery(e.target.value)}
-                  className="w-full bg-[#111018] border border-[#1b1926] rounded-xl p-3 text-white focus:outline-none focus:border-[#ccff00]/40 text-xs font-mono"
-                />
-              </div>
-
               <div className="flex justify-between items-center text-[10px]">
                 <div className="text-[#686477] flex items-center gap-1.5">
-                  <AlertCircle className="w-3 h-3 text-amber-500" />
-                  <span>Hanya mendukung query SELECT read-only untuk melindungi data.</span>
+                  <AlertCircle className="w-3 h-3 text-[#00f0ff]" />
+                  <span>Summary emiten dengan record data harga terbanyak (Top 15).</span>
                 </div>
                 <button
                   onClick={() => runSqlQuery()}
                   disabled={dbLoading}
                   className="px-6 py-2.5 bg-[#ccff00] hover:bg-[#ddff33] text-black font-extrabold rounded-xl flex items-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer"
                 >
-                  {dbLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />} Eksekusi Custom SQL
+                  {dbLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />} Load Summary
                 </button>
               </div>
             </div>

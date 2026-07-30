@@ -1,5 +1,4 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
     
@@ -12,11 +11,11 @@ service cloud.firestore {
     function isSignedIn() {
       return request.auth != null;
     }
-
+    
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
-
+    
     function isValidId(id) {
       return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
@@ -25,7 +24,14 @@ service cloud.firestore {
     match /users/{userId} {
       allow get: if isOwner(userId);
       allow list: if isSignedIn() && resource.data.id == request.auth.uid;
-      allow create, update: if isOwner(userId) && isValidId(userId);
+      
+      allow create: if isOwner(userId) && isValidId(userId) && 
+                    (!request.resource.data.keys().hasAny(['role', 'admin', 'tier']) || 
+                     request.resource.data.role == 'user');
+                     
+      allow update: if isOwner(userId) && isValidId(userId) && 
+                    !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'admin', 'tier']);
+                    
       allow delete: if isOwner(userId);
 
       // Configs subcollection

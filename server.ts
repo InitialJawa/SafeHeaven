@@ -19,7 +19,46 @@ import { detectMarketRegime, resolveWeights, MarketRegime, StrategyProfile } fro
 dotenv.config();
 
 const PORT = 3000;
+
+import rateLimit from 'express-rate-limit';
+
+const chatRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20, // limit each user to 20 requests per windowMs
+  keyGenerator: (req) => {
+    return req.user?.uid || req.ip || 'anonymous';
+  },
+  message: { error: 'Terlalu banyak permintaan (Rate Limit Exceeded). Silakan coba lagi nanti.' }
+});
+
 const app = express();
+
+import helmet from 'helmet';
+import cors from 'cors';
+
+// Allowed origins
+const allowedOrigins = [
+  'https://ais-dev-r5abb57u446w7nfq2bmgnc-971900799550.asia-southeast1.run.app',
+  'https://ais-pre-r5abb57u446w7nfq2bmgnc-971900799550.asia-southeast1.run.app',
+  'http://localhost:3000',
+  'http://localhost:5173'
+];
+
+app.use(helmet({
+  contentSecurityPolicy: false, // We're using Vite middleware, strict CSP might break dev server
+}));
+
+app.use(cors({
+  origin: function(origin, callback) {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      return callback(null, false); // Block origin silently or error
+    }
+    return callback(null, true);
+  },
+  credentials: true
+}));
+
 app.use(express.json());
 
 // Initialize server-side Gemini Client
@@ -360,41 +399,47 @@ const INITIAL_TICKERS = [
   { symbol: 'KLBF', name: 'Kalbe Farma Tbk', price: 1510, changePercent: -1.85, score: 56, signal: 'Tahan' as ('Beli' | 'Akumulasi' | 'Tahan' | 'Hindari' | 'Jual') },
 ];
 
-let portfolioConfig: {
-  capital: number;
-  strategyName: string;
-  universe: string;
-  topN: number;
-  strategyTemplate: string;
-  strategyProfile?: StrategyProfile;
-  allocationSaham: number;
-  allocationEmas: number;
-  allocationCash: number;
-  allocationUSD: number;
-  crashThreshold: number;
-  stopLoss: number;
-  activeStressScenario?: string;
-  stressImpactPct?: number;
-  lastRebalancedAt?: string;
-  projectedAnnualDividend?: number;
-  id?: string;
-} = {
+
+const defaultPortfolioConfig = {
   capital: 500000000,
   strategyName: 'Warren Buffett',
-  universe: 'LQ45 Core Universe',
+  universe: 'IHSG Top 50',
   topN: 10,
   strategyTemplate: 'strat-1',
-  strategyProfile: 'auto',
-  allocationSaham: 60,
-  allocationEmas: 20,
-  allocationCash: 10,
-  allocationUSD: 10,
-  crashThreshold: 15,
-  stopLoss: 10,
+  strategyProfile: 'growth',
+  allocationSaham: 65,
+  allocationEmas: 15,
+  allocationCash: 15,
+  allocationUSD: 5,
+  crashThreshold: 5,
+  stopLoss: 7,
   activeStressScenario: undefined,
-  stressImpactPct: 0,
+  stressImpactPct: undefined,
   lastRebalancedAt: undefined
 };
+
+async function getPortfolioConfig(uid: string) {
+  if (!uid || uid === 'anonymous') return { ...defaultPortfolioConfig };
+  try {
+    const doc = await admin.firestore().collection('users').doc(uid).collection('configs').doc('portfolio').get();
+    if (doc.exists) {
+      return { ...defaultPortfolioConfig, ...doc.data() };
+    }
+  } catch (e) {
+    console.warn('Error reading portfolio config', e);
+  }
+  return { ...defaultPortfolioConfig };
+}
+
+async function setPortfolioConfig(uid: string, configData: any) {
+  if (!uid || uid === 'anonymous') return;
+  try {
+    await admin.firestore().collection('users').doc(uid).collection('configs').doc('portfolio').set(configData, { merge: true });
+  } catch (e) {
+    console.warn('Error writing portfolio config', e);
+  }
+}
+
 
 let alertRules = [
   { id: 'ar-1', name: 'Batas Skor Tinggi BBCA', type: 'Score', condition: '>=', threshold: 85, ticker: 'BBCA', status: 'ON' },
@@ -643,19 +688,55 @@ app.get('/api/db/stats', async (req, res) => {
   }
 });
 
-app.post('/api/db/query', async (req, res) => {
-  const { sql, args } = req.body;
-  if (!sql) {
-    return res.status(400).json({ success: false, error: 'SQL query is required' });
-  }
 
-  const cleanSql = sql.trim().toUpperCase();
-  if (!cleanSql.startsWith('SELECT') && !cleanSql.startsWith('PRAGMA') && !cleanSql.startsWith('EXPLAIN')) {
-    return res.status(403).json({ success: false, error: 'Only SELECT, PRAGMA, and EXPLAIN queries are allowed for security.' });
-  }
 
+app.get('/api/db/admin/price_history', async (req, res) => {
+  const { ticker } = req.query;
   try {
-    const result = await dbClient.execute({ sql, args: args || [] });
+    let result;
+    if (ticker) {
+      result = await dbClient.execute({
+        sql: 'SELECT * FROM price_history WHERE ticker = ? ORDER BY date DESC LIMIT 20',
+        args: [String(ticker).toUpperCase().trim()]
+      });
+    } else {
+      result = await dbClient.execute('SELECT * FROM price_history ORDER BY date DESC LIMIT 20');
+    }
+    res.json({
+      success: true,
+      columns: result.columns || [],
+      rows: result.rows || []
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/db/admin/fundamentals_historical', async (req, res) => {
+  const { ticker } = req.query;
+  try {
+    let result;
+    if (ticker) {
+      result = await dbClient.execute({
+        sql: 'SELECT * FROM fundamentals_historical WHERE ticker = ? ORDER BY report_date DESC LIMIT 10',
+        args: [String(ticker).toUpperCase().trim()]
+      });
+    } else {
+      result = await dbClient.execute('SELECT * FROM fundamentals_historical ORDER BY report_date DESC LIMIT 10');
+    }
+    res.json({
+      success: true,
+      columns: result.columns || [],
+      rows: result.rows || []
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/db/admin/records_summary', async (req, res) => {
+  try {
+    const result = await dbClient.execute('SELECT ticker, count(*) as total_records FROM price_history GROUP BY ticker ORDER BY total_records DESC LIMIT 15');
     res.json({
       success: true,
       columns: result.columns || [],
@@ -688,7 +769,8 @@ app.get('/api/market/snapshot', (req, res) => {
 });
 
 // 2. Portfolio Config
-app.get('/api/portfolio/config', (req, res) => {
+app.get('/api/portfolio/config', async (req, res) => {
+  let portfolioConfig = await getPortfolioConfig(req.user?.uid || 'anonymous');
   let projectedDiv = 0;
   const n = portfolioConfig.topN || 10;
   const targetUniverse = universes.find(u => u.name === portfolioConfig.universe);
@@ -732,25 +814,13 @@ app.get('/api/portfolio/config', (req, res) => {
 });
 
 app.put('/api/portfolio/config', async (req, res) => {
+  let portfolioConfig = await getPortfolioConfig(req.user?.uid || 'anonymous');
   try {
     await dbReady;
-    portfolioConfig = { ...portfolioConfig, ...req.body };
-    await executeQuery(
-      `UPDATE portfolio_configs SET capital = ?, strategy_name = ?, universe = ?, top_n = ?, strategy_template = ?, strategy_profile = ?, allocation_saham = ?, allocation_emas = ?, allocation_cash = ?, allocation_usd = ? WHERE id = 'default_portfolio'`,
-      [
-        portfolioConfig.capital,
-        portfolioConfig.strategyName,
-        portfolioConfig.universe,
-        portfolioConfig.topN,
-        portfolioConfig.strategyTemplate,
-        portfolioConfig.strategyProfile || 'auto',
-        portfolioConfig.allocationSaham,
-        portfolioConfig.allocationEmas,
-        portfolioConfig.allocationCash,
-        portfolioConfig.allocationUSD
-      ]
-    );
-    await executeQuery("DELETE FROM portfolio_snapshots WHERE portfolio_id = 'default_portfolio'");
+    
+    Object.assign(portfolioConfig, req.body);
+    await setPortfolioConfig(req.user?.uid || 'anonymous', portfolioConfig);
+
   } catch (err) {
     console.warn("Failed to update portfolio config in DB:", err);
   }
@@ -960,7 +1030,8 @@ app.get('/api/market/regime', (req, res) => {
 });
 
 // 4. Portfolio Stock Picks
-app.get('/api/portfolio/stock-picks', (req, res) => {
+app.get('/api/portfolio/stock-picks', async (req, res) => {
+  let portfolioConfig = await getPortfolioConfig(req.user?.uid || 'anonymous');
   const n = portfolioConfig.topN || 10;
   const targetUniverse = universes.find(u => u.name === portfolioConfig.universe);
   const targetStrategy = strategies.find(s => s.id === (portfolioConfig as any).strategyTemplate) || strategies[0];
@@ -1538,6 +1609,7 @@ app.get('/api/analytics/dashboard', async (req, res) => {
 
 // 11. Portfolio Growth Data
 app.get('/api/portfolio/growth', async (req, res) => {
+  let portfolioConfig = await getPortfolioConfig(req.user?.uid || 'anonymous');
   const capital = parseFloat(req.query.capital as string) || portfolioConfig?.capital || 500000000;
   
   try {
@@ -1870,7 +1942,8 @@ app.post('/api/admin/trigger-crash', (req, res) => {
   res.json({ success: true, message: 'Crash scenario triggered' });
 });
 
-app.post('/api/admin/trigger-stress', (req, res) => {
+app.post('/api/admin/trigger-stress', async (req, res) => {
+  let portfolioConfig = await getPortfolioConfig(req.user?.uid || 'anonymous');
   const { scenario, customEquity, customGold, customUSD } = req.body || {};
   
   let scenarioName = 'Custom Stress Test';
@@ -1905,13 +1978,8 @@ app.post('/api/admin/trigger-stress', (req, res) => {
 
   // Calculate new portfolio impact
   const capitalDelta = Math.round((portfolioConfig.capital * (equityShift / 100)) * (portfolioConfig.allocationSaham / 100));
-  portfolioConfig = {
-    ...portfolioConfig,
-    activeStressScenario: scenarioName,
-    stressImpactPct: equityShift
-  };
-
-  
+  Object.assign(portfolioConfig, { activeStressScenario: scenarioName, stressImpactPct: equityShift });
+  await setPortfolioConfig(req.user?.uid || 'anonymous', portfolioConfig);
   try {
     const cfAccountId = process.env.CLOUDFLARE_ACCOUNT_ID;
     const cfDatabaseId = process.env.CLOUDFLARE_D1_DATABASE_ID;
@@ -1937,7 +2005,8 @@ app.post('/api/admin/trigger-stress', (req, res) => {
   res.json({ success: true, message: `Stress test scenario [${scenarioName}] applied successfully.` });
 });
 
-app.post('/api/admin/trigger-rebalance', (req, res) => {
+app.post('/api/admin/trigger-rebalance', async (req, res) => {
+  let portfolioConfig = await getPortfolioConfig(req.user?.uid || 'anonymous');
   const activeStrat = strategies.find(s => s.id === portfolioConfig.strategyTemplate) || strategies[0];
   
   // Re-establish target weights from strategy
@@ -1987,7 +2056,8 @@ app.post('/api/admin/trigger-rebalance', (req, res) => {
   res.json({ success: true, message: 'Portfolio successfully rebalanced to target formula.' });
 });
 
-app.post('/api/admin/trigger-drift', (req, res) => {
+app.post('/api/admin/trigger-drift', async (req, res) => {
+  let portfolioConfig = await getPortfolioConfig(req.user?.uid || 'anonymous');
   // Simulate allocation drift: Saham surges to 75%, leaving Cash & Gold reduced
   portfolioConfig = {
     ...portfolioConfig,
@@ -3313,6 +3383,7 @@ app.post('/api/optimize/run', (req, res) => {
 let cachedAiInsight = { text: '', date: '' };
 
 app.get('/api/ai/portfolio-insight', async (req, res) => {
+  let portfolioConfig = await getPortfolioConfig(req.user?.uid || 'anonymous');
   const today = new Date().toDateString();
   if (cachedAiInsight.date === today && cachedAiInsight.text) {
     return res.json({ text: cachedAiInsight.text, isCached: true });
@@ -4031,7 +4102,8 @@ setTimeout(() => {
   });
 }, 2000);
 
-app.get('/api/market/analysis-matrix', (req, res) => {
+app.get('/api/market/analysis-matrix', async (req, res) => {
+  let portfolioConfig = await getPortfolioConfig(req.user?.uid || 'anonymous');
   res.json({
     data: ANALYSIS_MATRIX_CACHE,
     lastSyncedAt: matrixLastSyncedAt,
@@ -4314,7 +4386,8 @@ function generateFallbackReply(prompt: string) {
   }
 }
 
-app.post('/api/chat', async (req, res) => {
+app.post('/api/chat', chatRateLimiter, async (req, res) => {
+  let portfolioConfig = await getPortfolioConfig(req.user?.uid || 'anonymous');
   const { prompt, memoryContext } = req.body || {};
   if (!prompt) {
     return res.status(400).json({ error: 'Prompt required' });
