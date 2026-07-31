@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'wouter';
 import { TickerLogo } from '../components/TickerLogo';
 import { SafeHavenLogo } from '../components/SafeHavenLogo';
@@ -12,1210 +12,868 @@ import {
   TrendingUp, 
   Bot, 
   BarChart3, 
-  Sliders, 
-  PieChart, 
-  History, 
-  Shield, 
   Search, 
   CheckCircle2, 
   ArrowRight,
-  ArrowUpRight, 
   Zap, 
-  ChevronDown, 
-  ChevronUp, 
   Star, 
   Activity, 
-  Sparkles,
   Layers,
-  Award,
   Lock,
-  Globe,
-  ExternalLink,
-  ChevronRight,
-  UserCheck,
   LineChart,
-  Menu,
-  X
+  Command,
+  Play,
+  X,
+  Sparkles,
+  ArrowUpRight,
+  Sliders,
+  Check,
+  Compass,
+  Calendar,
+  Bookmark,
+  LayoutGrid,
+  Settings as SettingsIcon,
+  Globe,
+  ChevronRight,
+  CornerDownLeft,
+  Mail,
+  Loader2
 } from 'lucide-react';
 import { useAppStore } from '../stores';
 
 export const LandingPage: React.FC = () => {
   const [, setLocation] = useLocation();
-  const { user, loginDemoUser } = useAppStore();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { loginDemoUser } = useAppStore();
 
-  // Search preview state
-  const [searchTicker, setSearchTicker] = useState('');
-  const [selectedDemoTicker, setSelectedDemoTicker] = useState('BBCA.JK');
-  const [openFaq, setOpenFaq] = useState<number | null>(0);
+  // Interactive Modals & States
+  const [searchModalOpen, setSearchModalOpen] = useState(false);
+  const [tourModalOpen, setTourModalOpen] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [vipPassOpen, setVipPassOpen] = useState(false);
 
-  // Demo stocks data (6 emiten for perfectly even 3x2 / 2x3 grid)
-  const demoStocks = [
-    {
-      symbol: 'BBCA.JK',
-      name: 'Bank Central Asia Tbk',
-      sector: 'Financials',
-      price: 10150,
-      change: 1.5,
-      score: 92,
-      fairValue: 11200,
-      aiSignal: 'BULLISH',
-      summary: 'Kinerja laba bersih rekor tertinggi didorong efisiensi CASA 80%+ dan pertumbuhan kredit konsumer solid.'
-    },
-    {
-      symbol: 'BBRI.JK',
-      name: 'Bank Rakyat Indonesia Tbk',
-      sector: 'Financials',
-      price: 5200,
-      change: -0.5,
-      score: 88,
-      fairValue: 5800,
-      aiSignal: 'ACCUMULATE',
-      summary: 'Margin bunga bersih (NIM) terjaga tinggi di segmen mikro Holding Ultra Mikro (UMi).'
-    },
-    {
-      symbol: 'BMRI.JK',
-      name: 'Bank Mandiri (Persero) Tbk',
-      sector: 'Financials',
-      price: 6450,
-      change: 1.2,
-      score: 90,
-      fairValue: 7200,
-      aiSignal: 'STRONG BUY',
-      summary: 'Pertumbuhan digital Livin by Mandiri pesat serta ekspansi portofolio kredit korporasi & komersial yang agresif.'
-    },
-    {
-      symbol: 'TLKM.JK',
-      name: 'Telkom Indonesia Tbk',
-      sector: 'Telecommunications',
-      price: 2950,
-      change: 2.1,
-      score: 81,
-      fairValue: 3600,
-      aiSignal: 'UNDERVALUED',
-      summary: 'Valuasi PBV berada di batas bawah historis 5 tahun, bisnis data & FMC terus berekspansi.'
-    },
-    {
-      symbol: 'AMMN.JK',
-      name: 'Amman Mineral Internasional Tbk',
-      sector: 'Basic Materials',
-      price: 11800,
-      change: 3.8,
-      score: 85,
-      fairValue: 13500,
-      aiSignal: 'STRONG MOMENTUM',
-      summary: 'Peningkatan kapasitas smelter dan kenaikan harga tembaga global mendorong arus kas operasi.'
-    },
-    {
-      symbol: 'ASII.JK',
-      name: 'Astra International Tbk',
-      sector: 'Consumer Discretionary',
-      price: 4650,
-      change: 0.8,
-      score: 79,
-      fairValue: 5400,
-      aiSignal: 'DIVIDEND YIELD',
-      summary: 'Dividend yield diperkirakan ~8-9%, ditopang pangsa pasar otomotif dan kontribusi anak usaha tambang.'
-    }
+  // Search & Demo State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedMockTab, setSelectedMockTab] = useState<'overview' | 'recap' | 'sectors'>('overview');
+  
+  // Auth Form State
+  const [authEmail, setAuthEmail] = useState('');
+  const [authStep, setAuthStep] = useState<'input' | 'loading' | 'sent'>('input');
+
+  // Interactive Stock List for Search Modal & Preview
+  const allStocks = [
+    { symbol: 'BBCA.JK', name: 'Bank Central Asia Tbk', sector: 'Financials', price: 10150, change: '+1.5%', score: 94, aiSignal: 'BULLISH', exchange: 'IDX' },
+    { symbol: 'BBRI.JK', name: 'Bank Rakyat Indonesia Tbk', sector: 'Financials', price: 5200, change: '-0.5%', score: 88, aiSignal: 'ACCUMULATE', exchange: 'IDX' },
+    { symbol: 'BMRI.JK', name: 'Bank Mandiri (Persero) Tbk', sector: 'Financials', price: 6450, change: '+1.2%', score: 91, aiSignal: 'STRONG BUY', exchange: 'IDX' },
+    { symbol: 'TLKM.JK', name: 'Telkom Indonesia Tbk', sector: 'Telecom', price: 2950, change: '+2.1%', score: 82, aiSignal: 'UNDERVALUED', exchange: 'IDX' },
+    { symbol: 'AMMN.JK', name: 'Amman Mineral Internasional', sector: 'Mining', price: 11800, change: '+3.8%', score: 86, aiSignal: 'MOMENTUM', exchange: 'IDX' },
+    { symbol: 'ASII.JK', name: 'Astra International Tbk', sector: 'Automotive', price: 4650, change: '+0.8%', score: 79, aiSignal: 'DIVIDEND', exchange: 'IDX' },
+    { symbol: 'NVDA', name: 'NVIDIA Corporation', sector: 'Technology', price: 128.5, change: '+4.2%', score: 96, aiSignal: 'STRONG BUY', exchange: 'NASDAQ' },
+    { symbol: 'TSLA', name: 'Tesla, Inc.', sector: 'Automotive', price: 218.2, change: '-1.4%', score: 75, aiSignal: 'NEUTRAL', exchange: 'NASDAQ' },
   ];
 
-  const currentDemo = demoStocks.find(s => s.symbol === selectedDemoTicker) || demoStocks[0];
+  const filteredStocks = allStocks.filter(
+    s => s.symbol.toLowerCase().includes(searchQuery.toLowerCase()) || 
+         s.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!searchTicker) return;
-    const clean = searchTicker.trim().toUpperCase();
-    const formatted = clean.includes('.') ? clean : `${clean}.JK`;
-    setLocation(`/ticker/${formatted}`);
+  // Global Keyboard Shortcuts (Press T for trial, K / '/' for Search, Esc to close)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeTag = (e.target as HTMLElement)?.tagName;
+      if (['INPUT', 'TEXTAREA'].includes(activeTag)) {
+        if (e.key === 'Escape') {
+          setSearchModalOpen(false);
+          setTourModalOpen(false);
+          setAuthModalOpen(false);
+          setVipPassOpen(false);
+        }
+        return;
+      }
+
+      if (e.key === 'Escape') {
+        setSearchModalOpen(false);
+        setTourModalOpen(false);
+        setAuthModalOpen(false);
+        setVipPassOpen(false);
+      } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setSearchModalOpen(true);
+      } else if (e.key.toLowerCase() === 'k' || e.key === '/') {
+        e.preventDefault();
+        setSearchModalOpen(true);
+      } else if (e.key.toLowerCase() === 't') {
+        e.preventDefault();
+        setAuthModalOpen(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const handleDemoStart = () => {
+    loginDemoUser();
+    setLocation('/dashboard');
   };
 
-  const faqs = [
-    {
-      question: 'Apa itu SafeHaven dan bagaimana cara kerjanya?',
-      answer: 'SafeHaven adalah platform analisis kecerdasan buatan (AI) & kuantitatif khusus pasar saham Indonesia (IDX / IHSG). Platform ini menggabungkan data keuangan resmi, grafik teknikal real-time, dan model AI Gemini untuk memberikan skor fundamental (0-100), estimasi Fair Value DCF, serta rekomendasi taktis secara otomatis.'
-    },
-    {
-      question: 'Apakah SafeHaven cocok untuk investor pemula maupun berpengalaman?',
-      answer: 'Sangat cocok. Pemula dapat mengandalkan Ringkasan AI Bahasa Indonesia dan Skor Fundamental untuk memahami kesehatan emiten tanpa perlu membaca laporan keuangan ratusan halaman. Investor berpengalaman dan trader quant dapat menggunakan Backtest Strategi, Walk-Forward Optimizer, serta Risk Cockpit.'
-    },
-    {
-      question: 'Darimana data harga saham IDX dan laporan keuangan diambil?',
-      answer: 'Data diambil dari penyedia data pasar terverifikasi secara real-time / near real-time, diintegrasikan langsung dengan mesin Yahoo Finance API serta database historis IHSG yang terus diperbarui secara otomatis.'
-    },
-    {
-      question: 'Bagaimana AI SafeHaven menganalisis saham?',
-      answer: 'Mesin AI kami didayagunakan oleh Google Gemini 2.5 yang dipadu dengan petunjuk analisis fundamental (DCF, PER/PBV Band, ROE, Solvabilitas) serta analisis teknikal (MA, RSI, MACD, Support/Resistance). AI memproses data makro dan kinerja emiten untuk menyajikan insight yang objektif tanpa bias emosional.'
-    },
-    {
-      question: 'Apakah saya bisa menggunakan SafeHaven secara gratis?',
-      answer: 'Ya! SafeHaven menyediakan paket Starter secara GRATIS selamanya dengan akses ke Market Cockpit, Analisis Ticker dasar, Chart Teknis, dan kuota analisis AI harian.'
-    }
-  ];
+  const handleAuthSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!authEmail) return;
+    setAuthStep('loading');
+    setTimeout(() => {
+      setAuthStep('sent');
+    }, 1200);
+  };
 
   return (
-    <div className="min-h-screen bg-[#060509] text-white font-sans selection:bg-[#ccff00] selection:text-black">
+    <div className="min-h-screen bg-[#0b0a10] text-[#e0deea] font-sans antialiased selection:bg-[#ccff00] selection:text-black relative overflow-x-hidden">
       
-      {/* 1. TOP NAVIGATION BAR */}
-      <header className="sticky top-0 z-50 bg-[#0a090f]/95 backdrop-blur-md border-b border-[#1b1926]">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 h-16 flex items-center justify-between">
+      {/* Subtle Background Glows */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-gradient-to-b from-[#ccff00]/10 via-[#00f0ff]/5 to-transparent blur-[120px] pointer-events-none rounded-full -z-10" />
+      <div className="absolute top-[600px] left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-gradient-to-b from-[#00f5a0]/5 via-transparent to-transparent blur-[150px] pointer-events-none rounded-full -z-10" />
+
+      {/* TOP NAVBAR */}
+      <header className="sticky top-0 z-40 backdrop-blur-xl bg-[#0b0a10]/80 border-b border-[#1b1926]/80 px-4 sm:px-8 py-3.5 transition-all">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
           
-          {/* Brand Logo */}
-          <Link href="/" className="flex items-center gap-2 sm:gap-2.5 group cursor-pointer shrink-0">
-            <div className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center group-hover:scale-105 transition-transform">
-              <SafeHavenLogo className="w-7 h-7 sm:w-8 sm:h-8 drop-shadow-[0_0_8px_rgba(244,184,71,0.4)]" />
-            </div>
-            <div>
-              <span className="text-base sm:text-lg font-extrabold tracking-tight text-white font-sans">
-                SafeHaven<span className="text-[#F4B847]">.</span>
-              </span>
-              <span className="text-[8px] sm:text-[9px] text-[#686477] block font-mono tracking-widest font-bold -mt-1">
-                IDX AI COCKPIT
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-2.5 group">
+            <SafeHavenLogo className="w-8 h-8 transition-transform group-hover:scale-105" />
+            <div className="flex flex-col">
+              <span className="text-sm font-bold tracking-tight text-white font-mono flex items-center gap-1.5">
+                SAFEHAVEN <span className="text-[10px] text-[#ccff00] bg-[#ccff00]/10 px-1.5 py-0.2 rounded border border-[#ccff00]/30 font-sans font-semibold">IDX PRO</span>
               </span>
             </div>
           </Link>
 
-          {/* Nav Links - Shown on Desktop LG (1024px+) */}
-          <nav className="hidden lg:flex items-center gap-6 text-xs font-semibold text-[#9f9bac]">
-            <a href="#fitur" className="hover:text-[#ccff00] transition-colors">Fitur Utama</a>
-            <a href="#demo-ai" className="hover:text-[#ccff00] transition-colors">AI Intelligence</a>
-            <Link href={user ? "/ai" : "/login"} className="hover:text-[#ccff00] transition-colors flex items-center gap-1">
-              <Bot className="w-3.5 h-3.5" />
-              <span>AI Manager</span>
-            </Link>
-            <a href="#screener" className="hover:text-[#ccff00] transition-colors">Live Market</a>
-            <a href="#harga" className="hover:text-[#ccff00] transition-colors">Paket Harga</a>
-            <a href="#faq" className="hover:text-[#ccff00] transition-colors">FAQ</a>
+          {/* Navigation Links */}
+          <nav className="hidden md:flex items-center gap-8 text-xs font-medium text-[#9f9bac]">
+            <a href="#features" className="hover:text-white transition-colors">Fitur Unggulan</a>
+            <a href="#cockpit" className="hover:text-white transition-colors">Terminal Cockpit</a>
+            <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
+            <button 
+              onClick={() => setSearchModalOpen(true)}
+              className="flex items-center gap-1.5 hover:text-white transition-colors"
+            >
+              <span>Command Bar</span>
+              <span className="bg-[#181622] text-[10px] text-[#ccff00] px-1.5 py-0.5 rounded border border-[#2a273a] font-mono">⌘K</span>
+            </button>
+            <button 
+              onClick={() => setVipPassOpen(true)}
+              className="flex items-center gap-1.5 hover:text-white transition-colors"
+            >
+              <span>VIP Access</span>
+              <span className="bg-[#ccff00]/20 text-[#ccff00] text-[9px] px-1.5 py-0.5 rounded font-mono font-bold tracking-wider uppercase">New</span>
+            </button>
           </nav>
 
-          {/* Action CTAs */}
-          <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 shrink-0">
+          {/* Actions */}
+          <div className="flex items-center gap-3">
             <Link 
-              href="/dashboard"
-              className="px-2.5 py-1.5 sm:px-3.5 sm:py-2 bg-[#171522] border border-[#2d2943] text-white rounded-xl text-[11px] sm:text-xs font-bold hover:bg-[#201d2f] transition-all flex items-center gap-1 cursor-pointer"
+              href="/login" 
+              className="text-xs font-medium text-[#9f9bac] hover:text-white px-3 py-2 transition-colors hidden sm:inline-block"
             >
-              <span>Market Cockpit</span>
-              <ChevronRight className="w-3.5 h-3.5 text-[#ccff00]" />
+              Masuk
             </Link>
-
-            {user ? (
-              <Link 
-                href="/dashboard"
-                className="hidden sm:flex px-3.5 py-2 bg-[#ccff00] text-black rounded-xl text-xs font-bold hover:bg-[#b8e600] transition-all items-center gap-1.5 shadow-[0_0_20px_rgba(204,255,0,0.2)] cursor-pointer"
-              >
-                <span>Console Saya</span>
-                <ChevronRight className="w-4 h-4" />
-              </Link>
-            ) : (
-              <>
-                <button 
-                  onClick={() => {
-                    loginDemoUser(false);
-                    setLocation('/dashboard');
-                  }}
-                  className="px-2.5 py-1.5 text-xs font-semibold text-white hover:text-[#ccff00] transition-colors cursor-pointer hidden md:block"
-                >
-                  Demo
-                </button>
-                <Link 
-                  href="/login"
-                  className="px-2.5 py-1.5 sm:px-4 sm:py-2 bg-[#ccff00] text-black rounded-xl text-[11px] sm:text-xs font-bold hover:bg-[#b8e600] transition-all flex items-center gap-1 shadow-[0_0_20px_rgba(204,255,0,0.2)] cursor-pointer"
-                >
-                  <span>Masuk</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
-              </>
-            )}
-
-            {/* Mobile / Tablet Toggle Button */}
             <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden p-1.5 sm:p-2 text-[#9f9bac] hover:text-white bg-[#111018] border border-[#1b1926] rounded-xl cursor-pointer transition-colors"
-              aria-label="Toggle Menu"
+              onClick={() => setAuthModalOpen(true)}
+              className="group relative inline-flex items-center justify-center gap-2 text-xs font-semibold text-black bg-[#ccff00] hover:bg-[#b8e600] px-4 py-2 rounded-full transition-all duration-200 shadow-[0_0_20px_rgba(204,255,0,0.25)] hover:shadow-[0_0_25px_rgba(204,255,0,0.4)]"
             >
-              {mobileMenuOpen ? <X className="w-5 h-5 text-[#ccff00]" /> : <Menu className="w-5 h-5" />}
+              <Zap className="w-3.5 h-3.5 text-black fill-black" />
+              <span>Mulai Trial Free</span>
             </button>
+          </div>
+
+        </div>
+      </header>
+
+      {/* HERO SECTION */}
+      <section className="pt-16 pb-20 px-4 sm:px-6 max-w-7xl mx-auto text-center flex flex-col items-center relative">
+        
+        {/* Watch Guided Tour Button */}
+        <button
+          onClick={() => setTourModalOpen(true)}
+          className="inline-flex items-center gap-2 bg-[#14121e] hover:bg-[#1a1828] text-xs font-medium text-[#b0adc0] hover:text-white px-4 py-1.5 rounded-full border border-[#262335] transition-all mb-8 shadow-inner group"
+        >
+          <span className="w-4 h-4 rounded-full bg-[#ccff00]/20 text-[#ccff00] flex items-center justify-center text-[10px]">
+            <Play className="w-2.5 h-2.5 fill-[#ccff00] ml-0.5" />
+          </span>
+          <span>Tonton Video Tur Cockpit</span>
+          <ArrowRight className="w-3 h-3 text-[#7a768d] group-hover:translate-x-0.5 transition-transform" />
+        </button>
+
+        {/* Hero Headline */}
+        <h1 className="text-4xl sm:text-6xl md:text-7xl font-extrabold text-white tracking-tight leading-[1.08] max-w-4xl mb-6">
+          Investasi Saham IHSG <br className="hidden sm:inline" />
+          <span className="bg-gradient-to-r from-white via-[#e8e6f2] to-[#9f9bac] bg-clip-text text-transparent">
+            Lebih Presisi & Cerdas.
+          </span>
+        </h1>
+
+        {/* Hero Subtitle */}
+        <p className="text-sm sm:text-base text-[#8e8a9f] max-w-xl mb-6 leading-relaxed font-normal">
+          Platform analitik & quant intelligence pasar saham Indonesia (IHSG). Gabungan skor fundamental, radar teknikal, dan kecerdasan buatan Gemini AI.
+        </p>
+
+        {/* Keyboard Shortcut Hint */}
+        <div className="flex items-center gap-2 text-xs text-[#736f84] font-mono mb-12 bg-[#12101b] px-3.5 py-1.5 rounded-full border border-[#1e1c2b]">
+          <span>Tekan</span>
+          <kbd className="bg-[#1d1b2a] text-[#ccff00] px-2 py-0.5 rounded text-[11px] border border-[#2d2a40] font-bold">T</kbd>
+          <span>kapan saja untuk mulai trial</span>
+          <span className="text-[#3c384e]">|</span>
+          <kbd className="bg-[#1d1b2a] text-[#00f0ff] px-2 py-0.5 rounded text-[11px] border border-[#2d2a40] font-bold">⌘K</kbd>
+          <span>untuk cari saham</span>
+        </div>
+
+        {/* HERO LAPTOP MOCKUP FRAME */}
+        <div className="w-full max-w-5xl mx-auto relative group">
+          
+          {/* Outer Frame Glow */}
+          <div className="absolute -inset-1 bg-gradient-to-b from-[#ccff00]/20 via-[#00f0ff]/10 to-transparent rounded-2xl blur-xl opacity-60 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+
+          {/* Laptop Body Container */}
+          <div className="relative bg-[#110f1a] border border-[#252236] rounded-2xl p-2 sm:p-3 shadow-2xl overflow-hidden backdrop-blur-2xl">
+            
+            {/* Laptop Header Bar */}
+            <div className="flex items-center justify-between px-3 py-2 bg-[#0d0c13] rounded-t-xl border-b border-[#1f1d2d] mb-2 text-xs">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f56]" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#ffbd2e]" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#27c93f]" />
+                </div>
+                <span className="text-[11px] font-mono text-[#6c687e] ml-2 hidden sm:inline">safehaven.app/cockpit</span>
+              </div>
+
+              {/* Mock Nav Tabs */}
+              <div className="flex items-center gap-1 bg-[#151322] p-1 rounded-lg border border-[#222033]">
+                <button 
+                  onClick={() => setSelectedMockTab('overview')}
+                  className={`px-3 py-1 rounded text-[11px] font-medium transition-all ${selectedMockTab === 'overview' ? 'bg-[#211e32] text-white shadow-sm' : 'text-[#7d7990] hover:text-white'}`}
+                >
+                  Regime & Charts
+                </button>
+                <button 
+                  onClick={() => setSelectedMockTab('recap')}
+                  className={`px-3 py-1 rounded text-[11px] font-medium transition-all ${selectedMockTab === 'recap' ? 'bg-[#211e32] text-white shadow-sm' : 'text-[#7d7990] hover:text-white'}`}
+                >
+                  Daily AI Recap
+                </button>
+                <button 
+                  onClick={() => setSelectedMockTab('sectors')}
+                  className={`px-3 py-1 rounded text-[11px] font-medium transition-all ${selectedMockTab === 'sectors' ? 'bg-[#211e32] text-white shadow-sm' : 'text-[#7d7990] hover:text-white'}`}
+                >
+                  Sektoral Heatmap
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1 text-[10px] font-mono text-[#00f5a0] bg-[#00f5a0]/10 px-2 py-0.5 rounded border border-[#00f5a0]/30">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#00f5a0] animate-pulse" />
+                  IHSG LIVE
+                </span>
+              </div>
+            </div>
+
+            {/* Laptop Display Content */}
+            <div className="bg-[#0b0a10] rounded-b-xl border border-[#1a1827] p-4 sm:p-6 text-left min-h-[380px] sm:min-h-[460px] flex flex-col justify-between">
+              
+              {selectedMockTab === 'overview' && (
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
+                  {/* Left Column: Index Chart & Stats */}
+                  <div className="md:col-span-7 bg-[#12101b] rounded-xl p-4 border border-[#1f1d2e] flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <span className="text-[10px] font-mono text-[#78748c] uppercase tracking-wider">Pasar Utama Indonesia</span>
+                          <h3 className="text-lg font-bold text-white font-mono flex items-center gap-2">
+                            IHSG Index <span className="text-xs text-[#00f5a0] font-normal">+0.84% (7,320.15)</span>
+                          </h3>
+                        </div>
+                        <span className="bg-[#ccff00]/10 text-[#ccff00] text-[10px] font-mono px-2.5 py-1 rounded-full border border-[#ccff00]/30 font-bold">
+                          REGIME: BULLISH EXPANSION
+                        </span>
+                      </div>
+
+                      {/* Mock Chart Area */}
+                      <div className="h-36 w-full my-3 relative flex items-end gap-1.5 px-1 pb-1 border-b border-[#201d30]">
+                        <div className="absolute inset-0 bg-gradient-to-t from-[#ccff00]/10 to-transparent pointer-events-none rounded-lg" />
+                        <svg className="w-full h-full text-[#ccff00] overflow-visible" viewBox="0 0 400 100" preserveAspectRatio="none">
+                          <path 
+                            d="M 0,80 Q 50,70 100,50 T 200,45 T 300,20 T 400,10 L 400,100 L 0,100 Z" 
+                            fill="rgba(204, 255, 0, 0.08)" 
+                          />
+                          <path 
+                            d="M 0,80 Q 50,70 100,50 T 200,45 T 300,20 T 400,10" 
+                            fill="none" 
+                            stroke="#ccff00" 
+                            strokeWidth="2.5" 
+                          />
+                        </svg>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2 pt-2 text-center text-xs border-t border-[#1a1827]">
+                      <div className="bg-[#171524] p-2 rounded border border-[#232034]">
+                        <span className="text-[10px] text-[#7d7990] block font-mono">Net Foreign Flow</span>
+                        <span className="text-[#00f5a0] font-bold font-mono">+Rp 842.5 M</span>
+                      </div>
+                      <div className="bg-[#171524] p-2 rounded border border-[#232034]">
+                        <span className="text-[10px] text-[#7d7990] block font-mono">Market Turnover</span>
+                        <span className="text-white font-bold font-mono">Rp 12.4 T</span>
+                      </div>
+                      <div className="bg-[#171524] p-2 rounded border border-[#232034]">
+                        <span className="text-[10px] text-[#7d7990] block font-mono">Top Quant Pick</span>
+                        <span className="text-[#ccff00] font-bold font-mono">BBCA (Score 94)</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Column: AI Insights & Stock Watchlist */}
+                  <div className="md:col-span-5 space-y-3">
+                    <div className="bg-[#12101b] rounded-xl p-3.5 border border-[#1f1d2e]">
+                      <div className="flex items-center gap-2 mb-2 text-xs font-semibold text-white">
+                        <Sparkles className="w-3.5 h-3.5 text-[#ccff00]" />
+                        <span>Gemini AI Market Intelligence</span>
+                      </div>
+                      <p className="text-[11px] text-[#9b97ac] leading-relaxed">
+                        "Arus modal asing (foreign flow) terkonsentrasi kuat pada perbankan Big Cap (BBCA, BMRI) pasca rilis laporan keuangan Q2 dengan pertumbuhan laba rekor."
+                      </p>
+                    </div>
+
+                    {/* Stock List Items */}
+                    <div className="bg-[#12101b] rounded-xl p-3 border border-[#1f1d2e] space-y-2">
+                      <span className="text-[10px] font-mono text-[#736f84] uppercase tracking-wider block">Top Stocks Ranking</span>
+                      {allStocks.slice(0, 3).map((stock) => (
+                        <div key={stock.symbol} className="flex items-center justify-between p-2 rounded bg-[#181625] border border-[#252237]">
+                          <div className="flex items-center gap-2">
+                            <TickerLogo symbol={stock.symbol} sizeClassName="w-6 h-6" />
+                            <div>
+                              <div className="text-xs font-bold text-white font-mono">{stock.symbol}</div>
+                              <div className="text-[10px] text-[#7d7990]">{stock.name}</div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-xs font-bold font-mono text-[#00f5a0]">{stock.change}</div>
+                            <div className="text-[10px] text-[#ccff00] font-mono">Skor: {stock.score}/100</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {selectedMockTab === 'recap' && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between bg-[#13111d] p-3.5 rounded-xl border border-[#201e2f]">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-[#ccff00]/10 border border-[#ccff00]/30 flex items-center justify-center text-[#ccff00]">
+                        <Bot className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-bold text-white">Laporan Eksekutif Harian Gemini AI</h4>
+                        <span className="text-[10px] text-[#7a768d] font-mono">Diperbarui sore ini | Sinyal Pasar Otomatis</span>
+                      </div>
+                    </div>
+                    <span className="text-xs font-mono text-[#00f5a0] bg-[#00f5a0]/10 px-2.5 py-1 rounded-full border border-[#00f5a0]/30">
+                      Rekomendasi: Net Overweight
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="bg-[#12101b] p-3.5 rounded-xl border border-[#1f1d2e] space-y-1.5">
+                      <span className="text-[10px] font-mono text-[#ccff00] font-bold uppercase">Sektor Perbankan</span>
+                      <p className="text-xs text-[#a19db2] leading-relaxed">
+                        Top Pick: BBCA & BMRI. Pertumbuhan DPK solid dengan credit cost terjaga rendah di bawah 1.1%.
+                      </p>
+                    </div>
+                    <div className="bg-[#12101b] p-3.5 rounded-xl border border-[#1f1d2e] space-y-1.5">
+                      <span className="text-[10px] font-mono text-[#00f0ff] font-bold uppercase">Komoditas & Mineral</span>
+                      <p className="text-xs text-[#a19db2] leading-relaxed">
+                        Top Pick: AMMN. Penguatan harga tembaga memberikan dorongan margin operasi +18% YoY.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {selectedMockTab === 'sectors' && (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {[
+                    { name: 'Financials', perf: '+1.85%', stocks: 'BBCA, BBRI, BMRI', color: 'text-[#00f5a0]' },
+                    { name: 'Basic Materials', perf: '+2.40%', stocks: 'AMMN, ANTM, INCO', color: 'text-[#00f5a0]' },
+                    { name: 'Telecommunications', perf: '+0.95%', stocks: 'TLKM, ISAT, EXCL', color: 'text-[#00f5a0]' },
+                    { name: 'Consumer Cyclical', perf: '-0.42%', stocks: 'ASII, ACES', color: 'text-[#ff5f56]' },
+                    { name: 'Infrastructure', perf: '+1.10%', stocks: 'JSMR, TOWR', color: 'text-[#00f5a0]' },
+                    { name: 'Healthcare', perf: '-0.15%', stocks: 'KLBF, MIKA', color: 'text-[#ff5f56]' },
+                    { name: 'Energy', perf: '+0.60%', stocks: 'ADRO, PTBA', color: 'text-[#00f5a0]' },
+                    { name: 'Technology', perf: '+3.10%', stocks: 'GOTO, BUKA', color: 'text-[#00f5a0]' },
+                  ].map((sec) => (
+                    <div key={sec.name} className="bg-[#13111e] p-3 rounded-xl border border-[#211f32] text-left space-y-1">
+                      <span className="text-[10px] font-mono text-[#7a768d] uppercase">{sec.name}</span>
+                      <div className={`text-sm font-bold font-mono ${sec.color}`}>{sec.perf}</div>
+                      <div className="text-[10px] text-[#5d596e] truncate font-mono">{sec.stocks}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Bottom Interactive Trigger Bar */}
+              <div className="mt-4 pt-3 border-t border-[#1a1827] flex items-center justify-between text-xs text-[#736f84]">
+                <div className="flex items-center gap-2">
+                  <Command className="w-3.5 h-3.5 text-[#ccff00]" />
+                  <span>Tekan <kbd className="text-white font-mono bg-[#1a1827] px-1.5 py-0.5 rounded border border-[#2a273c]">Space</kbd> atau klik tombol untuk langsung uji coba</span>
+                </div>
+                <button
+                  onClick={handleDemoStart}
+                  className="bg-[#ccff00] text-black font-bold px-3.5 py-1.5 rounded-lg hover:bg-[#b8e600] transition-colors flex items-center gap-1.5"
+                >
+                  <span>Buka Terminal</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+            </div>
+
           </div>
         </div>
 
-        {/* Mobile / Tablet Nav Drawer */}
-        {mobileMenuOpen && (
-          <div className="lg:hidden bg-[#0c0b12] border-b border-[#1b1926] px-4 py-3 space-y-2.5 shadow-2xl">
-            <nav className="flex flex-col space-y-1 text-xs font-semibold text-[#9f9bac]">
-              <a 
-                href="#fitur" 
-                onClick={() => setMobileMenuOpen(false)}
-                className="py-2 px-3 rounded-xl hover:bg-[#171522] hover:text-[#ccff00] transition-all flex items-center justify-between"
-              >
-                <span>Fitur Utama</span>
-                <ChevronRight className="w-3.5 h-3.5 text-[#686477]" />
-              </a>
-              <a 
-                href="#demo-ai" 
-                onClick={() => setMobileMenuOpen(false)}
-                className="py-2 px-3 rounded-xl hover:bg-[#171522] hover:text-[#ccff00] transition-all flex items-center justify-between"
-              >
-                <span>AI Intelligence</span>
-                <ChevronRight className="w-3.5 h-3.5 text-[#686477]" />
-              </a>
-              <Link 
-                href={user ? "/ai" : "/login"} 
-                onClick={() => setMobileMenuOpen(false)}
-                className="py-2 px-3 rounded-xl hover:bg-[#171522] hover:text-[#ccff00] transition-all flex items-center justify-between"
-              >
-                <div className="flex items-center gap-2">
-                  <Bot className="w-4 h-4 text-[#ccff00]" />
-                  <span>AI Manager Assistant</span>
-                </div>
-                <ChevronRight className="w-3.5 h-3.5 text-[#686477]" />
-              </Link>
-              <a 
-                href="#screener" 
-                onClick={() => setMobileMenuOpen(false)}
-                className="py-2 px-3 rounded-xl hover:bg-[#171522] hover:text-[#ccff00] transition-all flex items-center justify-between"
-              >
-                <span>Live Market & Screener</span>
-                <ChevronRight className="w-3.5 h-3.5 text-[#686477]" />
-              </a>
-              <a 
-                href="#harga" 
-                onClick={() => setMobileMenuOpen(false)}
-                className="py-2 px-3 rounded-xl hover:bg-[#171522] hover:text-[#ccff00] transition-all flex items-center justify-between"
-              >
-                <span>Paket Harga</span>
-                <ChevronRight className="w-3.5 h-3.5 text-[#686477]" />
-              </a>
-              <a 
-                href="#faq" 
-                onClick={() => setMobileMenuOpen(false)}
-                className="py-2 px-3 rounded-xl hover:bg-[#171522] hover:text-[#ccff00] transition-all flex items-center justify-between"
-              >
-                <span>FAQ & Bantuan</span>
-                <ChevronRight className="w-3.5 h-3.5 text-[#686477]" />
-              </a>
-            </nav>
+      </section>
 
-            <div className="pt-2.5 border-t border-[#1b1926] grid grid-cols-2 gap-2">
+      {/* FEATURE HIGHLIGHTS & ARCHITECTURE */}
+      <section id="features" className="py-20 px-4 sm:px-6 max-w-7xl mx-auto border-t border-[#181624]">
+        <div className="text-center max-w-2xl mx-auto mb-16">
+          <span className="text-[11px] font-mono text-[#ccff00] uppercase tracking-widest bg-[#ccff00]/10 px-3 py-1 rounded-full border border-[#ccff00]/20">
+            Arsitektur Kuantitatif
+          </span>
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight mt-4 mb-3">
+            Dioptimalkan untuk Keputusan Investor Modern
+          </h2>
+          <p className="text-xs sm:text-sm text-[#8a869a]">
+            Kecepatan analisis institusional yang intuitif, dirancang tanpa clutter, langsung ke insight utama.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          
+          {/* Card 1 */}
+          <div className="bg-[#12101b] border border-[#201d30] rounded-2xl p-6 hover:border-[#ccff00]/40 transition-all duration-300 group">
+            <div className="w-10 h-10 rounded-xl bg-[#ccff00]/10 text-[#ccff00] border border-[#ccff00]/30 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+              <Bot className="w-5 h-5" />
+            </div>
+            <h3 className="text-lg font-bold text-white mb-2">Gemini AI Stock Advisor</h3>
+            <p className="text-xs text-[#8e8a9e] leading-relaxed">
+              Analisis fundamental mendalam otomatis, ringkasan laporan keuangan kuartalan, dan estimasi fair value berbasis AI.
+            </p>
+          </div>
+
+          {/* Card 2 */}
+          <div className="bg-[#12101b] border border-[#201d30] rounded-2xl p-6 hover:border-[#00f0ff]/40 transition-all duration-300 group">
+            <div className="w-10 h-10 rounded-xl bg-[#00f0ff]/10 text-[#00f0ff] border border-[#00f0ff]/30 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+              <BarChart3 className="w-5 h-5" />
+            </div>
+            <h3 className="text-lg font-bold text-white mb-2">Quant Multi-Factor Scoring</h3>
+            <p className="text-xs text-[#8e8a9e] leading-relaxed">
+              Skor saham 0-100 mengkombinasikan faktor Value, Quality, Momentum, Growth, dan Volatilitas secara matematis.
+            </p>
+          </div>
+
+          {/* Card 3 */}
+          <div className="bg-[#12101b] border border-[#201d30] rounded-2xl p-6 hover:border-[#00f5a0]/40 transition-all duration-300 group">
+            <div className="w-10 h-10 rounded-xl bg-[#00f5a0]/10 text-[#00f5a0] border border-[#00f5a0]/30 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+              <Sliders className="w-5 h-5" />
+            </div>
+            <h3 className="text-lg font-bold text-white mb-2">Automated Rebalancing & Risk</h3>
+            <p className="text-xs text-[#8e8a9e] leading-relaxed">
+              Manajemen risiko portofolio terukur, penyesuaian alokasi aset berkala, dan penguji skenario krisis (stress testing).
+            </p>
+          </div>
+
+        </div>
+      </section>
+
+      {/* FLOATING CURSOR DOCK BAR ("Clues at your cursor") */}
+      <section className="py-12 px-4 max-w-4xl mx-auto text-center">
+        <div className="bg-[#12101c]/90 border border-[#232035] rounded-full p-2 max-w-lg mx-auto shadow-2xl backdrop-blur-xl flex items-center justify-between gap-1">
+          <Link href="/dashboard" className="p-2.5 rounded-full hover:bg-[#201d32] text-[#9a96ab] hover:text-white transition-all group relative" title="Dashboard">
+            <Compass className="w-4 h-4" />
+          </Link>
+          <Link href="/stock-analysis" className="p-2.5 rounded-full hover:bg-[#201d32] text-[#9a96ab] hover:text-white transition-all group relative" title="Screener">
+            <Search className="w-4 h-4" />
+          </Link>
+          <Link href="/portfolio" className="p-2.5 rounded-full hover:bg-[#201d32] text-[#9a96ab] hover:text-white transition-all group relative" title="Portfolio">
+            <LineChart className="w-4 h-4" />
+          </Link>
+          <Link href="/alerts" className="p-2.5 rounded-full hover:bg-[#201d32] text-[#9a96ab] hover:text-white transition-all group relative" title="Alerts">
+            <Zap className="w-4 h-4" />
+          </Link>
+          <Link href="/settings" className="p-2.5 rounded-full hover:bg-[#201d32] text-[#9a96ab] hover:text-white transition-all group relative" title="Settings">
+            <SettingsIcon className="w-4 h-4" />
+          </Link>
+          
+          <button
+            onClick={() => setSearchModalOpen(true)}
+            className="bg-[#ccff00] text-black p-2.5 rounded-full hover:bg-[#b8e600] transition-transform hover:scale-105 flex items-center justify-center ml-2"
+            title="Search Securities (⌘K)"
+          >
+            <Search className="w-4 h-4" />
+          </button>
+        </div>
+        <span className="text-[11px] text-[#6b677a] font-mono mt-3 block">
+          Pusat Kendali Navigasi Cepat (Tekan <kbd className="text-white bg-[#191726] px-1 py-0.5 rounded border border-[#26233a]">⌘K</kbd> untuk pencarian emiten)
+        </span>
+      </section>
+
+      {/* PRICING & ACCESS SECTION */}
+      <section id="pricing" className="py-20 px-4 sm:px-6 max-w-7xl mx-auto border-t border-[#181624]">
+        <div className="text-center max-w-2xl mx-auto mb-16">
+          <span className="text-[11px] font-mono text-[#00f0ff] uppercase tracking-widest bg-[#00f0ff]/10 px-3 py-1 rounded-full border border-[#00f0ff]/20">
+            VIP & Professional Access
+          </span>
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight mt-4 mb-3">
+            Pilih Lisensi Terminal Anda
+          </h2>
+          <p className="text-xs sm:text-sm text-[#8a869a]">
+            Dapatkan akses penuh ke sistem analisa kuantitatif tanpa hambatan.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          
+          {/* Free Trial / Retail Tier */}
+          <div className="bg-[#12101b] border border-[#211e32] rounded-2xl p-8 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-xs font-mono text-[#8a869a] uppercase">Free Trial Mode</span>
+                <span className="text-[10px] text-[#00f5a0] bg-[#00f5a0]/10 px-2 py-0.5 rounded border border-[#00f5a0]/30 font-mono">
+                  Instan
+                </span>
+              </div>
+              <div className="text-3xl font-extrabold text-white font-mono mb-2">Rp 0 <span className="text-xs text-[#8a869a] font-normal">/ 14 Hari</span></div>
+              <p className="text-xs text-[#8a869a] mb-6">Cocok untuk mencoba fitur dasar cockpit dan riset saham pilihan.</p>
+
+              <ul className="space-y-3 text-xs text-[#c0bdd0] mb-8">
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-[#00f5a0]" />
+                  <span>Akses Skor Saham IHSG</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-[#00f5a0]" />
+                  <span>Watchlist & Portfolio Tracking</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-[#00f5a0]" />
+                  <span>Interactive Technical Charts</span>
+                </li>
+              </ul>
+            </div>
+
+            <button
+              onClick={handleDemoStart}
+              className="w-full py-3 rounded-xl bg-[#1b1928] hover:bg-[#252238] text-white text-xs font-bold transition-all border border-[#2d2a42]"
+            >
+              Coba Mode Demo Instan
+            </button>
+          </div>
+
+          {/* Pro VIP Tier */}
+          <div className="bg-[#12101b] border-2 border-[#ccff00]/60 rounded-2xl p-8 flex flex-col justify-between relative shadow-[0_0_40px_rgba(204,255,0,0.1)]">
+            <div className="absolute -top-3.5 right-6 bg-[#ccff00] text-black text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full font-mono">
+              Rekomendasi Utama
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-xs font-mono text-[#ccff00] uppercase font-bold">SafeHaven Pro Terminal</span>
+              </div>
+              <div className="text-3xl font-extrabold text-white font-mono mb-2">Rp 199.000 <span className="text-xs text-[#8a869a] font-normal">/ bulan</span></div>
+              <p className="text-xs text-[#8a869a] mb-6">Akses tanpa batas ke seluruh kemampuan Gemini AI & Rebalance Engine.</p>
+
+              <ul className="space-y-3 text-xs text-[#c0bdd0] mb-8">
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-[#ccff00]" />
+                  <span>Gemini AI Uncapped Market Advisor</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-[#ccff00]" />
+                  <span>Automated Rebalancing Engine</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-[#ccff00]" />
+                  <span>Live Foreign Flow & Seasonality Radar</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-[#ccff00]" />
+                  <span>Notifikasi WhatsApp / Email Real-time</span>
+                </li>
+              </ul>
+            </div>
+
+            <button
+              onClick={() => setAuthModalOpen(true)}
+              className="w-full py-3 rounded-xl bg-[#ccff00] hover:bg-[#b8e600] text-black text-xs font-bold transition-all shadow-[0_0_20px_rgba(204,255,0,0.3)]"
+            >
+              Aktifkan VIP Pro Access
+            </button>
+          </div>
+
+        </div>
+      </section>
+
+      {/* FOOTER */}
+      <footer className="border-t border-[#181624] py-12 px-4 sm:px-6 bg-[#08070d] text-xs text-[#736f83]">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-3">
+            <SafeHavenLogo className="w-6 h-6" />
+            <span className="font-mono text-white font-bold">SafeHaven Analytics</span>
+          </div>
+
+          <div className="flex items-center gap-6 text-[#8e8a9d]">
+            <a href="#features" className="hover:text-white transition-colors">Fitur</a>
+            <a href="#pricing" className="hover:text-white transition-colors">Harga</a>
+            <Link href="/login" className="hover:text-white transition-colors">Login</Link>
+            <button onClick={() => setSearchModalOpen(true)} className="hover:text-white transition-colors">Command Bar</button>
+          </div>
+
+          <p className="font-mono text-[11px]">© {new Date().getFullYear()} SafeHaven System. Hak Cipta Dilindungi.</p>
+        </div>
+      </footer>
+
+      {/* ------------------- MODAL 1: COMMAND SEARCH (⌘K) ------------------- */}
+      {searchModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-start justify-center pt-20 px-4">
+          <div className="bg-[#12101c] border border-[#27243c] w-full max-w-xl rounded-2xl p-4 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+            
+            <div className="flex items-center gap-3 px-3 py-2 bg-[#181627] rounded-xl border border-[#2b2842] mb-3">
+              <Search className="w-4 h-4 text-[#ccff00]" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Cari emiten IHSG atau AS (e.g. BBCA, BBRI, NVDA)..."
+                className="bg-transparent text-xs text-white placeholder-[#6c687e] outline-none w-full font-mono"
+                autoFocus
+              />
+              <button 
+                onClick={() => setSearchModalOpen(false)}
+                className="p-1 rounded text-[#716d82] hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="max-h-80 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+              <span className="text-[10px] font-mono text-[#6c687e] uppercase px-2 mb-1 block">Hasil Pencarian Saham</span>
+              {filteredStocks.map((stock) => (
+                <div
+                  key={stock.symbol}
+                  onClick={() => {
+                    setSearchModalOpen(false);
+                    setLocation(`/ticker/${stock.symbol}`);
+                  }}
+                  className="flex items-center justify-between p-2.5 rounded-xl hover:bg-[#1a182a] border border-transparent hover:border-[#2a2742] cursor-pointer transition-all group"
+                >
+                  <div className="flex items-center gap-3">
+                    <TickerLogo symbol={stock.symbol} sizeClassName="w-6 h-6" />
+                    <div>
+                      <div className="text-xs font-bold text-white font-mono flex items-center gap-2">
+                        <span>{stock.symbol}</span>
+                        <span className="text-[9px] text-[#6c687e] bg-[#1a1828] px-1.5 py-0.2 rounded border border-[#2a273e] font-sans">
+                          {stock.exchange}
+                        </span>
+                      </div>
+                      <div className="text-[10px] text-[#7d7990]">{stock.name}</div>
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <div className="text-xs font-bold font-mono text-white">Rp {stock.price.toLocaleString()}</div>
+                    <div className="text-[10px] text-[#00f5a0] font-mono">{stock.change} | Skor {stock.score}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-3 pt-2 border-t border-[#1e1c2e] flex items-center justify-between text-[11px] text-[#6b677a] font-mono">
+              <span>Gunakan tombol <kbd className="text-white bg-[#1b1928] px-1 rounded">↑</kbd> <kbd className="text-white bg-[#1b1928] px-1 rounded">↓</kbd> untuk navigasi</span>
+              <span>Tekan <kbd className="text-white bg-[#1b1928] px-1 rounded">ESC</kbd> untuk tutup</span>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ------------------- MODAL 2: GUIDED TOUR VIDEO PREVIEW ------------------- */}
+      {tourModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[#12101c] border border-[#27243c] w-full max-w-3xl rounded-2xl p-6 shadow-2xl relative">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Play className="w-4 h-4 text-[#ccff00]" />
+                <h3 className="text-sm font-bold text-white font-mono">Tur Interaktif Cockpit SafeHaven</h3>
+              </div>
+              <button onClick={() => setTourModalOpen(false)} className="text-[#716d82] hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="aspect-video bg-[#0b0a10] rounded-xl border border-[#221f35] flex flex-col items-center justify-center p-8 text-center relative overflow-hidden">
+              <div className="w-16 h-16 rounded-full bg-[#ccff00]/10 border border-[#ccff00]/40 flex items-center justify-center text-[#ccff00] mb-4 shadow-[0_0_30px_rgba(204,255,0,0.2)]">
+                <Play className="w-8 h-8 fill-[#ccff00] ml-1" />
+              </div>
+              <h4 className="text-base font-bold text-white mb-2">Simulasi Cockpit Live</h4>
+              <p className="text-xs text-[#8e8a9f] max-w-md mb-6">
+                Pelajari cara membaca skor kuantitatif saham, radar rezim makro pasar, dan eksekusi rebalancing otomatis.
+              </p>
               <button
                 onClick={() => {
-                  setMobileMenuOpen(false);
-                  loginDemoUser(false);
-                  setLocation('/dashboard');
+                  setTourModalOpen(false);
+                  handleDemoStart();
                 }}
-                className="w-full bg-[#171522] hover:bg-[#201d2f] border border-[#2d2943] text-white text-xs font-bold py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                className="bg-[#ccff00] text-black font-bold text-xs px-5 py-2.5 rounded-xl hover:bg-[#b8e600] transition-all"
               >
-                <UserCheck className="w-3.5 h-3.5 text-[#ccff00]" />
-                <span>Coba Demo</span>
+                Mulai Tur Sekarang
               </button>
-              <Link
-                href="/login"
-                onClick={() => setMobileMenuOpen(false)}
-                className="w-full bg-[#ccff00] text-black text-xs font-extrabold py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-md shadow-[#ccff00]/10 cursor-pointer"
-              >
-                <ArrowRight className="w-3.5 h-3.5" />
-                <span>Masuk / Login</span>
-              </Link>
             </div>
           </div>
-        )}
-      </header>
+        </div>
+      )}
 
-      {/* 2. HERO SECTION WITH CLEAN ERGONOMIC LAYOUT & 3D MOCKUP */}
-      <section className="relative pt-16 md:pt-24 lg:pt-32 pb-20 md:pb-32 overflow-hidden border-b border-[#1b1926]">
-        {/* Glow ambient background gradients */}
-        <div className="absolute top-1/4 left-1/3 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-[#ccff00]/10 blur-[120px] rounded-full pointer-events-none"></div>
-        <div className="absolute top-1/2 right-1/4 w-[400px] h-[400px] bg-[#00f0ff]/5 blur-[100px] rounded-full pointer-events-none"></div>
-        
-        {/* Grid Background Pattern */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#1b192615_1px,transparent_1px),linear-gradient(to_bottom,#1b192615_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_30%,#000_70%,transparent_100%)] pointer-events-none"></div>
-
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
+      {/* ------------------- MODAL 3: START TRIAL & AUTH SIGNUP ------------------- */}
+      {authModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[#12101c] border border-[#2a2740] w-full max-w-md rounded-2xl p-6 shadow-2xl relative text-center">
             
-            {/* Left Column: Hero Text, Badge, Search & CTAs */}
-            <div className="lg:col-span-7 text-left space-y-6 sm:space-y-8">
-              
-              {/* Compact Eyebrow Badge */}
-              <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-[#111018] border border-[#ccff00]/30 text-[#ccff00] text-xs font-mono font-bold tracking-wider uppercase shadow-[0_0_15px_rgba(204,255,0,0.1)]">
-                <span className="w-2 h-2 rounded-full bg-[#ccff00] animate-pulse shrink-0"></span>
-                <span>⚡ IDX AI ANALYTICS & GEMINI COCKPIT</span>
-              </div>
+            <button 
+              onClick={() => {
+                setAuthModalOpen(false);
+                setAuthStep('input');
+              }} 
+              className="absolute top-4 right-4 text-[#716d82] hover:text-white"
+            >
+              <X className="w-5 h-5" />
+            </button>
 
-              {/* Main Headline */}
-              <h1 className="text-4xl sm:text-6xl lg:text-[4.5rem] font-black tracking-tight text-white leading-[1.1] font-sans">
-                Best <span className="text-[#ccff00] drop-shadow-[0_0_20px_rgba(204,255,0,0.25)]">stock investing</span><br className="hidden lg:block" /> platform for your future.
-              </h1>
+            {authStep === 'input' && (
+              <>
+                <div className="w-12 h-12 rounded-2xl bg-[#ccff00]/10 border border-[#ccff00]/30 flex items-center justify-center text-[#ccff00] mx-auto mb-4">
+                  <Zap className="w-6 h-6" />
+                </div>
+                <h3 className="text-lg font-bold text-white mb-1">Selamat Datang di SafeHaven</h3>
+                <p className="text-xs text-[#8e8a9f] mb-6">Masukkan email Anda untuk mengaktifkan akses VIP Trial 14 hari.</p>
 
-              {/* Subtitle Description */}
-              <p className="text-base sm:text-lg text-[#9f9bac] leading-relaxed max-w-2xl font-medium">
-                SafeHaven menggabungkan analisis kuantitatif IHSG, Fair Value DCF, skor fundamental 0-100, dan kecerdasan AI Gemini untuk menjaga portofolio Anda tetap tumbuh secara konsisten.
-              </p>
-
-              {/* Hero Search Bar (Main User Interaction Point) */}
-              <div className="pt-2">
-                <form onSubmit={handleSearchSubmit} className="max-w-xl flex items-center bg-[#111018] border border-[#262436] focus-within:border-[#ccff00] rounded-2xl p-2 shadow-2xl transition-all">
-                  <div className="pl-4 text-[#686477]">
-                    <Search className="w-5 h-5" />
+                <form onSubmit={handleAuthSubmit} className="space-y-3">
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-[#736f84] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="email"
+                      value={authEmail}
+                      onChange={(e) => setAuthEmail(e.target.value)}
+                      placeholder="nama@email.com"
+                      required
+                      className="w-full bg-[#181627] border border-[#2b2842] rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-[#6c687e] outline-none focus:border-[#ccff00] transition-colors"
+                    />
                   </div>
-                  <input 
-                    type="text" 
-                    placeholder="Cari emiten IHSG (BBCA, BBRI, TLKM, AMMN)..."
-                    value={searchTicker}
-                    onChange={(e) => setSearchTicker(e.target.value)}
-                    className="flex-1 bg-transparent px-4 py-3 text-sm sm:text-base text-white focus:outline-none placeholder:text-[#686477]"
-                  />
-                  <button 
+
+                  <button
                     type="submit"
-                    className="px-6 py-3 bg-[#ccff00] text-black font-extrabold rounded-xl text-sm hover:bg-[#b8e600] transition-colors flex items-center gap-2 shrink-0 cursor-pointer shadow-[0_0_15px_rgba(204,255,0,0.2)]"
+                    className="w-full bg-[#ccff00] hover:bg-[#b8e600] text-black font-bold text-xs py-2.5 rounded-xl transition-all shadow-[0_0_20px_rgba(204,255,0,0.2)]"
                   >
-                    <span>Analisis Ticker</span>
-                    <ArrowRight className="w-4 h-4" />
+                    Dapatkan Link Akses VIP
                   </button>
                 </form>
 
-                {/* Popular Ticker Quick Tags */}
-                <div className="mt-4 flex items-center gap-2.5 text-xs text-[#686477] flex-wrap">
-                  <span className="font-mono text-xs text-[#686477]">Populer:</span>
-                  {['BBCA', 'BBRI', 'TLKM', 'AMMN', 'ASII', 'GOTO'].map((sym) => (
-                    <button 
-                      key={sym} 
-                      type="button"
-                      onClick={() => {
-                        setSearchTicker(sym);
-                        setLocation(`/ticker/${sym}.JK`);
-                      }}
-                      className="px-2.5 py-1 rounded-md bg-[#111018] border border-[#1b1926] hover:border-[#ccff00]/40 text-[#9f9bac] hover:text-[#ccff00] font-mono text-[11px] font-bold transition-all cursor-pointer"
-                    >
-                      {sym}
-                    </button>
-                  ))}
+                <div className="mt-4 pt-4 border-t border-[#1f1d30] flex items-center justify-between text-xs text-[#736f84]">
+                  <span>Atau coba tanpa daftar:</span>
+                  <button
+                    onClick={() => {
+                      setAuthModalOpen(false);
+                      handleDemoStart();
+                    }}
+                    className="text-[#00f0ff] hover:underline font-bold"
+                  >
+                    Masuk Mode Demo →
+                  </button>
                 </div>
+              </>
+            )}
+
+            {authStep === 'loading' && (
+              <div className="py-8">
+                <Loader2 className="w-8 h-8 text-[#ccff00] animate-spin mx-auto mb-3" />
+                <p className="text-xs text-[#9b97ac] font-mono">Menyiapkan kredensial VIP Anda...</p>
               </div>
+            )}
 
-              {/* CTAs & Social Proof Row */}
-              <div className="pt-6 sm:pt-8 mt-4 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-[#1b1926]/40">
-                
-                {/* Secondary Action - Left */}
-                <Link 
-                  href="/dashboard"
-                  className="px-5 py-3 bg-[#171522] hover:bg-[#201d2f] border border-[#2d2943] text-white text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer w-full sm:w-auto"
-                >
-                  <span>Live Market</span>
-                  <ArrowUpRight className="w-4 h-4 text-[#ccff00]" />
-                </Link>
-
-                {/* Primary Action - Center */}
+            {authStep === 'sent' && (
+              <div className="py-4">
+                <CheckCircle2 className="w-12 h-12 text-[#00f5a0] mx-auto mb-3" />
+                <h3 className="text-lg font-bold text-white mb-1">Cek Inbox Email Anda</h3>
+                <p className="text-xs text-[#8e8a9f] mb-6">
+                  Kami telah mengirimkan instruksi aktivasi ke <span className="text-white font-bold">{authEmail}</span>.
+                </p>
                 <button
                   onClick={() => {
-                    loginDemoUser(false);
-                    setLocation('/dashboard');
+                    setAuthModalOpen(false);
+                    handleDemoStart();
                   }}
-                  className="px-8 py-3.5 bg-[#ccff00] text-black font-extrabold text-sm sm:text-base rounded-xl hover:bg-[#b8e600] transition-all flex items-center justify-center gap-2 cursor-pointer shadow-[0_0_25px_rgba(204,255,0,0.25)] w-full sm:w-auto transform hover:scale-105"
+                  className="bg-[#1c1a2c] text-white text-xs font-bold px-5 py-2.5 rounded-xl border border-[#2b2842] hover:bg-[#252238] transition-all"
                 >
-                  <Zap className="w-5 h-5 fill-black" />
-                  <span>Coba Cockpit Demo</span>
+                  Lanjut ke Dashboard Demo
                 </button>
-
-                {/* Social Proof - Right */}
-                <div className="flex items-center gap-3 w-full sm:w-auto justify-center sm:justify-end">
-                  <div className="flex -space-x-3 overflow-hidden shrink-0">
-                    <img className="inline-block h-9 w-9 rounded-full ring-2 ring-[#060509]" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" alt="User" />
-                    <img className="inline-block h-9 w-9 rounded-full ring-2 ring-[#060509]" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80" alt="User" />
-                    <img className="inline-block h-9 w-9 rounded-full ring-2 ring-[#060509]" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80" alt="User" />
-                  </div>
-                  <div className="text-left">
-                    <div className="text-sm font-black text-white font-mono">168K+</div>
-                    <div className="text-[10px] text-[#686477] font-medium leading-tight">Investor<br/>Aktif</div>
-                  </div>
-                </div>
               </div>
+            )}
 
-            </div>
+          </div>
+        </div>
+      )}
 
-            {/* Right Column: 3D Floating Phone Mockup */}
-            <div className="lg:col-span-5 relative flex justify-center items-center mt-12 lg:mt-0 py-8">
+      {/* ------------------- MODAL 4: VIP PASS CARD PREVIEW ------------------- */}
+      {vipPassOpen && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[#12101c] border border-[#2a2740] w-full max-w-sm rounded-2xl p-6 shadow-2xl relative text-center animate-in zoom-in-95 duration-200">
+            <button onClick={() => setVipPassOpen(false)} className="absolute top-4 right-4 text-[#716d82] hover:text-white">
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Pass Card Component */}
+            <div className="w-full aspect-[1/1.5] bg-gradient-to-b from-[#1c192c] via-[#12101d] to-[#08070e] rounded-2xl border border-[#332f4e] p-6 flex flex-col justify-between relative overflow-hidden shadow-2xl my-2 group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-[#ccff00]/10 rounded-full blur-2xl pointer-events-none" />
               
-              {/* Background 3D Soft Glow */}
-              <div className="absolute w-72 h-72 bg-[#ccff00]/10 rounded-full blur-[80px] pointer-events-none"></div>
-
-              {/* 3D Tilted Phone Container */}
-              <div className="relative group perspective-[1000px] w-full max-w-[320px]">
-                
-                {/* Secondary Background Phone (Angled behind) */}
-                <div className="absolute top-6 left-10 w-full h-[500px] bg-[#0c0b12] border-2 border-[#262436] rounded-[38px] p-3 shadow-2xl opacity-40 [transform:rotateY(-25deg)_rotateX(20deg)_translateZ(-60px)] pointer-events-none hidden sm:block">
-                  <div className="w-full h-full bg-[#111018] rounded-[30px] p-4 flex flex-col justify-between overflow-hidden opacity-50">
-                    <div className="flex justify-between items-center text-[10px] text-gray-500 font-mono">
-                      <span>9:41</span>
-                      <div className="w-12 h-3 bg-black rounded-full"></div>
-                    </div>
-                    <div className="my-auto text-center">
-                      <p className="text-[#ccff00] font-mono text-xs font-bold">Join building the future.</p>
-                      <button className="mt-3 px-4 py-1.5 bg-[#ccff00] text-black text-[10px] font-black rounded-full">Sign in</button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Primary Floating 3D Phone Screen */}
-                <div className="relative w-full h-[560px] bg-[#08070c] border-[3px] border-[#2d2a3e] rounded-[44px] p-3 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9),0_0_40px_rgba(204,255,0,0.15)] [transform:rotateY(-18deg)_rotateX(14deg)_rotateZ(-2deg)] group-hover:[transform:rotateY(-4deg)_rotateX(4deg)_rotateZ(0deg)] transition-all duration-700 ease-out cursor-pointer">
-                  
-                  {/* Outer Bezel Gloss */}
-                  <div className="absolute inset-0 rounded-[42px] border border-white/10 pointer-events-none"></div>
-
-                  {/* Phone Speaker / Camera Notch */}
-                  <div className="absolute top-5 left-1/2 -translate-x-1/2 w-24 h-4 bg-black rounded-full z-30 flex items-center justify-center">
-                    <div className="w-3 h-3 rounded-full bg-[#1a1924]"></div>
-                  </div>
-
-                  {/* Phone Screen Canvas Content */}
-                  <div className="w-full h-full bg-[#0d0c14] rounded-[34px] pt-7 px-3.5 pb-3 flex flex-col justify-between overflow-hidden border border-[#1f1d2b]">
-                    
-                    {/* Top App Header */}
-                    <div>
-                      <div className="flex items-center justify-between text-[11px] font-mono text-[#686477] mb-2">
-                        <span className="text-white font-bold">SafeHaven.</span>
-                        <span className="text-[#ccff00] flex items-center gap-1 font-bold">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#ccff00] animate-ping"></span>
-                          LIVE
-                        </span>
-                      </div>
-
-                      {/* Balance / Portfolio Card */}
-                      <div className="bg-[#151320] border border-[#262436] p-3 rounded-2xl shadow-inner">
-                        <span className="text-[10px] text-[#8e8a9d] font-mono block">PORTFOLIO VALUE</span>
-                        <div className="text-lg font-black text-white font-mono mt-0.5">
-                          Rp 987.209.800 <span className="text-[10px] text-[#00f5a0] font-normal">+14.2%</span>
-                        </div>
-
-                        {/* Miniature Chart Graphic */}
-                        <div className="mt-2 h-14 w-full relative">
-                          <svg className="w-full h-full overflow-visible" viewBox="0 0 100 40">
-                            <defs>
-                              <linearGradient id="phoneGlow" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor="#ccff00" stopOpacity="0.4" />
-                                <stop offset="100%" stopColor="#ccff00" stopOpacity="0.0" />
-                              </linearGradient>
-                            </defs>
-                            <path 
-                              d="M 0,30 Q 20,25 35,32 T 70,12 T 100,5 L 100,40 L 0,40 Z" 
-                              fill="url(#phoneGlow)" 
-                            />
-                            <path 
-                              d="M 0,30 Q 20,25 35,32 T 70,12 T 100,5" 
-                              fill="none" 
-                              stroke="#ccff00" 
-                              strokeWidth="2.5" 
-                            />
-                            <circle cx="100" cy="5" r="3.5" fill="#ccff00" className="animate-pulse" />
-                          </svg>
-                        </div>
-                      </div>
-
-                      {/* Quick Ticker Chips */}
-                      <div className="mt-3 space-y-1.5">
-                        <div className="bg-[#151320]/80 border border-[#222030] p-2 rounded-xl flex items-center justify-between text-xs">
-                          <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-lg bg-[#ccff00]/10 border border-[#ccff00]/30 flex items-center justify-center text-[#ccff00] text-[10px] font-mono font-bold">
-                              B
-                            </div>
-                            <div>
-                              <div className="text-[11px] font-bold text-white font-mono">BBCA.JK</div>
-                              <div className="text-[9px] text-gray-400">Bank Central Asia</div>
-                            </div>
-                          </div>
-                          <div className="text-right font-mono">
-                            <div className="text-[11px] text-white font-bold">Rp 10.150</div>
-                            <div className="text-[9px] text-[#00f5a0]">+1.5%</div>
-                          </div>
-                        </div>
-
-                        <div className="bg-[#151320]/80 border border-[#222030] p-2 rounded-xl flex items-center justify-between text-xs">
-                          <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-lg bg-[#00f0ff]/10 border border-[#00f0ff]/30 flex items-center justify-center text-[#00f0ff] text-[10px] font-mono font-bold">
-                              R
-                            </div>
-                            <div>
-                              <div className="text-[11px] font-bold text-white font-mono">BBRI.JK</div>
-                              <div className="text-[9px] text-gray-400">Bank Rakyat Indo</div>
-                            </div>
-                          </div>
-                          <div className="text-right font-mono">
-                            <div className="text-[11px] text-white font-bold">Rp 5.200</div>
-                            <div className="text-[9px] text-[#00f5a0]">+2.1%</div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Bottom Action Pill in Phone */}
-                    <div className="pt-2 border-t border-[#1f1d2b]">
-                      <button className="w-full py-2.5 bg-[#ccff00] text-black font-extrabold text-xs rounded-xl shadow-[0_0_15px_rgba(204,255,0,0.3)] flex items-center justify-center gap-1.5">
-                        <Zap className="w-3.5 h-3.5" />
-                        <span>Analisis AI Instant</span>
-                      </button>
-                    </div>
-
-                  </div>
-                </div>
-
+              <div className="flex items-center justify-between text-left">
+                <SafeHavenLogo className="w-8 h-8" />
+                <span className="text-[10px] font-mono text-[#ccff00] bg-[#ccff00]/10 px-2 py-0.5 rounded border border-[#ccff00]/30">
+                  VIP PASS #084
+                </span>
               </div>
 
-            </div>
-
-          </div>
-        </div>
-      </section>
-
-      {/* 3. TRUSTED PARTNER & FEATURE NUMBERS (01, 02, 03 CARDS) */}
-      <section className="py-20 bg-[#0a090f] border-b border-[#1b1926] relative">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-end mb-12">
-            <div className="md:col-span-7">
-              <h2 className="text-3xl sm:text-5xl font-black text-white tracking-tight leading-tight">
-                Your trusted partner of <br />
-                <span className="text-[#ccff00]">stock market analytics</span>.
-              </h2>
-            </div>
-            <div className="md:col-span-5 text-xs text-[#9f9bac] leading-relaxed">
-              SafeHaven dirancang untuk memberikan transparansi penuh pada emiten IHSG, mempermudah kalkulasi Fair Value, dan meminimalisir risiko lewat sistem teruji secara kuantitatif.
-            </div>
-          </div>
-
-          {/* 01, 02, 03 Pillars Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            
-            {/* Card 01 */}
-            <div className="p-6 bg-[#111018] border border-[#222030] rounded-2xl flex flex-col justify-between hover:border-[#ccff00]/40 transition-all">
               <div>
-                <div className="text-2xl font-black text-white/40 font-mono mb-4">01.</div>
-                <h3 className="text-lg font-bold text-white mb-2">Service for Any Level of Expertise.</h3>
-                <p className="text-xs text-[#8e8a9d] leading-relaxed">
-                  Dari penyaringan saham otomatis hingga ringkasan laporan keuangan berbahasa Indonesia yang mudah dipahami oleh pemula maupun pro.
-                </p>
+                <span className="text-[10px] font-mono text-[#736f84] uppercase tracking-widest block mb-1">Pass Access Level</span>
+                <h4 className="text-xl font-extrabold text-white font-mono tracking-tight">SafeHaven Institutional</h4>
+              </div>
+
+              <div className="text-left pt-4 border-t border-[#232038]">
+                <div className="text-[10px] text-[#736f84] font-mono">Pemegang Akses:</div>
+                <div className="text-xs font-bold text-white font-mono">{authEmail || 'Investor VIP'}</div>
               </div>
             </div>
 
-            {/* Card 02: HIGHLIGHTED NEON LIME CARD */}
-            <div className="p-6 bg-[#ccff00] text-black rounded-2xl flex flex-col justify-between shadow-[0_0_35px_rgba(204,255,0,0.25)] transform hover:-translate-y-1 transition-all">
-              <div>
-                <div className="text-2xl font-black text-black/50 font-mono mb-4">02.</div>
-                <h3 className="text-xl font-extrabold text-black mb-2">Industry best practices.</h3>
-                <p className="text-xs text-black/80 font-medium leading-relaxed">
-                  Engine DCF & Graham Valuation yang terkalibrasi khusus untuk histori inflasi dan pertumbuhan suku bunga di Indonesia.
-                </p>
-              </div>
-              <Link 
-                href="/full-chart/IHSG"
-                className="mt-6 inline-flex items-center gap-1 text-xs font-black text-black hover:underline cursor-pointer"
-              >
-                <span>Learn More</span>
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-            </div>
-
-            {/* Card 03 */}
-            <div className="p-6 bg-[#111018] border border-[#222030] rounded-2xl flex flex-col justify-between hover:border-[#00f0ff]/40 transition-all">
-              <div>
-                <div className="text-2xl font-black text-white/40 font-mono mb-4">03.</div>
-                <h3 className="text-lg font-bold text-white mb-2">Protected by Risk Control.</h3>
-                <p className="text-xs text-[#8e8a9d] leading-relaxed">
-                  Matriks Value at Risk (VaR), Maximum Drawdown, dan diversifikasi sektor berbasis data kuantitatif terkini.
-                </p>
-              </div>
-            </div>
-
-          </div>
-
-        </div>
-      </section>
-
-      {/* 4. TRUSTED PLATFORM ANYTIME & ANYWHERE WITH SMOOTH CURVE GRAPH & FLOATING BADGES */}
-      <section className="py-20 relative overflow-hidden border-b border-[#1b1926]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-            
-            {/* Left Column: Smooth Curve Graph & Floating Cards */}
-            <div className="lg:col-span-6 relative">
-              <div className="p-6 sm:p-8 bg-[#111018] border border-[#262436] rounded-3xl relative overflow-hidden shadow-2xl">
-                
-                {/* Background grid pattern */}
-                <div className="absolute inset-0 bg-[linear-gradient(to_right,#1b192620_1px,transparent_1px),linear-gradient(to_bottom,#1b192620_1px,transparent_1px)] bg-[size:2.5rem_2.5rem] pointer-events-none"></div>
-
-                {/* Floating Badge Top-Left */}
-                <div className="absolute top-6 left-6 z-20 bg-[#161420]/90 backdrop-blur border border-[#2c283d] px-4 py-2.5 rounded-2xl shadow-xl max-w-[200px]">
-                  <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-[#ccff00]">
-                    <span>| Rp 4,528.000</span>
-                  </div>
-                  <p className="text-[10px] text-[#9f9bac] mt-0.5 leading-tight">SafeHaven unifies and secures a growing ecosystem of specialized blocks.</p>
-                </div>
-
-                {/* Floating Badge Bottom-Right */}
-                <div className="absolute bottom-24 right-6 z-20 bg-[#161420]/90 backdrop-blur border border-[#2c283d] px-4 py-2.5 rounded-2xl shadow-xl max-w-[200px]">
-                  <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-[#ccff00]">
-                    <span>| 1,44,528 BTC</span>
-                  </div>
-                  <p className="text-[10px] text-[#9f9bac] mt-0.5 leading-tight">SafeHaven unifies and secures a growing ecosystem of specialized blocks.</p>
-                </div>
-
-                {/* Smooth Cubic Bezier SVG Curve Graphic */}
-                <div className="relative h-64 my-10">
-                  <svg className="w-full h-full overflow-visible" viewBox="0 0 320 140">
-                    <defs>
-                      <linearGradient id="curveGlow" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#ccff00" stopOpacity="0.35" />
-                        <stop offset="100%" stopColor="#ccff00" stopOpacity="0.0" />
-                      </linearGradient>
-                    </defs>
-                    {/* Area fill */}
-                    <path 
-                      d="M 10,100 C 70,110 110,50 170,80 C 230,110 270,30 310,20 L 310,140 L 10,140 Z" 
-                      fill="url(#curveGlow)" 
-                    />
-                    {/* Smooth curve line */}
-                    <path 
-                      d="M 10,100 C 70,110 110,50 170,80 C 230,110 270,30 310,20" 
-                      fill="none" 
-                      stroke="#ccff00" 
-                      strokeWidth="3" 
-                      strokeLinecap="round"
-                    />
-                    {/* Node 1 */}
-                    <circle cx="85" cy="85" r="14" fill="#ccff00" className="animate-pulse shadow-lg cursor-pointer" />
-                    <text x="81" y="89" fontSize="11" fontWeight="bold" fill="#000" fontFamily="monospace">B</text>
-
-                    {/* Node 2 */}
-                    <circle cx="170" cy="80" r="14" fill="#ccff00" className="shadow-lg cursor-pointer" />
-                    <text x="165" y="84" fontSize="11" fontWeight="bold" fill="#000" fontFamily="monospace">L</text>
-                  </svg>
-                </div>
-
-                {/* Bottom Card Inside Container */}
-                <div className="relative z-10 p-4 bg-[#161420] border border-[#292639] rounded-2xl flex items-center justify-between shadow-xl">
-                  <div>
-                    <span className="text-[10px] text-[#9f9bac] font-mono block">Average Rate</span>
-                    <div className="text-base font-black text-white font-mono mt-0.5">Rp 4,528 USD <span className="text-xs text-[#00f5a0] font-normal">+45.66%</span></div>
-                  </div>
-                  <span className="px-3 py-1 bg-[#ccff00] text-black font-mono font-black text-[11px] rounded-full shadow-[0_0_15px_rgba(204,255,0,0.3)]">
-                    02 May
-                  </span>
-                </div>
-
-              </div>
-            </div>
-
-            {/* Right Column: Text & Rating */}
-            <div className="lg:col-span-6">
-              
-              <h2 className="text-3xl sm:text-5xl font-black text-white tracking-tight leading-tight">
-                Trusted platform <br />
-                <span className="text-[#ccff00]">anytime & anywhere</span>.
-              </h2>
-
-              {/* Star Rating */}
-              <div className="flex items-center gap-1 text-[#ccff00] my-4">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-5 h-5 fill-[#ccff00]" />
-                ))}
-              </div>
-
-              <p className="text-xs sm:text-sm text-[#9f9bac] leading-relaxed">
-                SafeHaven membantu menyatukan ekosistem data pasar modal Indonesia dari laporan keuangan hingga pergerakan harga historis ke dalam satu dasbor cerdas.
-              </p>
-
-              {/* Bullet Features */}
-              <div className="mt-6 space-y-3 text-xs text-[#d8d5e5]">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-[#ccff00]" />
-                  <span>Real-time Sync dengan Yahoo Finance & Data IHSG</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-[#ccff00]" />
-                  <span>AI Assistant Gemini 2.5 dengan pemahaman konteks emiten lokal</span>
-                </div>
-              </div>
-
-              {/* CTAs */}
-              <div className="mt-8 flex items-center gap-4 flex-wrap">
-                <Link 
-                  href={user ? "/" : "/login"}
-                  className="px-6 py-3 bg-[#ccff00] text-black font-extrabold text-xs rounded-xl hover:bg-[#b8e600] transition-all flex items-center gap-2 cursor-pointer shadow-[0_0_20px_rgba(204,255,0,0.2)]"
-                >
-                  <span>Mulai Sekarang</span>
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-                <a 
-                  href="#faq"
-                  className="text-xs font-bold text-white hover:text-[#ccff00] transition-colors"
-                >
-                  Ada pertanyaan?
-                </a>
-              </div>
-
-            </div>
-
-          </div>
-        </div>
-      </section>
-
-      {/* 3. LIVE MARKET PREVIEW STRIP (INTERACTIVE DEMO) */}
-      <section id="screener" className="py-16 bg-[#0a090f] border-b border-[#1b1926]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
-            <div>
-              <div className="text-xs font-mono font-bold text-[#ccff00] tracking-widest uppercase mb-1">LIVE MARKET PREVIEW</div>
-              <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
-                Ringkasan Kinerja Saham Unggulan IHSG
-              </h2>
-            </div>
-            <p className="text-xs text-[#9f9bac] max-w-md">
-              Klik pada salah satu emiten di bawah untuk melihat cuplikan skor kuantitatif & insight AI SafeHaven secara interaktif.
-            </p>
-          </div>
-
-          {/* Ticker Cards Grid (Even 3x2 / 2x3 grid with bank logos) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {demoStocks.map((stock) => {
-              const isSelected = selectedDemoTicker === stock.symbol;
-              const isPositive = stock.change >= 0;
-              return (
-                <div 
-                  key={stock.symbol}
-                  onClick={() => setSelectedDemoTicker(stock.symbol)}
-                  className={`p-4 rounded-xl border transition-all cursor-pointer ${
-                    isSelected 
-                      ? 'bg-[#111018] border-[#ccff00] shadow-[0_0_20px_rgba(204,255,0,0.15)] ring-1 ring-[#ccff00]/30' 
-                      : 'bg-[#0e0d14] border-[#1b1926] hover:border-[#262436] hover:bg-[#111018]'
-                  }`}
-                >
-                  <div className="flex items-center gap-3 mb-3">
-                    <TickerLogo symbol={stock.symbol} sizeClassName="w-9 h-9" />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <span className="font-black text-sm text-white font-mono">{stock.symbol.replace('.JK', '')}</span>
-                        <span className={`text-xs font-mono font-bold ${isPositive ? 'text-[#00f5a0]' : 'text-[#ff3366]'}`}>
-                          {isPositive ? '+' : ''}{stock.change}%
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-[#8e8a9d] truncate font-medium">{stock.name}</p>
-                    </div>
-                  </div>
-
-                  <div className="pt-2.5 border-t border-[#1b1926] flex items-center justify-between text-xs">
-                    <div>
-                      <span className="text-[10px] text-[#686477] block font-mono">HARGA</span>
-                      <span className="text-white font-mono font-bold">Rp {stock.price.toLocaleString('id-ID')}</span>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-[10px] text-[#686477] block font-mono">SKOR AI</span>
-                      <span className="px-2 py-0.5 rounded bg-[#ccff00]/10 text-[#ccff00] font-mono text-[11px] font-black border border-[#ccff00]/20">
-                        {stock.score}/100
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Interactive Selected Stock Showcase Widget */}
-          <div id="demo-ai" className="mt-8 p-6 bg-[#111018] border border-[#1b1926] rounded-2xl">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
-              <div>
-                <div className="flex items-center gap-3 mb-3">
-                  <TickerLogo symbol={currentDemo.symbol} sizeClassName="w-12 h-12" />
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xl font-black text-white font-mono">{currentDemo.symbol}</span>
-                      <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-[#ccff00]/10 text-[#ccff00] font-mono font-bold border border-[#ccff00]/20">
-                        {currentDemo.aiSignal}
-                      </span>
-                    </div>
-                    <h3 className="text-sm font-bold text-[#d8d5e5]">{currentDemo.name}</h3>
-                  </div>
-                </div>
-
-                <p className="text-xs text-[#686477] font-mono">Sektor: {currentDemo.sector}</p>
-
-                <div className="mt-4 grid grid-cols-2 gap-3 pt-4 border-t border-[#1b1926]">
-                  <div>
-                    <span className="text-[10px] text-[#686477] font-mono block">Harga Terakhir</span>
-                    <span className="text-lg font-bold text-white font-mono">Rp {currentDemo.price.toLocaleString('id-ID')}</span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-[#686477] font-mono block">Fair Value DCF</span>
-                    <span className="text-lg font-bold text-[#00f5a0] font-mono">Rp {currentDemo.fairValue.toLocaleString('id-ID')}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="lg:col-span-2 bg-[#0a090f] p-5 rounded-xl border border-[#1b1926]">
-                <div className="flex items-center gap-2 text-xs font-bold text-[#ccff00] mb-2">
-                  <Bot className="w-4 h-4" />
-                  <span>ANALISIS AI GEMINI REAL-TIME</span>
-                </div>
-                <p className="text-xs sm:text-sm text-[#e2dfeb] leading-relaxed italic">
-                  "{currentDemo.summary}"
-                </p>
-
-                <div className="mt-4 flex items-center justify-between text-xs pt-3 border-t border-[#1b1926] text-[#686477]">
-                  <span className="flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-[#00f5a0]" />
-                    <span>Laporan Keuangan Q2 Verifikasi Otomatis</span>
-                  </span>
-                  <Link 
-                    href={`/ticker/${currentDemo.symbol}`}
-                    className="text-[#ccff00] font-bold hover:underline flex items-center gap-1 cursor-pointer"
-                  >
-                    <span>Buka Grafik & Detail</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </section>
-
-      {/* 4. MODULAR FEATURE HIGHLIGHTS */}
-      <section id="fitur" className="py-20 relative">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <div className="text-xs font-mono font-bold text-[#ccff00] tracking-widest uppercase mb-2">FITUR UNGGULAN SAFEHAVEN</div>
-            <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
-              Semua Tools Analisis Saham yang Anda Butuhkan dalam Satu Tempat
-            </h2>
-            <p className="mt-3 text-sm text-[#9f9bac]">
-              Dirancang khusus untuk memenuhi standar analisis fundamental, teknikal, dan kuantitatif pasar saham Indonesia (IHSG).
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            
-            {/* Feature 1 */}
-            <div className="p-6 bg-[#111018] border border-[#1b1926] hover:border-[#ccff00]/40 rounded-2xl transition-all group">
-              <div className="w-12 h-12 bg-[#ccff00]/10 border border-[#ccff00]/30 rounded-xl flex items-center justify-center text-[#ccff00] mb-5 group-hover:scale-110 transition-transform">
-                <Bot className="w-6 h-6" />
-              </div>
-              <h3 className="text-lg font-bold text-white mb-2">AI Stock Advisor & Screener</h3>
-              <p className="text-xs text-[#9f9bac] leading-relaxed">
-                Tanyakan apa saja seputar emiten IHSG kepada AI Companion kami. Dapatkan rangkuman katalis bisnis, laporan keuangan, dan estimasi risiko dalam bahasa Indonesia secara instan.
-              </p>
-            </div>
-
-            {/* Feature 2 */}
-            <div className="p-6 bg-[#111018] border border-[#1b1926] hover:border-[#00f0ff]/40 rounded-2xl transition-all group">
-              <div className="w-12 h-12 bg-[#00f0ff]/10 border border-[#00f0ff]/30 rounded-xl flex items-center justify-center text-[#00f0ff] mb-5 group-hover:scale-110 transition-transform">
-                <BarChart3 className="w-6 h-6" />
-              </div>
-              <h3 className="text-lg font-bold text-white mb-2">Skor Fundamental & Valuation DCF</h3>
-              <p className="text-xs text-[#9f9bac] leading-relaxed">
-                Metrik skor fundamental 0-100 otomatis yang mengalkulasi Fair Value DCF, PER/PBV Band Historis, Margin Keuntungan, ROE, dan Solvabilitas emiten.
-              </p>
-            </div>
-
-            {/* Feature 3 */}
-            <div className="p-6 bg-[#111018] border border-[#1b1926] hover:border-[#00f5a0]/40 rounded-2xl transition-all group">
-              <div className="w-12 h-12 bg-[#00f5a0]/10 border border-[#00f5a0]/30 rounded-xl flex items-center justify-center text-[#00f5a0] mb-5 group-hover:scale-110 transition-transform">
-                <TrendingUp className="w-6 h-6" />
-              </div>
-              <h3 className="text-lg font-bold text-white mb-2">Interactive Technical Charting</h3>
-              <p className="text-xs text-[#9f9bac] leading-relaxed">
-                Grafik teknikal interaktif TradingView / Lightweight Charts dilengkapi indikator Moving Averages (EMA 20/50/200), RSI, MACD, dan pendeteksi Support/Resistance otomatis.
-              </p>
-            </div>
-
-            {/* Feature 4 */}
-            <div className="p-6 bg-[#111018] border border-[#1b1926] hover:border-[#ff3366]/40 rounded-2xl transition-all group">
-              <div className="w-12 h-12 bg-[#ff3366]/10 border border-[#ff3366]/30 rounded-xl flex items-center justify-center text-[#ff3366] mb-5 group-hover:scale-110 transition-transform">
-                <History className="w-6 h-6" />
-              </div>
-              <h3 className="text-lg font-bold text-white mb-2">Backtest & Walk-Forward Optimizer</h3>
-              <p className="text-xs text-[#9f9bac] leading-relaxed">
-                Uji coba performa strategi trading kuantitatif pada data historis IHSG 5 tahun terakhir. Optimalkan parameter tanpa perlu menulis kodingan rumit.
-              </p>
-            </div>
-
-            {/* Feature 5 */}
-            <div className="p-6 bg-[#111018] border border-[#1b1926] hover:border-[#ccff00]/40 rounded-2xl transition-all group">
-              <div className="w-12 h-12 bg-[#ccff00]/10 border border-[#ccff00]/30 rounded-xl flex items-center justify-center text-[#ccff00] mb-5 group-hover:scale-110 transition-transform">
-                <PieChart className="w-6 h-6" />
-              </div>
-              <h3 className="text-lg font-bold text-white mb-2">Portfolio Risk Cockpit</h3>
-              <p className="text-xs text-[#9f9bac] leading-relaxed">
-                Lacak portofolio riil Anda, hitung Rasio Sharpe, Maximum Drawdown, Value at Risk (VaR), serta matriks korelasi antar emiten untuk meminimalkan risiko kerugian.
-              </p>
-            </div>
-
-            {/* Feature 6 */}
-            <div className="p-6 bg-[#111018] border border-[#1b1926] hover:border-[#00f0ff]/40 rounded-2xl transition-all group">
-              <div className="w-12 h-12 bg-[#00f0ff]/10 border border-[#00f0ff]/30 rounded-xl flex items-center justify-center text-[#00f0ff] mb-5 group-hover:scale-110 transition-transform">
-                <Activity className="w-6 h-6" />
-              </div>
-              <h3 className="text-lg font-bold text-white mb-2">Seasonality & Monthly Heatmap</h3>
-              <p className="text-xs text-[#9f9bac] leading-relaxed">
-                Visualisasikan kecenderungan kenaikan atau penurunan harga saham IDX berdasarkan bulan dan hari. Sangat ampuh untuk strategi Window Dressing & Dividend Season.
-              </p>
-            </div>
-
-          </div>
-        </div>
-      </section>
-
-      {/* 5. PRICING SECTION */}
-      <section id="harga" className="py-20 bg-[#0a090f] border-t border-b border-[#1b1926]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="text-center max-w-2xl mx-auto mb-16">
-            <div className="text-xs font-mono font-bold text-[#ccff00] tracking-widest uppercase mb-2">PILIKAN PAKET BERSAING</div>
-            <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
-              Investasi Terbaik untuk Portofolio Masa Depan Anda
-            </h2>
-            <p className="mt-3 text-sm text-[#9f9bac]">
-              Pilih paket yang sesuai dengan kebutuhan analisis dan gaya investasi Anda.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            
-            {/* Tier 1: Starter (Free) */}
-            <div className="p-6 bg-[#111018] border border-[#1b1926] rounded-2xl flex flex-col justify-between">
-              <div>
-                <div className="text-xs font-mono font-bold text-[#686477] uppercase mb-1">STARTER</div>
-                <h3 className="text-xl font-bold text-white">Free Forever</h3>
-                <div className="mt-4 mb-6">
-                  <span className="text-3xl font-black text-white font-mono">Rp 0</span>
-                  <span className="text-xs text-[#686477]"> / bulan</span>
-                </div>
-                <ul className="space-y-3 text-xs text-[#9f9bac]">
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-[#ccff00] shrink-0" />
-                    <span>Akses Market Cockpit & Watchlist</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-[#ccff00] shrink-0" />
-                    <span>Grafik Teknis & Indikator Dasar</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-[#ccff00] shrink-0" />
-                    <span>Skor Fundamental Saham 0-100</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-[#ccff00] shrink-0" />
-                    <span>5 Query AI Gemini / hari</span>
-                  </li>
-                </ul>
-              </div>
-              <Link 
-                href="/login"
-                className="mt-8 w-full py-3 bg-[#1b1926] hover:bg-[#262436] text-white text-center rounded-xl text-xs font-bold transition-colors cursor-pointer"
-              >
-                Daftar Gratis
-              </Link>
-            </div>
-
-            {/* Tier 2: Pro Trader (Popular) */}
-            <div className="p-6 bg-[#111018] border-2 border-[#ccff00] rounded-2xl flex flex-col justify-between relative shadow-[0_0_30px_rgba(204,255,0,0.15)]">
-              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3 py-0.5 bg-[#ccff00] text-black text-[10px] font-black rounded-full font-mono uppercase tracking-wider">
-                PALING POPULER
-              </div>
-              <div>
-                <div className="text-xs font-mono font-bold text-[#ccff00] uppercase mb-1">PRO TRADER</div>
-                <h3 className="text-xl font-bold text-white">Full Intelligence</h3>
-                <div className="mt-4 mb-6">
-                  <span className="text-3xl font-black text-white font-mono">Rp 149.000</span>
-                  <span className="text-xs text-[#686477]"> / bulan</span>
-                </div>
-                <ul className="space-y-3 text-xs text-[#e2dfeb]">
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-[#ccff00] shrink-0" />
-                    <span>Semua fitur paket Starter</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-[#ccff00] shrink-0" />
-                    <span><strong>Unlimited AI Gemini Query & Advisor</strong></span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-[#ccff00] shrink-0" />
-                    <span>Kalkulator Fair Value DCF & Graham Number</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-[#ccff00] shrink-0" />
-                    <span>Backtest Strategi Kuantitatif 5 Tahun</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-[#ccff00] shrink-0" />
-                    <span>Alert Harga & Katalis Real-time</span>
-                  </li>
-                </ul>
-              </div>
-              <Link 
-                href="/login"
-                className="mt-8 w-full py-3 bg-[#ccff00] text-black hover:bg-[#b8e600] text-center rounded-xl text-xs font-extrabold transition-all shadow-[0_0_20px_rgba(204,255,0,0.2)] cursor-pointer"
-              >
-                Mulai Pro 14 Hari Trial
-              </Link>
-            </div>
-
-            {/* Tier 3: Institutional Quant */}
-            <div className="p-6 bg-[#111018] border border-[#1b1926] rounded-2xl flex flex-col justify-between">
-              <div>
-                <div className="text-xs font-mono font-bold text-[#00f0ff] uppercase mb-1">INSTITUTIONAL</div>
-                <h3 className="text-xl font-bold text-white">Quant & API</h3>
-                <div className="mt-4 mb-6">
-                  <span className="text-3xl font-black text-white font-mono">Rp 499.000</span>
-                  <span className="text-xs text-[#686477]"> / bulan</span>
-                </div>
-                <ul className="space-y-3 text-xs text-[#9f9bac]">
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-[#00f0ff] shrink-0" />
-                    <span>Semua fitur Pro Trader</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-[#00f0ff] shrink-0" />
-                    <span>Walk-Forward Strategy Optimizer</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-[#00f0ff] shrink-0" />
-                    <span>API Export Data & Signal Webhooks</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-[#00f0ff] shrink-0" />
-                    <span>Prioritas Server & Support VIP</span>
-                  </li>
-                </ul>
-              </div>
-              <Link 
-                href="/login"
-                className="mt-8 w-full py-3 bg-[#1b1926] hover:bg-[#262436] text-white text-center rounded-xl text-xs font-bold transition-colors cursor-pointer"
-              >
-                Hubungi Penjualan
-              </Link>
-            </div>
-
-          </div>
-        </div>
-      </section>
-
-      {/* 6. FAQ SECTION (SEO OPTIMIZED) */}
-      <section id="faq" className="py-20 border-b border-[#1b1926]">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-12">
-            <div className="text-xs font-mono font-bold text-[#ccff00] tracking-widest uppercase mb-2">PERTANYAAN UMUM</div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-white">Pertanyaan Sering Diajukan (FAQ)</h2>
-          </div>
-
-          <div className="space-y-3">
-            {faqs.map((faq, index) => {
-              const isOpen = openFaq === index;
-              return (
-                <div 
-                  key={index}
-                  className="bg-[#111018] border border-[#1b1926] rounded-xl overflow-hidden transition-colors"
-                >
-                  <button
-                    onClick={() => setOpenFaq(isOpen ? null : index)}
-                    className="w-full p-5 text-left font-bold text-sm text-white flex items-center justify-between gap-4 cursor-pointer hover:text-[#ccff00] transition-colors"
-                  >
-                    <span>{faq.question}</span>
-                    {isOpen ? (
-                      <ChevronUp className="w-4 h-4 text-[#ccff00] shrink-0" />
-                    ) : (
-                      <ChevronDown className="w-4 h-4 text-[#686477] shrink-0" />
-                    )}
-                  </button>
-                  {isOpen && (
-                    <div className="px-5 pb-5 pt-1 text-xs text-[#9f9bac] leading-relaxed border-t border-[#1b1926]/50">
-                      {faq.answer}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* 7. FINAL CTA */}
-      <section className="py-20 bg-gradient-to-b from-[#0a090f] to-[#060509] text-center relative overflow-hidden">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 relative z-10">
-          <div className="w-16 h-16 bg-[#ccff00]/10 border border-[#ccff00]/30 rounded-2xl flex items-center justify-center text-[#ccff00] mx-auto mb-6">
-            <ShieldCheck className="w-8 h-8" />
-          </div>
-          <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
-            Siap Tingkatkan Keputusan Investasi Saham Anda?
-          </h2>
-          <p className="mt-3 text-sm text-[#9f9bac] max-w-xl mx-auto">
-            Bergabunglah bersama ribuan investor Indonesia yang telah memanfaatkan analisis kecerdasan buatan & kuantitatif SafeHaven.
-          </p>
-          <div className="mt-8">
-            <Link 
-              href="/login"
-              className="inline-flex items-center gap-2 px-8 py-4 bg-[#ccff00] text-black font-extrabold text-sm rounded-xl hover:bg-[#b8e600] transition-all shadow-[0_0_35px_rgba(204,255,0,0.3)] cursor-pointer"
+            <button
+              onClick={() => {
+                setVipPassOpen(false);
+                setAuthModalOpen(true);
+              }}
+              className="w-full mt-4 bg-[#ccff00] text-black font-bold text-xs py-2.5 rounded-xl hover:bg-[#b8e600] transition-all"
             >
-              <span>Mulai Buka SafeHaven Cockpit</span>
-              <ArrowRight className="w-5 h-5" />
-            </Link>
+              Klaim Access Pass Anda
+            </button>
           </div>
         </div>
-      </section>
-
-      {/* 8. FOOTER WITH SEO SITE LINKS */}
-      <footer className="bg-[#040306] border-t border-[#1b1926] py-12 text-xs text-[#686477]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 md:grid-cols-5 gap-8 mb-8">
-          
-          <div className="md:col-span-2">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-7 h-7 flex items-center justify-center">
-                <SafeHavenLogo className="w-6 h-6 drop-shadow-[0_0_6px_rgba(244,184,71,0.4)]" />
-              </div>
-              <span className="text-base font-bold text-white">SafeHaven<span className="text-[#F4B847]">.</span></span>
-            </div>
-            <p className="text-[#9f9bac] text-xs leading-relaxed max-w-sm">
-              SafeHaven adalah platform analisis pasar saham Indonesia (IDX/IHSG) berbasis AI, menyediakan skor fundamental, indikator teknikal, strategi kuantitatif, dan analisis portofolio.
-            </p>
-          </div>
-
-          <div>
-            <h4 className="text-white font-bold mb-3 font-mono text-[11px] uppercase tracking-wider">Navigasi Utama</h4>
-            <ul className="space-y-2">
-              <li><Link href="/" className="hover:text-white transition-colors">Market Cockpit</Link></li>
-              <li><Link href="/full-chart/IHSG" className="hover:text-white transition-colors">IHSG Chart</Link></li>
-              <li><Link href="/analytics" className="hover:text-white transition-colors">Market Analytics</Link></li>
-              <li><Link href="/stock-analysis" className="hover:text-white transition-colors">Stock Analysis</Link></li>
-              <li><Link href="/news" className="hover:text-white transition-colors">Market News</Link></li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="text-white font-bold mb-3 font-mono text-[11px] uppercase tracking-wider">Quant & Portfolio</h4>
-            <ul className="space-y-2">
-              <li><Link href="/portfolio" className="hover:text-white transition-colors">Portfolio Tracker</Link></li>
-              <li><Link href="/backtest" className="hover:text-white transition-colors">Backtest Strategy</Link></li>
-              <li><Link href="/universe" className="hover:text-white transition-colors">Universe Builder</Link></li>
-              <li><Link href="/admin" className="hover:text-white transition-colors">Risk Control (Admin)</Link></li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="text-white font-bold mb-3 font-mono text-[11px] uppercase tracking-wider">Top Saham IDX</h4>
-            <ul className="space-y-2 font-mono">
-              <li><Link href="/ticker/BBCA.JK" className="hover:text-[#ccff00] transition-colors">BBCA (Bank BCA)</Link></li>
-              <li><Link href="/ticker/BBRI.JK" className="hover:text-[#ccff00] transition-colors">BBRI (Bank BRI)</Link></li>
-              <li><Link href="/ticker/TLKM.JK" className="hover:text-[#ccff00] transition-colors">TLKM (Telkom)</Link></li>
-              <li><Link href="/ticker/AMMN.JK" className="hover:text-[#ccff00] transition-colors">AMMN (Amman Mineral)</Link></li>
-            </ul>
-          </div>
-
-        </div>
-
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 border-t border-[#1b1926]/50 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p>© {new Date().getFullYear()} SafeHaven System. Hak Cipta Dilindungi Undang-Undang.</p>
-          <div className="flex items-center gap-4 text-[11px]">
-            <span>Disclaimer: Semua analisis dan konten bersifat edukasi dan sanad keputusan ada pada investor.</span>
-          </div>
-        </div>
-      </footer>
+      )}
 
     </div>
   );
 };
+
+export default LandingPage;

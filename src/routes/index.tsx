@@ -6,28 +6,50 @@ import { AuthGuardView, PremiumGuardView } from '../components/AccessGuards';
 import { AdminProtectedRoute } from '../admin/AdminProtectedRoute';
 import { useAppStore } from '../stores';
 
+// Helper for resilient page module dynamic imports with auto-retry
+const lazyWithRetry = <P extends object = {}>(factory: () => Promise<any>, exportName?: string): React.ComponentType<P> => {
+  return lazy(async () => {
+    try {
+      const module = await factory();
+      const exportItem = module.default || (exportName ? module[exportName] : null) || Object.values(module)[0];
+      return { default: exportItem };
+    } catch (error) {
+      console.warn(`[LazyLoad] Error loading module (${exportName || 'default'}), retrying...`, error);
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      try {
+        const module = await factory();
+        const exportItem = module.default || (exportName ? module[exportName] : null) || Object.values(module)[0];
+        return { default: exportItem };
+      } catch (retryError) {
+        console.error(`[LazyLoad] Failed to load module (${exportName || 'default'}):`, retryError);
+        throw retryError;
+      }
+    }
+  }) as unknown as React.ComponentType<P>;
+};
+
 // Lazy-loaded Page Modules
-const LandingPage = lazy(() => import('../pages/LandingPage').then(m => ({ default: m.LandingPage })));
-const Login = lazy(() => import('../pages/Login').then(m => ({ default: m.Login })));
-const Dashboard = lazy(() => import('../pages/Dashboard').then(m => ({ default: m.Dashboard })));
-const Portfolio = lazy(() => import('../pages/Portfolio').then(m => ({ default: m.Portfolio })));
-const Compare = lazy(() => import('../pages/Compare').then(m => ({ default: m.Compare })));
-const Backtest = lazy(() => import('../pages/Backtest').then(m => ({ default: m.Backtest })));
-const Optimizer = lazy(() => import('../pages/Optimizer').then(m => ({ default: m.Optimizer })));
-const Strategies = lazy(() => import('../pages/Strategies').then(m => ({ default: m.Strategies })));
-const Analytics = lazy(() => import('../pages/Analytics').then(m => ({ default: m.Analytics })));
-const UniversePage = lazy(() => import('../pages/Universe').then(m => ({ default: m.UniversePage })));
-const StockAnalysis = lazy(() => import('../pages/StockAnalysis').then(m => ({ default: m.StockAnalysis })));
-const MarketNews = lazy(() => import('../pages/MarketNews').then(m => ({ default: m.MarketNews })));
-const Risk = lazy(() => import('../pages/Risk').then(m => ({ default: m.Risk })));
-const Alerts = lazy(() => import('../pages/Alerts').then(m => ({ default: m.Alerts })));
-const Admin = lazy(() => import('../pages/Admin').then(m => ({ default: m.Admin })));
-const Settings = lazy(() => import('../pages/Settings').then(m => ({ default: m.Settings })));
-const AiManager = lazy(() => import('../pages/AiManager').then(m => ({ default: m.AiManager })));
-const TickerDetail = lazy(() => import('../pages/TickerDetail').then(m => ({ default: m.TickerDetail })));
-const FullChart = lazy(() => import('../pages/FullChart').then(m => ({ default: m.FullChart })));
-const NotFound = lazy(() => import('../pages/NotFound').then(m => ({ default: m.NotFound })));
-const Premium = lazy(() => import('../pages/Premium').then(m => ({ default: m.Premium })));
+const LandingPage = lazyWithRetry(() => import('../pages/LandingPage'), 'LandingPage');
+const Login = lazyWithRetry(() => import('../pages/Login'), 'Login');
+const Dashboard = lazyWithRetry(() => import('../pages/Dashboard'), 'Dashboard');
+const Portfolio = lazyWithRetry(() => import('../pages/Portfolio'), 'Portfolio');
+const Compare = lazyWithRetry(() => import('../pages/Compare'), 'Compare');
+const Backtest = lazyWithRetry(() => import('../pages/Backtest'), 'Backtest');
+const Optimizer = lazyWithRetry(() => import('../pages/Optimizer'), 'Optimizer');
+const Strategies = lazyWithRetry(() => import('../pages/Strategies'), 'Strategies');
+const Analytics = lazyWithRetry(() => import('../pages/Analytics'), 'Analytics');
+const UniversePage = lazyWithRetry(() => import('../pages/Universe'), 'UniversePage');
+const StockAnalysis = lazyWithRetry(() => import('../pages/StockAnalysis'), 'StockAnalysis');
+const MarketNews = lazyWithRetry(() => import('../pages/MarketNews'), 'MarketNews');
+const Risk = lazyWithRetry(() => import('../pages/Risk'), 'Risk');
+const Alerts = lazyWithRetry(() => import('../pages/Alerts'), 'Alerts');
+const Admin = lazyWithRetry(() => import('../pages/Admin'), 'Admin');
+const Settings = lazyWithRetry(() => import('../pages/Settings'), 'Settings');
+const AiManager = lazyWithRetry(() => import('../pages/AiManager'), 'AiManager');
+const TickerDetail = lazyWithRetry<any>(() => import('../pages/TickerDetail'), 'TickerDetail');
+const FullChart = lazyWithRetry<any>(() => import('../pages/FullChart'), 'FullChart');
+const NotFound = lazyWithRetry(() => import('../pages/NotFound'), 'NotFound');
+const Premium = lazyWithRetry(() => import('../pages/Premium'), 'Premium');
 
 export const AppRoutes = () => {
   const { user, isDemoMode } = useAppStore();

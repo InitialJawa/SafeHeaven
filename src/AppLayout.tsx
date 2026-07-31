@@ -38,7 +38,6 @@ import {
   Bot,
   Lock,
   Crown,
-  Sparkles,
   UserCheck
 } from 'lucide-react';
 import { toast } from 'sonner';

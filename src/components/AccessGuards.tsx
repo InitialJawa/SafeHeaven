@@ -6,7 +6,7 @@
 import React from 'react';
 import { useLocation } from 'wouter';
 import { useAppStore } from '../stores';
-import { Lock, Crown, ArrowRight, UserCheck, ShieldCheck, Sparkles, LayoutDashboard } from 'lucide-react';
+import { Lock, Crown, ArrowRight, UserCheck, ShieldCheck, LayoutDashboard } from 'lucide-react';
 
 export const AuthGuardView: React.FC<{ featureName?: string }> = ({ featureName = 'Fitur Ini' }) => {
   const [, setLocation] = useLocation();
@@ -78,7 +78,7 @@ export const PremiumGuardView: React.FC<{ featureName?: string }> = ({ featureNa
         </div>
 
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#ccff00]/10 border border-[#ccff00]/30 text-[#ccff00] text-[10px] font-mono font-bold tracking-widest uppercase mb-3 shadow-[0_0_10px_rgba(204,255,0,0.15)]">
-          <Sparkles className="w-3.5 h-3.5" />
+          <Crown className="w-3.5 h-3.5" />
           <span>MEMBER PREMIUM ONLY</span>
         </div>
 

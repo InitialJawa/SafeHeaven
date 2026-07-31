@@ -13,7 +13,6 @@ import {
   RefreshCw, 
   UserCheck, 
   ShieldCheck, 
-  Sparkles, 
   DollarSign,
   Info,
   QrCode
@@ -282,7 +281,7 @@ export const PaymentConsole: React.FC<PaymentConsoleProps> = ({ addLog }) => {
               disabled={isGranting}
               className="w-full py-2.5 px-4 rounded-xl bg-[#00f0ff] hover:bg-[#00d0e0] active:scale-[0.98] text-black font-extrabold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
-              {isGranting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+              {isGranting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
               <span>Aktifkan Akses Sekarang</span>
             </button>
           </form>

@@ -17,8 +17,7 @@ import {
   UserPlus, 
   Wrench, 
   Mail, 
-  Calendar,
-  Sparkles
+  Calendar
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { GoogleIcon, GmailIcon } from '../components/AppLogos';
@@ -309,7 +308,7 @@ export const UserManagementConsole: React.FC<UserManagementConsoleProps> = ({ ad
                 disabled={isAddingClient}
                 className="w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-black text-xs font-extrabold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-amber-500/10"
               >
-                <Sparkles className="w-3.5 h-3.5 fill-current" /> Aktifkan Hak Akses VIP
+                <Crown className="w-3.5 h-3.5 fill-current" /> Aktifkan Hak Akses VIP
               </button>
             </form>
           </div>
